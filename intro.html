@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>About libstart</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+<style type="text/css">
+ul.libnav {
+    margin: 0;
+    padding: 0;
+    width: 300px;
+    background-color: #e0e0e0;
+    list-style-type: none;
+}
+
+table.srcdiv {
+    width: 275px;
+    table-layout:fixed;
+}
+
+li.dirent {
+  margin: 8px;
+}
+
+li a {
+    color: #000;
+    text-decoration: none;
+}
+
+li a.folder {
+    background-color: #e0e0e0;
+    color: black;
+    font-weight: bold;
+    font-style: italic;
+    font-size: larger;
+}
+
+a.srcfile {
+  font-family: Monaco;
+  font-size: smaller;
+  margin: 0;
+}
+
+li a:hover:not(.folder) {
+    background-color: #555;
+    color: white;
+}
+
+span.descr {
+  font-family: serif;
+}
+
+td.navcell {
+  vertical-align: top;
+  background-color: #f1f1f1;
+  width: 300px;
+}
+td.srccell {
+  max-width: 275px;
+  word-wrap: break-word;
+}
+</style>
+</head>
+<body>
+<header>
+<h1 class="title">About the <code>libstart</code> library</h1>
+<h2 class="author">Jonathan Brezin (jonathan.brezin@gmail.com)</h2>
+<h2 class="date">August, 2017</h2>
+</header>
+<table class="foldertable">
+<tr>
+<td class="navcell">
+<h3>The Libraries</h3>
+The Python modules have been written for Python 3.5, and the Ruby for Ruby 2.3.2.
+<hr>
+<ul class="libnav">
+  <li class="dirent"><a class="folder"  id="#libpy"><code>libpy</code></a></li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/cmdlineparser.html">cmdlineparser:</a>
+    <span class="descr">specify command line options and read command lines.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/dbg.html">dbg:</a>
+    <span class="descr">filtered logging of debugging output.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/delegator.html">delegator:</a>
+    <span class="descr">the "delegate" pattern with several Python-only twists.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/dictasset.html">dictasset:</a>
+    <span class="descr">provide set-like operations on sets of <code>dict</code>s.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/fileutils.html">fileutils:</a>
+    <span class="descr">utilities for organizing and backing up the files in an app.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/frozendict.html">frozendict:</a>
+    <span class="descr">uses a decorator to create a read-only dictionary.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/idbg.html">idbg:</a>
+    <span class="descr">client interface to the <code>dbg</code> logger.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/inheritancedict.html">inheritancedict:</a>
+    <span class="descr">pure-Python implementation of the <code>mappingproxy</code> class
+    that Python uses for attributeinheritance.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/inifile.html">inifile:</a>
+    <span class="descr">my take on the standard config file, inifile, property list file.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/nputils.html">nputils:</a>
+    <span class="descr">some simple general utilities I found useful for doing
+    <a href="http://www.numpy.org/"><code>numpy</code></a> work</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/powermethod.html">powermethod:</a>
+    <span class="descr">computes the largest eigenvalue of numeric matrix</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/qsort.html">qsort:</a>
+    <span class="descr">pure-Python implementation of an in-place quicksort</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/randomdist.html">randomdist:</a>
+    <span class="descr">simplifies using the command line options to generate various kinds of
+     random sequences and matrices.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/readonlydict.html">readonlydict:</a>
+    <span class="descr">an abstract class that defines the API I want for a read-only
+     dictionary.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/singleton.html">singleton:</a>
+    <span class="descr">several approaches to using decorators to implement the 
+    singleton pattern.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/sortedlist.html">sortedlist:</a>
+    <span class="descr">an exercise in efficiently implementing a list that is dynamic,
+    but also must be kept sorted.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/strext.html">strext:</a>
+    <span class="descr">some utilities that should be in the <code>str</code> class, 
+    but are not.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/sysutils.html">sysutils:</a>
+    <span class="descr">implements some very basic system utilities that wrap a few Python
+    fundamentals.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/vblist.html">vblist:</a>
+    <span class="descr">implements vetted list semantics on top of 
+    <a href="http://stutzbachenterprises.com/blist/"><code>blist</code>s</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="libpy/doc/wildcardlookup.html">wildcardlookup:</a>
+    <span class="descr">implements an extension of <code>dict</code> that permits a 
+    single "wild-card" character.</span>
+  </li>
+</ul>
+<hr>
+<ul class="libnav">
+  <li class="dirent"><a class="folder"  id="#librb"><code>librb</code></a></li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/aliasing.html">aliasing:</a>
+    <span class="descr">in search of a robust method for creating aliases.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/callerid.html">callerid:</a>
+    <span class="descr">an API with reasonable mnemonics for discovering a method's caller.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/cmdline.html">cmdline:</a>
+    <span class="descr">specifying command line options and reading command lines.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/dbg.html">dbg:</a>
+    <span class="descr">filtered logging of debugging output.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/file_utils.html">fileutils:</a>
+    <span class="descr">utilities for organizing and backing up the files in an app.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/getset.html">getset:</a>
+    <span class="descr">make it a little easier to get the methods available that can be wrapped
+    to trace accesses to instance variables.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/idbg.html">idbg:</a>
+    <span class="descr">client interface to the <code>dbg</code> logger.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/litsrc.html">litsrc:</a>
+    <span class="descr">generic "literate programming support" intended initially for Python
+    and Ruby.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/panpype.html">panpype:</a>
+    <span class="descr">the command-line app for processing literate Python.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/rubymd.html">rubymd:</a>
+    <span class="descr">the command line app for processing literate Ruby/span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/sysutils.html">sysutils:</a>
+    <span class="descr">implements some very basic system utilities that extend a few Ruby
+    fundamentals.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/tracemgr.html">tracemgr:</a>
+    <span class="descr">general utilities for tracing variable accesses</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/wildcardlookup.html">wildcardlookup:</a>
+    <span class="descr">implements an extension of <code>dict</code> that permits a 
+    single "wild-card" character.</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/wrapping.html">wrapping:</a>
+    <span class="descr">implements a more general set of methods for wrapping existing methods
+    than is needed just to do variable tracing.</span>
+  </li>
+</ul>
+</td>
+<td>
+<h2>Overview</h2>
+
+<p> The name of this collection, "<code>libstart</code>" is meant to convey what this project of
+mine was about, without running into other folks's commonly used library names, like "libandlearn".
+All of the  fun names seem to have been taken. The lib is at once some basic and (I hope) useful
+code, and more especially, it is a "start" in the sense that it is also a set of exercises I set
+myself to become fluent in writing code in literate <code>coffeescript</code>, <code>Python</code>
+and <code>Ruby</code>.  In this first release, I am just providing the <code>Python</code> and
+<code>Ruby</code>.  If I  get a little happier with my <code>coffee</code>, I will pour it in as
+well. </p>
+
+<p> Most of the programming that I have done over the years has been command-line or back-end stuff,
+as opposed to client and UI code.  There are certain utilities that I have come to love and that are
+usually not provided, at least in quite the form I like, by the standard libraries of the languages
+I have had to use:  </p>
+
+<ul>
+<li> some basic collection types, like wild-card lookups, that are just off the beaten track;</li>
+<li> some basic file types, like inifiles, where there is just enough variation in the library
+     routines so that I wind up wrapping the routines to guaranty enforcing the rules I am
+     used to;</li>
+<li> file management tools, particularly those I use to impose a conventional directory structure
+     on a project;</li>
+
+<li> specifying command line options in an application and the corresponding parsing of command
+lines, where, again, I just want a consistent world independent of the language used to code the
+application; and finally</li>
+
+<li> a framework for streaming debugging output, where my problem, more often than not, has been
+     getting way too much output, rather than not getting enough.</li>
+</ul>
+
+<p> There are other things, of course, but this should give you an idea of the very basic
+level of the problems.  For me, these utilities have the additional charm of providing a good 
+starting point for learning to code idiomatically in a new language.
+</p>
+
+<h2> Who I am</h2>
+
+<p>  I'd like to say a little about how I got here.  I was fortunate enough to begin my education as
+a professional programmer at Bell Laboratories in the late 1970s (not a misprint).  The work of
+Brian Kernighan, Dennis Ritchie, and Ken Thompson set the direction for my whole career.  I was
+fascinated by the extraordinarily subtle ways in which C "just worked" to solve word processing and
+system problems, where other languages of the day that I had worked with, like Pascal on the minimal
+side and PL/I on the maximal side, did the job...but... somehow C made me much more productive.</p>
+
+<p> Most of my career was spent at IBM's Yorktown Heights Research Center, some 31 years.  During
+that time, I have had to use just about every programming language that's come done the pike: Scala,
+Setl, Smalltalk, Squeak and Snobol, to name just those that begin with "S".  And thanks to Kernighan
+<i>et al.</i>'s inspiration, I have tried to understand, to the extent that time and energy
+permitted, the unique virtues of each.</p>
+
+In retirement, I have had the luxury of learning at my own pace, and since Python and Ruby were
+languages that I admired, but had had less chance of using when I was getting paid to do this stuff,
+I set out to get myself reasonably fluent in both.  Thus, what you will see here really are baby
+steps, but I hope some folks will find the work useful nonetheless.  Meanwhile, as my next time-
+filling project, I think I'll turn to another topic I would have loved to think more about when I
+was a working stiff: compilers.  A lot has occurred there since I last worked in the area in the
+late 1980s, and I'd like to try to put together an account.
+
+<h2> The sorts of issues that I worry about here </h2>
+
+<p>  A good example of how language features show up at the basic level of code I am worrying about
+here is the debugging framework that I mentioned above.  The goal is to allow you to leave extensive
+enough debugging code in the final product so that you are sure you get the coverage you may need
+<i>from the code that you are actually running</i>, while still making it easy to filter what you
+see on any one execution without irretrievably cluttering up your application's source code.</p>
+
+<p> Even in a fairly modest application, there are apt to be several libraries and dozens of
+modules, many of which would profit from being instrumented with debugging code.  One sensible
+approach is to have a single global object manage the requests for output, publishing some and
+rejecting others, depending on how it is configured.  The main program can bring this "manager" to
+life and establish the filtering parameters--from a command line option, for example.  Of course,
+these parameters aren't carved in stone at program startup: any object that detects a runtime
+situation where some output should be turned on should be able to tell the manager to allow that
+output through.</p>
+
+<p> I commend to your attention the documentation for the two source files, <a
+href="libpy/doc/dbg.html"><code>dbg.py</code></a> and <a
+href="librb/doc/dbg.html"><code>dbg.rb</code></a>, as a careful introduction to my
+take on the manager's design and a much more detailed description of the various trade-offs. What I
+want to focus on here is just one design idea where Python and Ruby got me thinking differently.</p>
+
+<p> At first glance, the manager's job looks like any other stream's: you open it, write to it,
+close it, done!  However, as I explain <a href="librb/doc/dbg.html#buffering-the-output">in the
+documentation</a>, the order in which the output is generated at run-time is not always the order in
+which you want it displayed.  Therefore, the manager winds up having to act more like an intelligent
+server than a simple output stream.</p>
+
+<p>Bottom line: there are really two APIs, client and server, for two distinct sets of customers. Is
+it worthwhile separating the two?</p>
+
+<p> Honestly compels me to tell you that my first implementation in both Python and Ruby used one
+object to do everything: a class for Ruby and the unique instance of a class for Python.  Consumers
+could pick and choose from both APIs.  In fact, it never occurred to me that there was an issue of
+separation of concerns until I ran into a problem in which the Python <code>dbg</code> module was
+part of a circular chain of imports that the loader was unhappy with.  When I started to package up
+the Python client API separately, the first solution that occurred to me, my head being steeped in
+classical C, JavaScript and Java, was for clients to delegate to a "<code>DbgClient</code>"
+instance. There's nothing wrong with that, but it just isn't Python, whose multiple inheritance
+provides a much cleaner solution.  When I then went back to look at the Ruby code, I realized that I
+should have created a client <a href="https://en.wikipedia.org/wiki/Mixin">"mixin" module</a> along
+the analogous lines.  More recent Java-based languages, like <a
+href="https://en.wikipedia.org/wiki/AspectJ">AspectJ</a> provide an analogous approach under the
+rubric <a href="https://en.wikipedia.org/wiki/Aspect-oriented_programming">"aspect-oriented
+programming."</a> Sadly, it wasn't there when I was slogging away with Java, long, long ago.</p>
+
+<p> It was a small "Aha!" moment when I realized that, for the first time, I had multiple
+inheritance available to me and a real use for it, but still... small or not, the pleasure of that
+sort of insight is what keeps me plugging away. A pleasure here, a pleasure there, and pretty soon,
+you're having real fun.</p>
+
+<h2>Literate source</h2>
+
+<p> The one genuinely new tool here is the Ruby <a href="librb/doc/litsrc.html">
+<code>LiterateSource</code> class</a>.  As the introduction there says:
+</p>
+
+<blockquote>
+
+<p>
+The idea is to create document formats that are either legal Python or Ruby source code while
+permitting one to include <a href="http://pandoc.org">markdown</a> with the source in order to be
+able to create a document that the <a href="http://pandoc.org/MANUAL.html#pandocs- markdown">
+<code>pandoc</code> command</a> can then transform into HTML.  This is classic "literate
+programming".  By making the "literate" version still syntactically correct, one can use any
+syntax-directed editor to create the code without losing any of the editor's advantages.
+</p>
+
+</blockquote>
+
+<p>The documentation for <a href="librb/doc/litsrc.html"><code>LiterateSource</code></a> goes into
+great detail about the origins of and motivation for the particular conventions I adopted.  Suffice
+it to say here that I was inspired by <a
+href="http://coffeescript.org/"><code>coffeescript</code>'s</a> "<code>.litcoffee</code>" dialect.
+</p>
+
+<p>The two language specific commands are <a href="librb/doc/rubymd.html"><code>rubymd</code></a>
+and <a href="librb/doc/panpype.html"><code>panpype</code></a>, the executables for which are both to
+be found in the <code>bin</code> subdirectory of <code>libstart</code>.
+</p>
+
+<p>The source files here, which are in the <code>libpy/src</code> and <code>librb/src</code>
+directories, are "literate" Python and Ruby.
+</p>
+
+<h2> The organization of the library</h2>
+
+In the fine tradition of Rails, I favor convention over configuration.  The directory scheme for
+this project is one example.  The top-level directory, <code>libstart</code>, contains
+
+<ul compact> 
+<li> 
+a <code>bin</code> directory for such executables as there are (at the moment: two, namely the
+programs that transform literate Python and Ruby source into source code and HTML files), and
+</li>
+<li>
+a directory for each language I wind up playing with, the naming convention being: if the 
+language is saved in "<code>.xxx</code>" files, the directory is named "<code>libxxx</code>".
+</li>
+</ul>
+
+<p>Each language directory, in turn, has subdirectories:</p>
+
+<blockquote>
+<dl compact>
+<dt><code>src</code></dt><dd>the literate version of the source code</dd>
+<dt><code>lib</code></dt><dd>the source code without the literate commentary</dd>
+<dt><code>doc</code></dt><dd>the HTML file derived from the markdown in the literate source files</dd>
+<dt><code>doc/css</code></dt><dd>any CSS files needed for the HTML</dd>
+<dt><code>doc/examples</code></dt><dd>examples used to illustrate or test the source code</dd>
+</dl>
+</blockquote>
+
+<p>For more about this, see the commentary for the <a href="librb/doc/litsrc"><code>litsrc</code>
+module</a>  In particular, the API and the command-line interface provide a great deal of
+flexibility in laying out both the input and output directories, so you are not stuck with my
+tastes, exemplary though they are. </p>
+
+<h2> What is missing</h2>
+
+<p> There are two things that I haven't done that I feel require some explanation.  First, I have
+not provided comments in the formal <code>pydoc</code> and <code>rdoc</code> discipline, and second,
+I haven't automated publishing the final code in the conventional form (with Python's
+<code>__init__.py</code> "<code>__all__</code>" lists  or Ruby's gems) in which production code is
+normally distributed. </p>
+
+<p> For code like <code>litsrc</code> that stands alone as an executable, not having
+<code>rdoc</code> comments seems to me not to be all that important.  However, for code like the
+command line readers and debugging support which might prove useful enough to make their way into
+other folks's applications, this absence is a major sin. I should apologize and say that being aware
+of the problem, I may try to extend the <code>LiterateSource</code> syntax to allow me to
+automatically generate, from the literate source, versions of the source with something at least
+close to the expected <code>pydoc</code> or <code>rdoc</code> comments. </p>
+
+<p> The packaging story is a little more vexed: I don't know what I'll do, if only because I have
+not had any experience using these two languages in a production environment.  As with the
+<code>pydoc</code>/<code>rdoc</code> issue, though, it is my intention to try to do
+<i>something</i>.  There has to be something I can do to make it easy to move from my conventional
+organization to one consistent with Python's and Ruby's.  A clean solution will surely force me to
+complicate the very simple directory structure I have assumed to this point.  For Python, the issue
+is qualified names (namespaces, if you prefer), and for Ruby it is consistency with gem builders.
+Nothing particularly hard here, just a fair amount of drudgery.  Sigh!</p>
+
+</td>
+</tr>
+</table>
+</body>
+</html>
