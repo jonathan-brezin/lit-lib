@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>TraceMgr: tracing class and instance variables</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title"><code>TraceMgr</code>: tracing class and instance variables</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">December 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#introduction">Introduction</a><ul>
+<li><a href="#global-variables">Global variables</a></li>
+<li><a href="#the-companion-module-trace_utils">The companion module, “<code>trace_utils</code>”</a></li>
+</ul></li>
+<li><a href="#the-tracemanagement-class">The <code>TraceManagement</code> class</a><ul>
+<li><a href="#the-unique-trace-manager-tracemgr">The unique trace manager: <code>TraceMgr</code></a></li>
+<li><a href="#getting-started">Getting started</a><ul>
+<li><a href="#trace_in"><code>TraceMgr.trace_instance(context, variable, mode=“rw”, &amp;guard_block)</code></a></li>
+<li><a href="#trace_me"><code>TraceMgr.trace_me(context, variable, mode=“rw”, &amp;guard_block)</code></a></li>
+<li><a href="#replace_the_guardcontext-variable-guard_block"><code>replace_the_guard(context, variable, &amp;guard_block)</code></a></li>
+<li><a href="#replace_my_guardcontext-variable-guard_block"><code>replace_my_guard(context, variable, &amp;guard_block)</code></a></li>
+</ul></li>
+<li><a href="#public_ui">The public UI: start, pause, and end tracing</a><ul>
+<li><a href="#start"><code>TraceMgr.start_instance(context, variable, mode=“rw”, should_flush=false)</code></a></li>
+<li><a href="#start_me"><code>TraceMgr.start_my(context, variable, mode=“rw”, should_flush=false)</code></a></li>
+<li><a href="#pause"><code>TraceMgr.pause_instance(context, variable, mode=“rw”, should_flush = false)</code></a></li>
+<li><a href="#pause_me"><code>TraceMgr.pause_me(context, variable, mode=“rw”, should_flush = false)</code></a></li>
+<li><a href="#end_i"><code>TraceMgr.end_instance(context, variable, should_flush = false)</code></a></li>
+<li><a href="#end_me"><code>TraceMgr.end_me(context, variable, should_flush = false)</code></a></li>
+</ul></li>
+<li><a href="#output-methods">Output methods</a><ul>
+<li><a href="#buffer"><code>buffer(path=‘.’, asis: false, esc: false)</code></a></li>
+<li><a href="#flush"><code>flush(before: ‘Trace Manager requests flushing the DbgMgr stream’, after: ’’)</code></a></li>
+<li><a href="#admin_msgmessage-should_flush-false"><code>admin_msg(message, should_flush = false)</code></a></li>
+<li><a href="#admin_errmessage-should_flush-false"><code>admin_err(message, should_flush = false)</code></a></li>
+<li><a href="#admin_warnmessage-should_flush-false"><code>admin_warn(message, should_flush = false)</code></a></li>
+</ul></li>
+<li><a href="#implementation-note-the-traceitem-class">Implementation Note: The <code>TraceItem</code> class</a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+require <span class="st">&quot;awesome_print&quot;</span>
+require <span class="st">&quot;dbg&quot;</span>
+require <span class="st">&quot;sysutils&quot;</span>
+require <span class="st">&quot;wrapping&quot;</span>
+</code></pre>
+<h2 id="introduction">Introduction</h2>
+<p>Ruby, like Smalltalk, does not allow direct references to the state of an object outside of the object’s class’s own code, except through method calls (“message sends” in Smalltalk). One virtue of this is that requests to query the state, or to update it, may be manipulated in the same way that the language permits any other method to be manipulated. In the case of a dynamic language like Ruby, this means that one can vary at run-time the methods that access that state in order to create a trace of its evolution.</p>
+<p>Tracing variables has issues analogous to those that <a href="DbgMgr.html"><code>DbgMgr</code></a> was written to manage. The basic problem is too much output. One needs a convenient way of limiting the output. In the case of debugging, attaching a keyword to each output call is the natural way to handle this, and it seems to work very well once you allow a wild-card key lookup. It is less obvious how to constrain tracing output. I am not even sure that there is as simple a solution.</p>
+<p>The problem, to be more absolutely “Ruby concrete”, is selectively tracing <em><code>@var</code></em> and <em><code>@@var</code></em> variables. I see no reason not to assume that classes use <em><code>var</code></em> and <em><code>var=</code></em> for the methods that get and set the variable named <em><code>@var</code></em> (or <em><code>@@var</code></em>). Wrapping these functions is a <a href="wrapping.html">straightforward task</a>, so if that were all there were to it, we’d be done. There are, though, other things that one might want.</p>
+<ol type="1">
+<li><p>How can we set things up so that what gets traced is easily modified during the running of the program? The answer here is that the <code>TraceMgr</code> tracks all the variables being traced and uses the wrapping code’s <a href="wrapping.html#turn_on"><code>turn_on</code></a> and <a href="wrapping.html#turn_on_my"><code>turn_on_my</code></a> methods to turn tracing on and off.</p></li>
+<li><p>Which variables are to be traced? If <code>C</code> is a class whose instances have an instance variable <code>@x</code>, and if <code>c</code> is an instance of <code>C</code>, do we want to trace <code>@x</code> for all instances of <code>C</code>, or is it enough to trace only <code>c</code>’s accesses? Calls are provided to do both. If you explicitly turn tracing on or off for <code>c</code>, turning it on or off for <code>C</code> has no effect on <code>c</code>.</p></li>
+<li><p>Even if we restrict our attention to a single object like <code>c</code>, the question remains: which accesses should be displayed?. All reads, all writes, or all of both? Should we only display when the value is outside (or inside) of some (reasonable) range? On every thousand-th time through some loop? The solution here is to provide, as part of the trace request, a “guard block” that is free to compute whatever it wants and then return a boolean. If that boolean is <code>true</code>, the access is logged; otherwise, it is not.</p></li>
+</ol>
+<h3 id="global-variables">Global variables</h3>
+<p>Global variables (those that start with a “<code>$</code>”, <em>e.g.</em> <code>$PROGRAM_NAME</code>) pose a whole separate set of issues. Unlike class and instance variables, they seem to have no conventional get and set method-naming convention–where would those methods live? The upshot is that the simple kind of wrapping that I am proposing here will not work for them. I haven’t enough experience with the kinds of programs where tracing a global becomes an issue to have developed any intuition as to what might be helpful. <em>Bottom line:</em> there is nothing here that deals with globals.</p>
+<h3 id="the-companion-module-trace_utils">The companion module, “<code>trace_utils</code>”</h3>
+<p>The code here assumes you have at your fingertips the names of the variables to be traced. The module <a href="trace_utils.html">“<code>trace_utils</code>”</a> has a few functions that make it less painful to discover which instance and class variables do have read and write methods that can be wrapped.</p>
+<h2 id="the-tracemanagement-class">The <code>TraceManagement</code> class</h2>
+<h3 id="the-unique-trace-manager-tracemgr">The unique trace manager: <code>TraceMgr</code></h3>
+<p>The <code>TraceManagement</code> class serves the purpose of providing access to a unique object <code>TraceMgr</code> that implements the UI for a <code>TraceImpl</code> that is described below. Pardon the Java-like naming convention.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby"><span class="kw">class</span> <span class="dt">TraceManagement</span>
+   <span class="kw">class</span> <span class="dt">TraceImpl</span>
+      <span class="ot">attr_accessor</span> <span class="st">:dbg_key</span>
+      <span class="ot">attr_reader</span>   <span class="st">:registry</span>
+
+      <span class="kw">def</span> initialize dbg_key: <span class="st">'trc'</span>
+         <span class="ot">@dbg_key</span> = dbg_key
+         <span class="dt">DbgMgr</span>.add_patterns dbg_key
+         <span class="ot">@registry</span> = {}  <span class="co"># maps context+variable names to the info needed to trace</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+   <span class="ot">@mgr</span> = <span class="dt">TraceImpl</span>.new
+   <span class="kw">class</span> &lt;&lt; <span class="dv">self</span>
+      <span class="ot">attr_reader</span> <span class="st">:mgr</span>
+   <span class="kw">end</span>
+<span class="kw">end</span>
+
+<span class="dt">TraceMgr</span> = <span class="dt">TraceManagement</span>.mgr
+</code></pre>
+<h3 id="getting-started">Getting started</h3>
+<p>A common case–maybe even the most common–is to trace all accesses to an instance variable for all instances of some fixed class.</p>
+<h4 id="trace_in"><code>TraceMgr.trace_instance(context, variable, mode=“rw”, &amp;guard_block)</code></h4>
+<ul>
+<li><code>context</code> is a <code>Class</code><br /></li>
+<li><code>variable</code> is a symbol or a string that names an instance variable for <code>context</code><br /></li>
+<li><code>mode</code> is one of the strings <code>&quot;r&quot;</code>, <code>&quot;w&quot;</code>, <code>&quot;rw&quot;</code>, or the empty string, <code>&quot;&quot;</code><br /></li>
+<li><code>guard_block</code> is an optional block used to filter the logging output.</li>
+</ul>
+<p>The arguments for <code>guard_block</code> are:</p>
+<ul>
+<li><code>zelf</code>, the object being accessed,</li>
+<li><code>variable</code>, the name of the object’s variable</li>
+<li><code>old_value</code>, the current value of the variable, and</li>
+<li><code>new_value</code>, the new value, if this is a write operation, nil otherwise
+</blockquote>
+</li>
+</ul>
+<p>This call does two things: it registers the (<code>context</code>, <code>variable</code>) pair with the <code>TraceMgr</code>, and, if <code>mode</code> is not the empty string, turns tracing on for reads, writes, or both. The registration creates four aliases: one each for the original get and set methods for the variable, and one each for the wrapped get and set methods. The original get and set names are then aliased to the plain or wrapped accessors according to the <code>mode</code>.</p>
+<p>There is no return value.</p>
+<p>The wrapped methods call the guard block, if there is one, and if it returns <code>true</code>, the access is logged. If there is no guard block, all accesses are logged. The logging is done by the <a href="dbg.html">DbgMgr</a>. The instance variable <code>@dbg_key</code> of the <code>TraceMgr</code> is the key passed to the <code>DbgMgr</code>, so you can turn all tracing off by telling the <code>DbgMgr</code> to allow that key or not. By default, the key is <code>&quot;trc&quot;</code>. It may be reset at any time.</p>
+<p>The wrapped “getter” returns the current value of the variable (of course!), <em>but the wrapped “setter” returns the right-hand side of the assignment.</em> Be careful! This is done in order to be consistent with Ruby’s own semantics. Consider the following example in which the setter perform two modifications to the value it is asked to assign (converting it to an integer and then mod’ing by 100):</p>
+<blockquote><pre class="exampleCode">
+
+      class Foo
+         def initialize(x); @x = Integer(x) % 100 end
+         def x(); @x end
+         def x=(value); @x = Integer(value) % 100 end # value gets altered? 
+      end
+      foo = Foo.new 25
+      puts &quot;foo.x is initiallly #{foo.x}&quot;
+      z = foo.x = 241
+      puts &quot;After the assignment, z is #{z}, but foo.x is #{foo.x}&quot;
+
+</pre></blockquote>
+
+<p>If you run this code, the output from the <code>puts</code> that you will see is</p>
+<blockquote><pre class="exampleCode">
+      foo.x is initiallly 25
+      After the assignment, z is 241, but foo.x is 41
+</pre></blockquote>
+
+<p>The moral here is that <em>in Ruby “<code>a=b=c</code>” is not the same as “<code>b=c; a=b</code>”</em>. It is a shorthand for “<code>b=c; a=c</code>”.</p>
+<h4 id="trace_me"><code>TraceMgr.trace_me(context, variable, mode=“rw”, &amp;guard_block)</code></h4>
+<p>does for class variables, class instance variables, and instance variables for a particular object what <code>trace_instance</code> does for instance variables of a class. The difference between these three cases and that of all instances of a class is that the <code>context</code> argument here is also the <code>self</code> for the body of the wrapped accessors, whereas for <code>trace_instance</code>, <code>context</code> is a <code>Class</code> and in its wrapped code, <code>self</code> will be some arbitrary instance of that <code>Class</code>. See <a href="wrapping.html">wrapping.html</a> for a discussion of this (subtle!) distinction.</p>
+<p>All of the other arguments have the same meaning as they do for `trace_instance`. The functionality is also the same: the only reason for having two methods is to make clear the distinction between tracing a particular object versus tracing a set of objects.</p>
+<h4 id="replace_the_guardcontext-variable-guard_block"><code>replace_the_guard(context, variable, &amp;guard_block)</code></h4>
+<h4 id="replace_my_guardcontext-variable-guard_block"><code>replace_my_guard(context, variable, &amp;guard_block)</code></h4>
+<p>It can happen while an application is running, the guard on the trace needs to be replaced. These methods do just that. The arguments have the same meanings as for the corresponding <code>trace_...</code> calls. Both report an error if (<code>context</code>,<code>variable</code>) is not a currently registered pair with the <code>TraceMgr</code>. The “<code>my</code>” version corresponds to <code>trace_me</code>, and the “<code>the</code>” version to <code>trace_instance</code>.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby"><span class="kw">class</span> <span class="dt">TraceManagement</span>
+   <span class="kw">class</span> <span class="dt">TraceImpl</span>
+      <span class="kw">private</span>
+      <span class="kw">def</span> _trace(context, variable, own, mode, guard_block)
+         info = find_key context, variable, own
+         <span class="kw">if</span> info.nil? 
+            info = <span class="dt">TraceItem</span>.new context, variable, own, guard_block
+            key = make_key context, variable, own
+            <span class="ot">@registry</span>[key] = info
+            admin_msg <span class="st">&quot;trace for </span><span class="ot">#{</span>key<span class="ot">}</span><span class="st"> registered&quot;</span>
+         <span class="kw">else</span>
+            admin_warn <span class="st">&quot;trace(</span><span class="ot">#{</span>key<span class="ot">}</span><span class="st">) already active.&quot;</span>
+         <span class="kw">end</span>
+         <span class="co"># registering starts tracing by default, so if we don't want that, we need to pause.</span>
+         off <span class="kw">= if</span> <span class="kw">not</span> mode.include? <span class="st">'r'</span> <span class="kw">then</span> <span class="st">'r'</span> <span class="kw">else</span> <span class="st">''</span> <span class="kw">end</span>
+         <span class="kw">if</span> <span class="kw">not</span> mode.include? <span class="st">'w'</span> <span class="kw">then</span> off += <span class="st">'w'</span> <span class="kw">end</span>
+         _pause(context, variable, own, off) <span class="kw">if</span> off.length &gt; <span class="dv">0</span>    
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> make_key(context, variable, own)
+         variable = variable.to_s.gsub(<span class="st">'@'</span>, <span class="st">''</span>)
+         key <span class="kw">= if</span> own <span class="kw">then</span> <span class="st">&quot;</span><span class="ot">#{</span>context<span class="ot">}</span><span class="st">.</span><span class="ot">#{</span>variable<span class="ot">}</span><span class="st">&quot;</span>
+               <span class="kw">else</span> <span class="st">&quot;</span><span class="ot">#{</span>context<span class="ot">}</span><span class="st">@</span><span class="ot">#{</span>variable<span class="ot">}</span><span class="st">&quot;</span>
+               <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> find_key(context, variable, own, show_missing: <span class="dv">false</span>)
+         key = make_key context, variable, own
+         <span class="kw">if</span> <span class="ot">@registry</span>[key].nil?
+            altkey = make_key context, variable, (<span class="kw">not</span> own)
+            <span class="kw">if</span> show_missing
+               admin_err <span class="st">&quot;Could not find </span><span class="ot">#{</span>key<span class="ot">}</span><span class="st">.  Did you mean </span><span class="ot">#{</span>altkey<span class="ot">}</span><span class="st">&quot;</span>
+            <span class="kw">end</span>
+            <span class="dv">nil</span>
+         <span class="kw">else</span>
+            <span class="ot">@registry</span>[key]
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> _replace_the_guard(context, variable, own, &amp;guard_block)
+         info = find_key context, variable, own, show_missing: <span class="dv">true</span>
+         <span class="kw">if</span> <span class="kw">not</span> info.nil?
+            _end(context, variable, own)
+            trace info.context, info.variable, info.own, info.current_mode, guard_block
+         <span class="kw">else</span>
+            admin_err <span class="st">&quot;'</span><span class="ot">#{</span>context<span class="ot">}</span><span class="st">, </span><span class="ot">#{</span>variable<span class="ot">}</span><span class="st">' is not a registered trace pair&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">public</span> 
+      <span class="kw">def</span> trace_instance(context, variable, mode=<span class="st">'rw'</span>, &amp;guard_block)
+         _trace context, variable, <span class="dv">false</span>, mode, guard_block
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> trace_me(context, variable, mode=<span class="st">'rw'</span>, &amp;guard_block)
+         _trace context, variable, <span class="dv">true</span>, mode, guard_block
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> replace_instance_guard(context, variable, &amp;guard_block)
+         _replace_the_guard context, variable, <span class="dv">false</span>, guard_block
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> replace_my_guard(context, variable, &amp;guard_block)
+         _replace_the_guard context, variable, <span class="dv">true</span>, guard_block
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> replace_the_guard(context, variable, &amp;guard_block)
+         info = find_key context, variable, <span class="dv">true</span>
+         altinfo = find_key context, variable, <span class="dv">false</span>
+         <span class="kw">if</span> info.nil?
+            <span class="kw">if</span> altinfo.nil?
+               admin_err <span class="st">&quot;No TraceMgr entry for </span><span class="ot">#{</span>context<span class="ot">}</span><span class="st">, </span><span class="ot">#{</span>variable<span class="ot">}</span><span class="st">&quot;</span>
+            <span class="kw">else</span>
+               _replace_the_guard context, variable, <span class="dv">false</span>, guard_block
+            <span class="kw">end</span>
+         <span class="kw">elsif</span> altinfo.nil?
+            _replace_the_guard context, variable, <span class="dv">true</span>, guard_block
+         <span class="kw">else</span>
+            admin_err <span class="st">&quot;Ambiguous call for </span><span class="ot">#{</span>context<span class="ot">}</span><span class="st">,</span><span class="ot">#{</span>variable<span class="ot">}</span><span class="st">: use _instance and _my calls&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+</code></pre>
+<h3 id="public_ui">The public UI: start, pause, and end tracing</h3>
+<h4 id="start"><code>TraceMgr.start_instance(context, variable, mode=“rw”, should_flush=false)</code></h4>
+<h4 id="start_me"><code>TraceMgr.start_my(context, variable, mode=“rw”, should_flush=false)</code></h4>
+<p>wraps the read and/or write method for the context/variable entry in the <code>TracedMgr</code>‘s registry, so that the tracing action occurs. The mode governs which methods get wrapped: if ’r’ is in it, the read method is wrapped, if ‘w’, then the write method. The default is to wrap both. The final argument has to do with the interoperation of this facility with the <a href="dbg.html"><code>DbgMgr</code></a>. If it is buffering output, and if <code>should_flush</code> is passed in as <code>true</code>, then <code>DbgMgr</code> flushes its buffers once the the wrapping is done.</p>
+<p>The <code>trace</code> method automatically calls this method, which is a no-op if <code>mode</code> argument contains neither ‘r’ nor ‘w’.</p>
+<h4 id="pause"><code>TraceMgr.pause_instance(context, variable, mode=“rw”, should_flush = false)</code></h4>
+<h4 id="pause_me"><code>TraceMgr.pause_me(context, variable, mode=“rw”, should_flush = false)</code></h4>
+<p>unwraps the read and/or write method for the context/variable entry in the <code>TraceMgr</code>’s registry so that the tracing action(s) no longer occur. The arguments are the same as those for <code>start_...</code>.</p>
+<h4 id="end_i"><code>TraceMgr.end_instance(context, variable, should_flush = false)</code></h4>
+<h4 id="end_me"><code>TraceMgr.end_me(context, variable, should_flush = false)</code></h4>
+<p>pauses any active tracing, then removes the (<code>context</code>, <code>variabele</code>) pair from the registry.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">      <span class="kw">private</span>
+      <span class="kw">def</span> _end(context, variable, own, should_flush = <span class="dv">false</span>)
+         info = find_key context, variable, own
+         <span class="kw">unless</span> info.nil?
+            _pause context, variable, own, <span class="st">&quot;rw&quot;</span>, <span class="dv">false</span> 
+            <span class="ot">@registry</span>.delete make_key context, variable, own
+            admin_msg <span class="st">&quot;ended tracing for </span><span class="ot">#{</span>make_key(context, variable, own)<span class="ot">}</span><span class="st">&quot;</span>, should_flush
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+         
+      <span class="kw">def</span> _pause(context, variable, own, mode, should_flush = <span class="dv">false</span>)
+         info = find_key context, variable, own
+         <span class="kw">if</span> info.nil?
+            key = make_key context, variable, own
+            admin_warn <span class="st">&quot;</span><span class="ot">#{</span>key<span class="ot">}</span><span class="st"> is no longer registered with the TraceMgr&quot;</span>
+         <span class="kw">else</span>
+            paused = _swap mode, info, <span class="st">:pause</span>
+            <span class="kw">if</span> paused.length &gt; <span class="dv">0</span>
+               key = make_key(context, variable, own)
+               admin_msg <span class="st">&quot;paused tracing '</span><span class="ot">#{</span>paused<span class="ot">}</span><span class="st">' for </span><span class="ot">#{</span>key<span class="ot">}</span><span class="st">&quot;</span>, should_flush
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> _start(context, variable, own, mode, should_flush=<span class="dv">false</span>)
+         info = find_key context, variable, own
+         <span class="kw">if</span> info.nil?
+            admin_warn <span class="st">&quot;</span><span class="ot">#{</span>make_key(context, variable, own)<span class="ot">}</span><span class="st"> is no longer registered with the TraceMgr&quot;</span>
+         <span class="kw">else</span>
+            started = _swap mode, info, <span class="st">:start</span>
+            <span class="kw">if</span> started.length &gt; <span class="dv">0</span>
+               key = make_key context, variable, own
+               admin_msg <span class="st">&quot;started tracing  '</span><span class="ot">#{</span>started<span class="ot">}</span><span class="st">' for </span><span class="ot">#{</span>key<span class="ot">}</span><span class="st"> now&quot;</span>, should_flush
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">public</span>
+      <span class="kw">def</span> end_instance(context, variable, should_flush = <span class="dv">false</span>)
+         _end context, variable, <span class="dv">false</span>, should_flush
+      <span class="kw">end</span>
+         
+      <span class="kw">def</span> end_me(context, variable, should_flush = <span class="dv">false</span>)
+         _end context, variable, <span class="dv">true</span>, should_flush
+      <span class="kw">end</span>
+         
+      <span class="kw">def</span> pause_instance(context, variable, mode=<span class="st">&quot;rw&quot;</span>, should_flush = <span class="dv">false</span>)
+         _pause context, variable, <span class="dv">false</span>, mode, should_flush
+      <span class="kw">end</span>
+         
+      <span class="kw">def</span> pause_me(context, variable, mode=<span class="st">&quot;rw&quot;</span>, should_flush = <span class="dv">false</span>)
+         _pause context, variable, <span class="dv">true</span>, mode, should_flush
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> start_instance(context, variable, mode=<span class="st">&quot;rw&quot;</span>, should_flush=<span class="dv">false</span>)
+         _start context, variable, <span class="dv">false</span>, mode, should_flush
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> start_me(context, variable, mode=<span class="st">&quot;rw&quot;</span>, should_flush=<span class="dv">false</span>)
+         _start context, variable, <span class="dv">true</span>, mode, should_flush
+      <span class="kw">end</span>
+</code></pre>
+<h3 id="output-methods">Output methods</h3>
+<p>Unless told otherwise, the <code>TraceMgr</code> writes its output to the standard out stream. To both buffer it and redirect it to a file, one calls:</p>
+<h4 id="buffer"><code>buffer(path=‘.’, asis: false, esc: false)</code></h4>
+<p>The call simply sets up a call to <a href="dbg.html#openpath.-asis-false-esc-false"><code>DbgMgr.open</code></a>. If the keyword second argument, <code>asis</code>, is <code>true</code>, path will be used as the directory path “as is”. Otherwise, if path does not end in <code>/log</code>, <code>/log</code> will be appended and the result used as the directory path. The default is to append <code>/log</code> to the current working directory. The final argument, <code>esc</code>, sets the default for whether to replace characters that affect HTML syntax with the corresponding named HTML entities–e.g. whether or not to replace <code>&lt;</code> with <code>&amp;lt;</code>. The default is to reproduce the output as is: no escapes, the caller must have done that job. The reason for this default is to allow (not to say encourage) HTML markup to be put in the output easily.</p>
+<h4 id="flush"><code>flush(before: ‘Trace Manager requests flushing the DbgMgr stream’, after: ’’)</code></h4>
+<p>This again just sets up a call to the corresponding method for <code>DbgMgr</code>. The <code>before</code> and <code>after</code> messages will bracket the section, along with horizontal rules. This method can be called not just to flush the buffer, but simply to frame a section in the output stream with the <code>before</code> and <code>after</code> messages.</p>
+<p>There are three methods that <code>TraceMgr</code> calls to write directly to the debug output stream:</p>
+<h4 id="admin_msgmessage-should_flush-false"><code>admin_msg(message, should_flush = false)</code></h4>
+<h4 id="admin_errmessage-should_flush-false"><code>admin_err(message, should_flush = false)</code></h4>
+<h4 id="admin_warnmessage-should_flush-false"><code>admin_warn(message, should_flush = false)</code></h4>
+<p>These methods call the <code>DbgMgr</code>’s <code>put</code>, <code>err</code>, and <code>warn</code> calls. If <code>should_flush</code> is <code>true</code>, they also then flush the buffer.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+      <span class="kw">def</span> admin_msg(message, should_flush = <span class="dv">false</span>)
+         <span class="dt">DbgMgr</span>.put <span class="ot">@dbg_key</span>, message, esc: <span class="dv">true</span>, my_caller: <span class="st">&quot;TraceMgr&quot;</span>
+         <span class="kw">if</span> should_flush
+            <span class="dt">TraceMgr</span>.flush
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> admin_err(message, should_flush = <span class="dv">false</span>)
+         <span class="dt">DbgMgr</span>.err message, esc: <span class="dv">true</span>, my_caller: <span class="st">&quot;TraceMgr&quot;</span>
+         <span class="kw">if</span> should_flush 
+            <span class="dt">TraceMgr</span>.flush before: <span class="st">&quot;Trace Manager flush requested due to an error&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> admin_warn(message, should_flush = <span class="dv">false</span>)
+         <span class="dt">DbgMgr</span>.warn message, esc: <span class="dv">true</span>, my_caller: <span class="st">&quot;TraceMgr&quot;</span>
+         <span class="kw">if</span> should_flush
+            <span class="dt">TraceMgr</span>.flush
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> buffer(path=<span class="st">'.'</span>, asis: <span class="dv">false</span>, esc: <span class="dv">false</span>)
+         <span class="dt">DbgMgr</span>.open(path=path, asis: asis, esc: esc)
+         <span class="dv">self</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> flush(before: <span class="st">'Trace Manager flush request'</span>, after: <span class="st">&quot;&quot;</span>)
+         <span class="dt">DbgMgr</span>.flush before: before, after: after
+      <span class="kw">end</span>
+
+      <span class="kw">private</span>
+      <span class="kw">def</span> _swap(mode, info, action)
+         msg = <span class="st">&quot;swap </span><span class="ot">#{</span>info.reader<span class="ot">}</span><span class="st">, mode=</span><span class="ot">#{</span>mode<span class="ot">}</span><span class="st">, action: </span><span class="ot">#{</span>action<span class="ot">}</span><span class="st">, state=</span><span class="ot">#{</span>info.active_reads<span class="ot">}</span><span class="st">/</span><span class="ot">#{</span>info.active_writes<span class="ot">}</span><span class="st">&quot;</span>
+         admin_msg msg
+         swapped = <span class="st">''</span>
+         <span class="kw">if</span> mode.include? <span class="st">'r'</span>
+            <span class="kw">if</span> info.r_info.nil?
+               admin_warn <span class="st">&quot;Cannot trace </span><span class="ot">#{</span>info.variable<span class="ot">}</span><span class="st"> reads: no method defined&quot;</span>, <span class="dv">true</span>
+            <span class="kw">elsif</span> ((action == <span class="st">:start</span> <span class="kw">and</span> <span class="kw">not</span> info.active_reads) <span class="kw">or</span> 
+               (action == <span class="st">:pause</span> <span class="kw">and</span> info.active_reads))
+               swapper <span class="kw">= if</span> info.own <span class="kw">then</span> <span class="st">:turn_on_my</span> <span class="kw">else</span> <span class="st">:turn_on</span> <span class="kw">end</span>
+               which <span class="kw">= if</span> info.active_reads <span class="kw">then</span> <span class="st">:plain</span> <span class="kw">else</span> <span class="st">:wrapped</span> <span class="kw">end</span>
+               info.context.send swapper, which, info.r_info         
+               info.active_reads ^= <span class="dv">true</span>
+               swapped = <span class="st">'r'</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> mode.include? <span class="st">'w'</span>
+            <span class="kw">if</span> info.w_info.nil?
+               admin_warn <span class="st">&quot;Cannot trace </span><span class="ot">#{</span>info.variable<span class="ot">}</span><span class="st"> writes: no method defined&quot;</span>, <span class="dv">true</span>
+            <span class="kw">elsif</span> ((action == <span class="st">:start</span> <span class="kw">and</span> <span class="kw">not</span> info.active_writes) <span class="kw">or</span> 
+               (action == <span class="st">:pause</span> <span class="kw">and</span> info.active_writes))
+               swapper <span class="kw">= if</span> info.own <span class="kw">then</span> <span class="st">:turn_on_my</span> <span class="kw">else</span> <span class="st">:turn_on</span> <span class="kw">end</span>
+               which <span class="kw">= if</span> info.active_writes <span class="kw">then</span> <span class="st">:plain</span> <span class="kw">else</span> <span class="st">:wrapped</span> <span class="kw">end</span>
+               info.context.send swapper, which, info.w_info                               
+               info.active_writes ^= <span class="dv">true</span>
+               swapped += <span class="st">'w'</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         swapped
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+</code></pre>
+<h3 id="implementation-note-the-traceitem-class">Implementation Note: The <code>TraceItem</code> class</h3>
+<p>An instance of this class, which is a protected member of the <code>TraceMgr</code>’s class, holds all of the information that the <code>TraceMgr</code> needs about a (<code>context</code>, <code>variable</code>) pair.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">protected</span>
+   <span class="kw">class</span> <span class="dt">TraceItem</span>
+      <span class="ot">attr_reader</span> <span class="st">:context</span>,  <span class="co"># the class or object id to which the identifier belongs</span>
+         <span class="st">:variable</span>,          <span class="co"># the symbol (including leading @'s) naming the variable</span>
+         <span class="st">:reader</span>,            <span class="co"># var stripped of '@'s</span>
+         <span class="st">:writer</span>,            <span class="co"># var stripped of '@'s, followed by '='</span>
+         <span class="st">:own</span>,               <span class="co"># true means only the context's method is wrapped </span>
+         <span class="st">:r_info</span>,            <span class="co"># template returned by the wrapping call for the getter</span>
+         <span class="st">:w_info</span>             <span class="co"># template returned by the wrapping call for the setter</span>
+      <span class="ot">attr_accessor</span> <span class="st">:active_reads</span>, <span class="co"># boolean--true if we are currently tracing reads</span>
+         <span class="st">:active_writes</span>            <span class="co"># boolean--true if we are currently tracing writes</span>
+
+      <span class="kw">def</span> initialize(context, variable, own, guard_block)
+         <span class="ot">@context</span> = context
+         <span class="ot">@variable</span> = variable.to_s
+         <span class="ot">@own</span> = own
+         <span class="ot">@reader</span> = <span class="ot">@variable</span>.gsub(<span class="st">'@'</span>, <span class="st">''</span>).to_sym
+         <span class="ot">@writer</span> = (<span class="ot">@reader</span>.to_s + <span class="st">&quot;=&quot;</span>).to_sym
+         <span class="ot">@r_info</span> = read_action(guard_block)
+         <span class="ot">@w_info</span> = write_action(guard_block)
+         <span class="ot">@active_reads</span> = <span class="dv">true</span>
+         <span class="ot">@active_writes</span> = <span class="dv">true</span> <span class="co"># see start and pause methods for TraceImpl</span>
+      <span class="kw">end</span>
+
+      <span class="co"># the actions are set after the mode has been established</span>
+      <span class="kw">def</span> read_action(guard_block)
+         <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@own</span>
+            <span class="kw">return</span> <span class="dv">nil</span> <span class="kw">unless</span> <span class="ot">@context</span>.instance_methods.include? <span class="ot">@reader</span>
+            called = <span class="ot">@context</span>.instance_method <span class="ot">@reader</span>
+            method_to_call = <span class="st">:wrap_instance_method</span>
+         <span class="kw">else</span>
+            <span class="kw">return</span> <span class="dv">nil</span> <span class="kw">unless</span> <span class="ot">@context</span>.methods.include? <span class="ot">@reader</span>
+            called = <span class="ot">@context</span>.method <span class="ot">@reader</span>
+            method_to_call = <span class="st">:wrap_my_method</span>
+         <span class="kw">end</span>
+         variable = <span class="ot">@variable</span>
+         <span class="kw">if</span> guard_block.nil?
+            <span class="ot">@context</span>.send method_to_call, <span class="ot">@reader</span> <span class="kw">do</span> |org, args, block_in, zelf|
+               value = org.call
+               message = <span class="st">&quot;</span><span class="ot">#{</span>zelf<span class="ot">}</span><span class="st">.</span><span class="ot">#{</span>variable<span class="ot">}</span><span class="st"> ---&gt; </span><span class="ot">#{</span>value<span class="ot">}</span><span class="st">&quot;</span>
+               <span class="dt">DbgMgr</span>.put <span class="dt">TraceMgr</span>.dbg_key, message, esc: <span class="dv">true</span>, my_caller: <span class="st">&quot;TraceMgr&quot;</span>
+               value
+            <span class="kw">end</span>
+         <span class="kw">else</span>
+            <span class="ot">@context</span>.send method_to_call, <span class="ot">@reader</span>  <span class="kw">do</span> |org, args, block_in, zelf|
+               value = org.call
+               <span class="kw">if</span> guard_block.call zelf, variable, value, <span class="dv">nil</span>
+                  message = <span class="st">&quot;</span><span class="ot">#{</span>zelf<span class="ot">}</span><span class="st">.</span><span class="ot">#{</span>variable<span class="ot">}</span><span class="st"> ---&gt; </span><span class="ot">#{</span>value<span class="ot">}</span><span class="st">&quot;</span>
+                  <span class="dt">DbgMgr</span>.put <span class="dt">TraceMgr</span>.dbg_key, message, esc: <span class="dv">true</span>, my_caller: <span class="st">&quot;TraceMgr&quot;</span>
+               <span class="kw">end</span>
+               value
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> write_action(guard_block)
+         <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@own</span>
+            <span class="kw">return</span> <span class="dv">nil</span> <span class="kw">unless</span> <span class="ot">@context</span>.instance_methods.include? <span class="ot">@writer</span>
+            called = <span class="ot">@context</span>.instance_method <span class="ot">@writer</span>
+            method_to_call = <span class="st">:wrap_instance_method</span>
+         <span class="kw">else</span>
+            <span class="kw">return</span> <span class="dv">nil</span> <span class="kw">unless</span> <span class="ot">@context</span>.methods.include? <span class="ot">@writer</span>
+            called = <span class="ot">@context</span>.method <span class="ot">@writer</span>
+            method_to_call = <span class="st">:wrap_my_method</span>
+         <span class="kw">end</span>
+         variable = <span class="ot">@variable</span>
+         <span class="kw">if</span> guard_block.nil?
+            <span class="ot">@context</span>.send method_to_call, <span class="ot">@writer</span> <span class="kw">do</span> |org, args, block_in, zelf|
+               value = args[<span class="dv">0</span>]
+               message = <span class="st">&quot;</span><span class="ot">#{</span>zelf<span class="ot">}</span><span class="st">.</span><span class="ot">#{</span>variable<span class="ot">}</span><span class="st"> &lt;--- </span><span class="ot">#{</span>value<span class="ot">}</span><span class="st">&quot;</span>
+               <span class="dt">DbgMgr</span>.put <span class="dt">TraceMgr</span>.dbg_key, message, esc: <span class="dv">true</span>, my_caller: <span class="st">&quot;TraceMgr&quot;</span>
+               org.call value
+            <span class="kw">end</span>
+         <span class="kw">else</span>
+            getter = <span class="ot">@r_info</span>.source_alias
+            <span class="ot">@context</span>.send method_to_call, <span class="ot">@writer</span>  <span class="kw">do</span> |org, args, block_in, zelf|
+               new_value = args[<span class="dv">0</span>]
+               old_value = zelf.send getter
+               <span class="kw">if</span> guard_block.call zelf, variable, old_value, new_value
+                  message = <span class="st">&quot;</span><span class="ot">#{</span>zelf<span class="ot">}</span><span class="st">.</span><span class="ot">#{</span>variable<span class="ot">}</span><span class="st"> &lt;--- </span><span class="ot">#{</span>new_value<span class="ot">}</span><span class="st">&quot;</span>
+                  <span class="dt">DbgMgr</span>.put <span class="dt">TraceMgr</span>.dbg_key, message, esc: <span class="dv">true</span>, my_caller: <span class="st">&quot;TraceMgr&quot;</span>
+               <span class="kw">end</span>
+               org.call new_value
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> to_s; <span class="st">&quot;TraceItem[</span><span class="ot">#{@context}#{</span><span class="kw">if</span> <span class="ot">@own</span> <span class="kw">then</span> <span class="st">'.'</span> <span class="kw">else</span> <span class="st">'#'</span> <span class="kw">end</span><span class="ot">}#{@variable}</span><span class="st">]&quot;</span> <span class="kw">end</span>
+   <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+</body>
+</html>

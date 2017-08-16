@@ -1,0 +1,258 @@
+=begin <head> 
+Title: <code>aliasing</code>: Support for Managing Aliases
+Author: Jonathan Brezin
+Date: December, 2016
+Show source: Yes
+Tab Size: 3
+=end 
+
+require "sysutils"
+
+=begin <md>
+
+## Introduction
+
+If all you want to do is to create an alias `make_hay` for an instance method `do_it` of a class
+`C`, all you need to do is to execute
+
+<pre class="exampleCode">
+         C.send :alias_method, :make_hay, :do_it
+</pre>
+
+The "`:send`" is necessary because `:alias_method` is a private method of `Class`. 
+
+Similarly, if what you need is an alias for a __class__ method of `C`, the drill is
+<pre class="exampleCode">
+      class C
+         class << self
+            send :alias_method, :make_hay, :do_it
+         end
+      end
+</pre>
+which is a little cryptic, but not totally unreadable.  For an instance `c` of `C`, the
+analogous code
+
+<pre class="exampleCode">
+   class << c
+      send :alias_method, :make_hay, :do_it
+   end
+</pre>
+
+creates the alias for `c` _and only `c`,_ not for every instance of `C`.
+
+## Managing what is aliased
+
+These examples are simple enough that one might well be tempted to heed the argument that says
+"don't add help where none is needed."  There are several issues, though, that can come up,
+among them:
+
+1) What if `:make_hay` is already an instance method?  Clobber it, or report an error?
+
+2) What if "`:do_it`" is not a recognized method name at the time of the call? 
+
+3) How do you remember which symbol comes first: the existing method's name or the new alias?
+
+The issues I raised above imply the need for a more robust way to create aliases than simply
+sending `:alias_method`. 
+
+#### <code>Object#create_an_alias(new_alias, original: original)</code> {#create_alias}
+
+allows one to alias a method name to which the caller responds.  Both arguments may be either
+`String`s or `Symbol`s.  If the caller is a class, these are the methods to which it, and not
+its instances, respond.  If the caller is an instance of a class, the alias is applies only to
+that instance, _not to all instances of its class_.
+
+The normal return value for creating an alias is `true`. `false` is returned when the alias is
+already used to name a method, and in that case no alias for the original has been created, and
+`new_alias` retains whatever meaning it had before the call was made.
+
+If the caller does not respond to the original symbol, a `NameError` is raised.
+
+The point of having a keyword parameter is solve the memory problem:
+
+<pre class="exampleCode">
+
+      create_an_alias "x", original: "y"
+
+</pre>
+
+leaves one in no doubt as to which is the alias, and which the existing name.
+
+#### <code>Class#create_an_instance_alias(new_alias, original: original)</code> {#create_instance_alias}
+
+handles the creation of aliases that are visible to _all_ instances of a class.
+
+
+## Discovering aliases {#aliasing_methods}
+
+It is nice to have a clean way of getting the aliases for a given method, be it a class or
+instance method.  Ruby's use of an anonymous "singleton class" to capture information local to
+an object makes this code more complex than one might guess on the surface. One has to
+distinguish between the methods a class bestows on its instances, and the methods a particular
+instance responds to.  [The following code](examples/bad_alias.rb), using the methods described
+below, illustrates the problem:
+
+<pre class="exampleCode">
+
+require "aliasing"
+class C
+   def x; "X!" end
+ end
+C.create_an_instance_alias :ex, original: :x
+c = C.new
+c.create_an_alias :exe1, original: :ex
+c.create_an_alias :exe2, original: :x
+c.create_an_alias :exe3, original: :ex
+c.create_an_alias :exe4, original: :exe1
+puts "calling all 6 methods: #{c.x}, #{c.ex}, #{c.exe1}, #{c.exe2}, #{c.exe3} and #{c.exe4}"
+puts "c.aliased_methods #{c.aliased_methods}"
+puts "c.are_aliases? :x, :ex == #{c.are_aliases? :x, :ex}"
+puts "c.are_aliases? :ex, :exe1 == #{c.are_aliases? :ex, :exe1}"
+puts "c.are_aliases? :exe1, :exe2 == #{c.are_aliases? :exe1, :exe2}"
+puts "c.are_aliases? :exe2, :exe3 == #{c.are_aliases? :exe3, :exe2}"
+
+</pre>
+
+yields
+
+<pre class="exampleCode">
+
+calling all 6 methods: X!, X!, X!, X!, X! and X!
+c.aliased_methods [
+   [:exe1, :exe2, :exe3], [:x, :ex], [:kind_of?, :is_a?], [:to_enum, :enum_for], [:==, :equal?]
+]
+c.are_aliases? :x, :ex == true
+c.are_aliases? :ex, :exe1 == false
+c.are_aliases? :exe1, :exe2 == true
+c.are_aliases? :exe2, :exe3 == true
+
+</pre>
+
+I do not know whether or not these answers should be a surprise.  If there are several aliases
+for `:x` that are local to `c`, they show up as their own entry in the array that gets
+returned by `aliased_methods`, separate from `:x`'s own entry, should it have one.  If, on the
+other hand, there is only one alias local to `c`, it will not be reported at all.
+
+In view of this example, it might be wise to avoid the methods here and, in situations where 
+you really need to track aliases for individual instances, to do the bookkeeping yourself.
+For classes and instance methods, this code works correctly, insofar as I can tell.
+
+#### <code>Object#aliased_methods()</code>
+
+returns an array each of whose entries is an array of method name symbols aliased to one
+another. Each entry consists of _all_ of the symbols aliased to a particular `Method` object.
+
+> If the caller is a `Class`, the aliases are those created as shown in the code displayed above
+for class methods, which are tracked by the class's `singleton_class`.
+
+> If the caller is _not_ a `Class`, the aliases are for the caller's instance methods.  One has
+to be careful here, as the example above shows.
+
+#### <code>Class#aliased_instance_methods()</code>
+
+returns an array whose entries are arrays of method symbols aliased to one another, one entry
+per set of mutual aliases.  This is essentially the same as `alias_methods` does, but in this
+case, the results are the aliases shared by all instances of the class that is the caller.
+
+The code for these two methods is due to 
+[Marc-André Lafortune](http://stackoverflow.com/users/8279/marc-andr%C3%A9-lafortune).
+They are the starting point for two more methods:
+
+#### <code>Object#aliases_for(name)</code>
+
+returns an array of the aliases, not including the argument, found for the method named by
+`name`. The argument may be either a string or a symbol.  The methods checked against `name` are
+those to which the caller responds.  The same problem that `alias_method` has with aliases local
+to a particular object (as opposed to aliases for all instances of the object's class) occurs
+here.
+
+#### <code>Class#instance_method_aliases_for(name)</code>
+
+does the same job as `aliases_for`, but takes `name` to refer to a method for all instances of
+the class.
+
+A related pair of methods compares two method names to see whether they are aliases of one
+another.  For instance methods, this  is done at the class level, rather the object level,
+because all of the identifiers belong to the class's namespace.  The usual caveats apply to 
+requests to compare to identifiers that may refer to a single object that is not a `Class`.
+
+#### <code>Class#are_instance_aliases?(this, that)</code>
+
+#### <code>Object#are_aliases?(this, that)</code>
+
+Both, as their names suggest, return a boolean, `true` meaning that the two are indeed aliases
+of one another.  Both arguments may be either strings or symbols.
+
+=end
+
+class Class
+   def  aliased_instance_methods
+      # see Marc-André Lafortune (http://stackoverflow.com/users/8279/marc-andr%C3%A9-lafortune)
+      instance_methods.group_by{|m| instance_method(m)}.map(&:last).keep_if{|syms| syms.length > 1}
+   end
+
+   def instance_method_aliases_for sym_or_str
+      symbol = sym_or_str.to_sym
+      as_array = aliased_instance_methods.keep_if { |symbols| symbols.include? symbol }
+      if as_array.length == 0 then []
+      else
+         answer = as_array[0]
+         answer.delete symbol
+         answer
+      end
+   end
+
+   def are_instance_aliases?(this, that)
+      instance_method_aliases_for(this).include? that.to_sym
+   end
+
+   def create_an_instance_alias(the_alias, original: "")
+      original_sym = original.to_sym
+      unless instance_methods.include? original_sym 
+         raise NameError.new "instances of #{self} do not respond to #{original_sym}"
+      end
+      alias_sym = the_alias.to_sym
+      if instance_methods.include? alias_sym
+         false
+      else
+         self.send :alias_method, alias_sym, original_sym
+         true
+      end
+   end
+end
+
+class Object
+   def aliased_methods
+      # see Marc-André Lafortune (http://stackoverflow.com/users/8279/marc-andr%C3%A9-lafortune) 
+      methods.group_by{|m| method(m)}.map(&:last).keep_if{|syms| syms.length > 1}
+   end
+
+   def aliases_for sym_or_str
+      symbol = sym_or_str.to_sym
+      as_array = aliased_methods.keep_if { |symbols| symbols.include? symbol }
+      if as_array.length == 0 then []
+      else
+         answer = as_array[0]
+         answer.delete symbol
+         answer
+      end
+   end
+
+   def are_aliases?(this, that)
+      method(this.to_sym) == method(that.to_sym)
+   end
+
+   def create_an_alias(the_alias, original: "")
+      original_sym = original.to_sym
+      if not respond_to? original_sym 
+         raise NameError.new "#{self} does not respond to #{original_sym}"
+      end
+      alias_sym = the_alias.to_sym
+      if respond_to?(alias_sym)
+         false
+      else
+         singleton_class.send :alias_method, alias_sym, original_sym
+         true
+      end
+   end
+end

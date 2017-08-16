@@ -1,0 +1,491 @@
+=begin <head> 
+Title: <code>wrapping</code>: Support for Wrapping Methods
+Author: Jonathan Brezin
+Date: December, 2016
+Show source: Yes
+Tab Size: 3
+=end 
+
+require "aliasing"
+require "sysutils"
+
+=begin <md>
+
+## Simple, but not without its subtleties
+
+This code was written as part of a project to get a framework for tracing instance and class
+variables.  Ruby, like Smalltalk, only permits direct access to an instance variable in the
+class implementation itself.  A class must provide methods to get or set the variable if other
+parties are to have access to it.  The game, then, for tracing, is simply:
+
+* to rename the access method (get, or set, or both) that you want to trace, and 
+
+* to reassign the original method name to a wrapper around the now-renamed access
+method. 
+
+If you take an extra step in writing the class itself and minimize the number of direct
+references to the "@" and "@@" variables in the class definition body, you can get a clean, pure
+Ruby trace facility. 
+
+So what's with the subtleties?  As discussed in [the aliasing module](aliasing.html), the way
+Ruby tracks the methods for a class is (for good reason) not entirely straightforward.  There
+are three different cases one has to worry about: instance methods defined in the class
+definition's body, instance methods local to one instance, and class methods.  
+
+> For instance methods, the invoker of the method is not available at the time wrapping occurs.
+This is a tricky situation, because you need "self" to be the right thing come execution time.
+
+> For an instance method that is to be wrapped for a single instance, one needs to make sure
+that that instance's singleton dictionary--and not the class's dictionary--holds the alias
+names.
+
+> For a class method, things are similar to the single instance case: the execution context
+("namespace" if you prefer) is the `Class` instance, and the class's singleton dictionary holds
+any aliases.
+
+The bottom line is that while there is a lot in common among the three cases, it makes sense to
+have two different methods, one for when the execution context is known when wrapping occurs 
+("just wrap me") and one for when it is not ("wrap for all instances").
+While Ruby namespace conventions might allow me to get
+away with one method name for both, I do not think that is wise.  Thus,
+there are two methods: `Module.wrap_instance_method` and `Object#wrap_my_method` Both have the 
+signature:
+
+<pre class="exampleCode">wrap_..._method(method_name, &amp;block)</pre>
+
+`method_name` can be either a string or symbol and identifies what is to be wrapped, and `block` is
+the code is to be executed in place of the original.  The block's argument list is:
+
+<blockquote><table>
+<tr><td> `org`  </td><td> is the original method (note: the bound method object, not its name)</td></tr>
+<tr><td> `args` </td><td> are the ordinary (ie. not a final block) arguments that `org` would have been passed</td></tr>
+<tr><td> `block_in`</td><td> is there for the case when `org` does take a block as its final argument</td></tr>
+<tr><td> `zelf` </td><td> is the object to which the method `org` has `self` bound</td></tr>  
+</table></blockquote>
+
+Here is a simple example of how this all works. I'll wrap an instance method "`:original`" of a
+class "`A`":
+
+<pre class="exampleCode">
+
+class A
+   def original(x, y: 'z')
+      puts "original called"
+      puts "#{x} before #{y}. self is #{self}"
+   end
+end
+
+a = A.new
+a.original(32, y: 'yes')
+A.wrap_instance_method(:original) do | org, args, block_in, zelf |  
+   puts "args=#{args}, context=#{zelf}"
+   org.call *args
+   puts "block_in nil? #{block_in.nil?}"
+end
+puts "===================="
+a.original(32, y: 'yes')
+
+</pre>
+
+Executing this code should yield:
+
+<pre class="exampleCode">
+
+original called
+32 before yes. self is #&lt;A:0x007fd56c09fda0>
+====================
+args=[32, {:y=>"yes"}], context=#&lt;A:0x007fd56c09fda0>
+original called
+32 before yes. self is #&lt;A:0x007fd56c09fda0>
+block_in nil? true
+
+</pre>
+
+`#<A:0x007fd56c09fda0>` is the id for the instance variable `a`.  Your value for the numeric
+part will be different, but the key thing is that the same value appear in both lines, so that
+you are sure that `zelf` and `a` are really the same thing.
+
+This  particular example does not have a block as its last argument, whence the "true" in the final
+line of the output.  I'll give an example that does take a block in the next section.  Passing that
+block through makes it available, like the other arguments, for the "`org` call" in the wrapped
+version.  If you want to peek ahead, the example can be found in
+[wraps.second.rb](examples/wraps.second.rb).
+
+####<code>Module#wrap_instance_method(method_name, &block)</code>{#im_wrap}
+
+This method does the wrapping. It returns a "`WrapInfo`" `Struct` containing four symbols and a
+boolean, all of which you can safely ignore if you are not in the business of unwrapping and
+rewrapping the method later on in the execution.
+
+<pre class="exampleCode">
+
+class WrapInfo = Struct.new(:source,       # the original name for the method
+                            :source_alias, # another unique name for that method 
+                            :wrap_alias,   # a unique name for the wrapped method
+                            :is_inherited, # true if the method comes from a superclass
+                            :save_alias)   # see comment immediately below
+
+</pre>
+
+`:save_alias` is an artifact of the implementation.  It names the saved (method-body, block)
+pair used by the implementation to build the wrapped method.  It is there mostly as a 
+debugging aid, but it is useful in restoring the status quo ante when one has wrapped an
+individual method.
+
+This might look at first glance like return-value-overkill, but the example of tracing an
+instance variable sheds some light on why I want it.
+
+> Suppose I am tracing the instance  variable `@v` of class `C`.  I begin by wrapping the method
+`C#v`, which returns my wrap info, `v_info`. If, at some later time, I want to turn off the
+tracing temporarily, it is easy.  I just alias `C#v` to `v_info.source_alias`, which always
+points to the original getter for `@v`.  I can turn the tracing back on by doing the reverse
+swap: aliasing `C#v` to `v_info.wrap_alias`.  When I'm really done tracing, I can make sure that
+`C#v` points to the original getter for `@v`, and then remove all three of the manufactured
+names from the class `C`.
+
+The code for the this method and its companion `wrap_my_method` below is adapted from [Erik
+Veenstra's "Monitor Functions"](http://www.erikveen.dds.nl/monitorfunctions).  Unless you are
+seriously contemplating generalizing this work, there really is no reason to hack your way through
+either method's implementation's logic--as Veenstra put it: write once, read never.
+
+
+####<code>Module#restore_instance_method(wrap_info)</code>{#im_unwrap}
+
+If the various aliases in the wrap info are still defined, :source is set to point to the
+original, unwrapped method, and all three of the manufactured aliases are then removed from the
+class.  This is in contrast to `turn_on`, which simply swaps original method name between yielding
+the original and wrapped methods.
+
+#### <code>Module#turn_on(which, wrap_info)</code>{#turn_on}
+
+Swaps the original method name back and forth between the the unwrapped and wrapped methods.  The
+valid values for the first argument are `:plain` and `:wrapped`.
+
+
+### A simpler UI ###
+
+The implementation, together with some notes on it, follow this set of remarks on how one
+probably will use this code in practice.
+
+As the term "wrapping" suggest, most of the time what you want to do is "do something, call the
+original, then do something else."  More often than not, you probably only need to add the code
+before, or after, but not both.   Veenstra decided to simplify these two cases by providing
+methods specifically for them. He named them `pre_condition` and `post_condition`, which might
+by a bit misleading.  The term 'condition' here is being used in the sense of "Pavlov
+conditioning his dogs by ringing a bell".  These methods are not checking conditions,
+necessarily.  They could perhaps more justly be named `pre_action` and `post_action`, but
+Veenstra felt that `condition` was easier to remember than `action`.  I have kept his
+convention.
+
+#### <code>Module#pre_condition(method_name, &block1)</code>{#pre_condition}
+#### <code>Module#post_condition(method_name, &block1)</code>{#post_condition}
+
+The arguments, `method_name` and `block1` are the obvious: the name of the method to pre- or post-
+condition, and the block of code to run before, or after, the original method's body. The return
+value is the original method's return value when pre-conditioning, and it is the final value
+computed by the block when post-conditioning (in order to allow the block to modify the original
+call's return value).
+
+Here is [an example](../doc/examples/wraps.second.rb) of pre and post in action.  Note that the
+original method here, `central`, takes a block as its last argument.
+
+<pre class="exampleCode">
+
+require "wrapping.rb"
+class A
+   def central(*args, &amp;block)
+      puts [:in_method, args, block]
+      block.call args
+   end
+end
+a = A.new
+puts "\nBefore conditioning:"
+a.central(1, 2) do |*args|
+   puts [:in_block, args]
+   "block ends"
+end
+A.pre_condition(:central) do |obj, method_name, args, block|
+   puts [:in_pre_condition, args]
+end
+A.post_condition(:central) do |obj, method_name, args, block, value|
+   puts [:in_post_condition, args, value]
+   value
+end
+
+puts "\nAfter conditioning:"
+returned = a.central(1, 2) do |*args|
+   puts [:in_block, args]
+   "block ends"
+end
+puts "The call returned '#{returned}'"
+
+</pre>
+
+You should see the following output
+
+<pre class="exampleCode">
+
+Before conditioning:
+in_method
+1
+2
+#&lt;Proc:0x007fc7450451a0@./wraps.third.rb:12&gt;
+in_block
+1
+2
+
+After conditioning:
+in_pre_condition
+1
+2
+in_method
+1
+2
+#&lt;Proc:0x007fc74503f2c8@./wraps.third.rb:27&gt;
+in_block
+1
+2
+in_post_condition
+1
+2
+block ends
+The call returned 'block ends'
+
+</pre>
+
+The "Proc" is the identifier for the block being executed as `central`'s last argument.
+
+####<code>Module#pre_and_post_condition(method_name, &block1)</code>
+
+It's not probably as common as just prepending or appending some code, but there are enough times
+that you have to do both that it is worth again having a simple call to do it.  The only change is
+that the final argument, `block1` has two extra arguments.  Instead of  
+
+> `obj2,` `method_name,` `args2,` `block2`,
+
+you need 
+
+> `obj2,` `pre_or_post,` `method_name,` `args2,` `block2`, `returned`.
+
+The second argument, `pre_or_post` should be one of the two symbols `:pre` or `:post`.  In the
+block, you guard the "before" code with "`if` `pre_or_post==:pre`", and the "after" code with  "`if`
+`pre_or_post==:post`".   When the `:post` call is made, the `returned` argument is the value
+returned by the original call, but for the `:pre` call, it always `nil`.
+
+## The instance method code
+
+We've put off the code about as long as we dare.  Here it comes! 
+
+=end
+
+WrapInfo = Struct.new("WrapInfo", :source, :source_alias, :wrap_alias, :is_inherited, :save_alias)
+
+class Module
+   def wrap_instance_method(method_name, &block1)
+      #puts "wrapping #{method_name} in #{self}"
+      Mutex.new.synchronize do
+         count = Module.module_eval do
+            @_wm_count_ ||= 0
+            @_wm_count_ +=1
+         end
+         alias_for_original = "_original_#{method_name}_#{count}"
+         create_an_instance_alias alias_for_original, original: method_name
+         wrapped_code = "_wrapped_#{method_name}_#{count}".to_sym
+         saved_code = "_saved_#{method_name}_#{count}".to_sym
+         the_method = instance_method method_name
+         is_inherited = (the_method.owner != self)
+         send :define_method, saved_code do
+            [the_method, block1]
+         end
+         send :undef_method, method_name unless method_name.to_s == "initialize"
+         send :define_method, wrapped_code do |*args2, &block2|
+            the_saver = self.method saved_code 
+            old, new = the_saver.call
+            old = old.bind self
+            new.call(old, args2, block2, self)
+         end
+         create_an_instance_alias method_name, original: wrapped_code
+         WrapInfo.new(method_name.to_sym, alias_for_original, wrapped_code, is_inherited, saved_code)
+      end
+   end
+
+   def pre_condition(method_name, &block1)
+      wrap_instance_method method_name do |org_method, args2, block2, obj2|
+         block1.call(obj2, method_name, args2, block2)
+         org_method.call(*args2, &block2)
+      end
+   end
+
+   def post_condition(method_name, &block1)
+      wrap_instance_method method_name do |org_method, args2, block2, obj2|
+         return_value = org_method.call(*args2, &block2)
+         block1.call(obj2, method_name, args2, block2, return_value)
+      end
+   end
+
+   def pre_and_post_condition(method_name, &block1)
+      wrap_instance_method method_name do |org_method, args2, block2, obj2|
+         block1.call obj2, :pre, method_name, args2, block2, nil
+         return_value = org_method.call(*args2, &block2)
+         block1.call obj2, :post, method_name, args2, block2, return_value
+      end
+   end
+
+   def restore_instance_method(wrap_info)
+      send :remove_method, wrap_info.source
+      if not wrap_info.is_inherited 
+         # if it is inherited source now refers to the current method in the superclass
+         # thus we only need an alias if source really was defined here
+         create_an_instance_alias wrap_info.source, original: wrap_info.source_alias 
+      end
+      send :remove_method, wrap_info.source_alias
+      send :remove_method, wrap_info.save_alias
+      send :remove_method, wrap_info.wrap_alias
+   end
+end
+
+def turn_on(which, wrap_info)
+      send :remove_method, wrap_info.source
+      case which.to_sym
+      when :wrapped then send :alias_method,  wrap_info.source, wrap_info.wrap_alias
+      when :plain then send :alias_method,  wrap_info.source, wrap_info.source_alias
+      else raise ArgumentError.new "expected :wrapped or :plain, but got '#{which}'"
+      end
+   end
+
+=begin <md>
+
+### Notes on implementing <code>wrap_instance_method</code> ###
+
+For those who can't resist working their way through this code, here are a few remarks that I
+hope will be helpful.
+
+The code is wrapped in a synchronize block to make sure that if the code is part of a  multi-
+threaded program, the value of `count` is computed atomically, and that calls to wrap the
+wrapped method further all execute sequentially.   See
+[`inner_class_wrapping`](examples/inner_class_wrapping.rb) for an example of wrapping a
+wrapped method.
+
+The first thing we do is to fetch the method that we are wrapping. It is worth remembering that this
+method may actually be inherited from a superclass.  Our wrapping affects the calling class and only
+that class: the class that is asking for the wrapping, _not the method's class itself, if the method
+is inherited._ We next define a uniquely named method that returns a pair consisting of the method
+we are wrapping and the block that is its wrapper.  This is a clever part of Veenstra's game, one I
+would not have come to easily, being hung up on using aliasing rather than the method object itself.
+
+The next step is to "undefine" the method name, so that redefining it won't raise an error. This
+leads us to the heart of the matter, defining the wrapped method.  The key line here is `old =
+old.bind self`.  That is, when this code executes, and only then, do we know what instance was
+calling the method, so we need to tell the old method who "`self`" is now. The final line,
+calling the new method, provides parameters for everything that method could wish for: the now
+bound old method, the arguments with which the wrapped method was called, the block with which
+it was called, and finally the instance that is the caller.
+
+## Code for when the instance is known
+
+#### <code>Object#wrap_my_method(original, an_alias, &wrapper)</code>{#object_wrap}
+
+This is method is a simpler approach to wrapping that is available in the situation where you have
+the object providing the context (the `self`) for the calls is available.  Class methods, where the
+class  plays the role of `self`, are one example. Another example is when you want to  wrap a method
+for one particular instance of a class, rather than for all instances.
+
+The first two arguments are the original method name (a string or symbol) and an alias to use for
+retaining the original method, in case you later wish to unwrap.
+
+#### <code>Object#restore_my_method(wrap_info)</code>{#object_unwrap}
+
+The effect is to undo the wrapping as described by the `wrap_info`: the alias method is, in effect,
+renamed with the original name, and the other aliases are removed from the caller's name space.
+This is in contrast to `turn_on_me`, below, which just swaps the original method name between the
+wrapped and original versions.  After this call, the world should look like it did  before you call
+`wrap_my_method`.
+
+#### <code>Object#pre_condition_me(method_name, &block1)</code>{#pre_condition}
+#### <code>Object#post_condition_me(method_name, &block1)</code>{#post_condition}
+####<code>Module#pre_and_post_condition_me(method_name, &block1)</code>
+
+These are the obvious analogues of the corresponding methods where the instance is not known.
+
+#### <code>Object#turn_on_my(which, wrap_info)</code>{#turn_on_my}
+
+Swaps the original method name back and forth between the the unwrapped and wrapped methods.  The
+valid values for the first argument are `:plain` and `:wrapped`.
+
+=end
+
+class Object
+   def wrap_my_method(method_name, &block1)
+      #puts "wrapping #{method_name} for object #{self}"
+      Mutex.new.synchronize do
+         count = Module.module_eval do
+            @_wm_count_ ||= 0
+            @_wm_count_ +=1
+         end
+         alias_for_original = "_original_#{method_name}_#{count}"
+         create_an_alias alias_for_original, original: method_name
+         wrapped_code = "_wrapped_#{method_name}_#{count}".to_sym
+         saved_code = "_saved_#{method_name}_#{count}".to_sym
+         the_method = method method_name
+         is_inherited = (the_method.owner != self)
+         singleton_class.send(:define_method, saved_code) do
+            [the_method, block1]
+         end
+         singleton_class.send :undef_method, method_name unless method_name.to_s == "initialize"
+         singleton_class.send :define_method, wrapped_code do |*args2, &block2|
+            the_saver = self.method saved_code
+            old, new = the_saver.call
+            new.call(old, args2, block2, self)
+         end
+         create_an_alias method_name, original: wrapped_code
+         WrapInfo.new method_name.to_sym, alias_for_original, wrapped_code, is_inherited, saved_code
+      end
+   end
+
+   def pre_condition_me(method_name, &block1)
+      wrap_my_method method_name do |org_method, args2, block2, obj2|
+         block1.call(obj2, method_name, args2, block2)
+         org_method.call(*args2, &block2)
+      end
+   end
+
+   def post_condition_me(method_name, &block1)
+      wrap_my_method method_name do |org_method, args2, block2, obj2|
+         return_value = org_method.call *args2, &block2
+         block1.call obj2, method_name, args2, block2, return_value
+      end
+   end
+
+   def pre_and_post_condition_me(method_name, &block1)
+      wrap_my_method method_name do |org_method, args2, block2, obj2|
+         block1.call obj2, :pre, method_name, args2, block2, nil
+         return_value = org_method.call(*args2, &block2)
+         block1.call obj2, :post, method_name, args2, block2, return_value
+         return_value
+      end
+   end
+
+   def restore_my_method(wrap_info)
+      singleton_class.send :remove_method, wrap_info.source
+      if not wrap_info.is_inherited
+         code, block = send wrap_info.saved_code
+         if code.owner == self
+            send :alias_method, wrap_info.source_alias, wrap_info.source
+         else
+            singleton_class.send :alias_method, wrap_info.source_alias, wrap_info.source
+         end
+      end
+      singleton_class.send :remove_method, wrap_info.source_alias
+      singleton_class.send :remove_method, wrap_info.save_alias
+      singleton_class.send :remove_method, wrap_info.wrap_alias
+   end
+
+   def turn_on_my(which, wrap_info)
+      singleton_class.send :remove_method, wrap_info.source
+      case which.to_sym
+      when :wrapped then singleton_class.send :alias_method, wrap_info.source, wrap_info.wrap_alias
+      when :plain then singleton_class.send :alias_method, wrap_info.source, wrap_info.source_alias
+      else ArgumentError.new "expected :wrapped or :plain, but got '#{which}'"
+      end
+   end
+end

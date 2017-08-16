@@ -1,0 +1,148 @@
+=begin <head> 
+Title: <code>trace_utils</code>: Help Getting Variable Traces
+Author: Jonathan Brezin
+Date: December, 2016
+Show source: Yes
+Tab Size: 3
+=end
+
+=begin <md>
+   
+## Discovering instance and class variables that are accessible
+
+The idea here is to make it a little easier for someone who wants, for example, to trace some of
+an object's instance variables to find out if they have a getter or setter method.  The
+[`tracemgr` module's `TraceMgr`](tracemgr.html) does that actual tracing.  What is at stake here is
+just finding out what, if anything, can be traced.
+
+There is nothing deep here: if we know `@x` is an instance variable, all we have to do is to look
+into the list of instance methods to see whether we find either a nullary `x()` method, a unary
+`x=(new_value)` method, or both.  There's no simple approach, though, to checking on virtual
+instance variables, sometimes called "properties".  There is also no clean way, given a class, to
+determine the instance variables of its instances.  One needs an instance of the class.  Part of 
+the problem is that a `Class` is an `Object` that may have its own instance variables.  So how does
+one say that one wants the instance variables for an instance, not for the class itself?  For a
+good account of the underlying data structures for Ruby objects and classes, take a look at
+[Pat Shaughnessy's _Ruby Under A Microscope_](http://patshaughnessy.net/ruby-under-a-microscope).
+
+I have pondered, weak and weary, over whether the methods here ought to make up a `Module` or to
+simply be added to `Object`.  "Added" won, because using a mix-in module felt too clumsy and did not
+expose library code written by outsiders.  Thus, unlike the [debugging manager](dbg.html) and its
+[client](dbgclient.html), this "client" code for the trace manager "server" is mixed in directly to
+the method sets for all who enter.
+
+#### is_traceable(variable_name_or_symbol, mode="rw") {#is_traceable}
+
+The first argument names an variable, and `mode` is one of the strings `"r"`, `"w"`, or
+`"rw"`.  If the variable name starts with `@@` it will be taken to a be a class variable,
+if it starts with only one `@`, it will be taken to be an instance variable, and if it 
+starts with neither it will be looked up first as an instance variable, and second as a class
+variable.  
+
+The method returns true  if `r` is the mode and the variable named has a getter, `w` is the
+mode and it has a setter, or `rw` is the mode and it has both a getter and a setter; otherwise it
+returns `false`.  If the first argument does not name a instance or class variable, an
+`ArgumentError` will be raised.
+
+#### get_traceable_instance_variables(mode) {#get_tivs}
+
+returns a value depending on the mode:
+
+* `nil`: returns a `Hash` whose keys are the symbols for all of the traceable instance variables of
+the caller.  The variable names are stripped of the leading "`@`".  The value for a symbol is one of
+"`r`", `"w"`, or `"rw"`.
+
+* `r`, `w`, or `rw`: returns a `Set` of all those symbols for instance variables that have read
+methods, write methods, or both.  
+
+* `r!` or `w!`: returns a `Set` of all those symbols for instance variables that only have a read
+method or only have a write method.
+
+* Any other value for the `mode` will raise an `ArgumentError`.
+
+The default is to return the `Hash`.  For all the return values, any leading `@`s are stripped from the symbols, because it is really the method names that are of use to the caller.
+
+#### get_traceable_class_variables(mode) {#get_civs}
+
+does the same thing as `get_traceable_instance_variables`, but for class variables.  The caller may
+be either the class itself or an instance.  If the caller is not a class, the class variables for
+its class will be returned.
+
+=end # </md>
+
+require "set"
+
+class Object
+   def is_traceable(variable_name_or_symbol, mode="rw")
+      name = variable_name_or_symbol.to_s
+      if name.start_with '@@'
+         pass
+      elsif name.start_with '@'
+         pass
+      elsif not instance_variables.index('@'+name).to_sym.nil?
+         pass
+      elsif self.is_a? Class 
+         if not class_variables.index('@@'+name).to_sym.nil?
+            pass
+         end
+      else
+         if not self.class.class_variables.index('@@'+name).to_sym.nil?
+            pass
+         else
+            raise ArgumentError "'#{name}' does not name a local variable for #{self}"
+         end
+      end
+   end
+
+   def _find_rw_methods(names, mode)
+      readers = Set.new
+      writers = Set.new
+      names.each do |cv|
+         stripped = cv.to_s.gsub(/^@+/, '')
+         if self.respond_to? stripped
+            readers.add stripped.to_sym
+         end
+         if self.respond_to? stripped+"="
+            writers.add stripped.to_sym
+         end
+      end
+      both = readers & writers
+      case mode
+      when "rw"
+         both
+      when "r"
+         readers
+      when "w"
+         writers
+      when "r!"
+         readers - writers
+      when "w!"
+         writers - readers
+      when nil
+         all = readers + writers
+         answer = {}
+         all.each do |name|
+            if both.include? name
+               answer[name] = "rw"
+            elsif readers.include? name
+               answer[name] = "r"
+            else
+               answer[name] = "w"
+            end
+         end
+         answer
+      else
+         legal = "It should be nil or one of #{%w(r w rw r! w!)}"
+         raise ArgumentError "Illegal mode: '#{mode}'.  #{legal}"
+      end
+   end
+
+   def get_traceable_class_variables(mode=nil)
+      owner = if self.kind_of? Class then self else self.class end
+      _find_rw_methods owner.class_variables(), mode
+   end
+
+   def get_traceable_instance_variables(mode=nil)
+      _find_rw_methods self.instance_variables(), mode
+   end
+end

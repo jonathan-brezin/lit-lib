@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>trace_utils: Help Getting Variable Traces</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title"><code>trace_utils</code>: Help Getting Variable Traces</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">December, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#discovering-instance-and-class-variables-that-are-accessible">Discovering instance and class variables that are accessible</a><ul>
+<li><a href="#is_traceable">is_traceable(variable_name_or_symbol, mode=“rw”)</a></li>
+<li><a href="#get_tivs">get_traceable_instance_variables(mode)</a></li>
+<li><a href="#get_civs">get_traceable_class_variables(mode)</a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode ruby"><code class="sourceCode ruby"></code></pre>
+<h2 id="discovering-instance-and-class-variables-that-are-accessible">Discovering instance and class variables that are accessible</h2>
+<p>The idea here is to make it a little easier for someone who wants, for example, to trace some of an object’s instance variables to find out if they have a getter or setter method. The <a href="tracemgr.html"><code>tracemgr</code> module’s <code>TraceMgr</code></a> does that actual tracing. What is at stake here is just finding out what, if anything, can be traced.</p>
+<p>There is nothing deep here: if we know <code>@x</code> is an instance variable, all we have to do is to look into the list of instance methods to see whether we find either a nullary <code>x()</code> method, a unary <code>x=(new_value)</code> method, or both. There’s no simple approach, though, to checking on virtual instance variables, sometimes called “properties”. There is also no clean way, given a class, to determine the instance variables of its instances. One needs an instance of the class. Part of the problem is that a <code>Class</code> is an <code>Object</code> that may have its own instance variables. So how does one say that one wants the instance variables for an instance, not for the class itself? For a good account of the underlying data structures for Ruby objects and classes, take a look at <a href="http://patshaughnessy.net/ruby-under-a-microscope">Pat Shaughnessy’s <em>Ruby Under A Microscope</em></a>.</p>
+<p>I have pondered, weak and weary, over whether the methods here ought to make up a <code>Module</code> or to simply be added to <code>Object</code>. “Added” won, because using a mix-in module felt too clumsy and did not expose library code written by outsiders. Thus, unlike the <a href="dbg.html">debugging manager</a> and its <a href="dbgclient.html">client</a>, this “client” code for the trace manager “server” is mixed in directly to the method sets for all who enter.</p>
+<h4 id="is_traceable">is_traceable(variable_name_or_symbol, mode=“rw”)</h4>
+<p>The first argument names an variable, and <code>mode</code> is one of the strings <code>&quot;r&quot;</code>, <code>&quot;w&quot;</code>, or <code>&quot;rw&quot;</code>. If the variable name starts with <code>@@</code> it will be taken to a be a class variable, if it starts with only one <code>@</code>, it will be taken to be an instance variable, and if it starts with neither it will be looked up first as an instance variable, and second as a class variable.</p>
+<p>The method returns true if <code>r</code> is the mode and the variable named has a getter, <code>w</code> is the mode and it has a setter, or <code>rw</code> is the mode and it has both a getter and a setter; otherwise it returns <code>false</code>. If the first argument does not name a instance or class variable, an <code>ArgumentError</code> will be raised.</p>
+<h4 id="get_tivs">get_traceable_instance_variables(mode)</h4>
+<p>returns a value depending on the mode:</p>
+<ul>
+<li><p><code>nil</code>: returns a <code>Hash</code> whose keys are the symbols for all of the traceable instance variables of the caller. The variable names are stripped of the leading “<code>@</code>”. The value for a symbol is one of “<code>r</code>”, <code>&quot;w&quot;</code>, or <code>&quot;rw&quot;</code>.</p></li>
+<li><p><code>r</code>, <code>w</code>, or <code>rw</code>: returns a <code>Set</code> of all those symbols for instance variables that have read methods, write methods, or both.</p></li>
+<li><p><code>r!</code> or <code>w!</code>: returns a <code>Set</code> of all those symbols for instance variables that only have a read method or only have a write method.</p></li>
+<li><p>Any other value for the <code>mode</code> will raise an <code>ArgumentError</code>.</p></li>
+</ul>
+<p>The default is to return the <code>Hash</code>. For all the return values, any leading <code>@</code>s are stripped from the symbols, because it is really the method names that are of use to the caller.</p>
+<h4 id="get_civs">get_traceable_class_variables(mode)</h4>
+<p>does the same thing as <code>get_traceable_instance_variables</code>, but for class variables. The caller may be either the class itself or an instance. If the caller is not a class, the class variables for its class will be returned.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+require <span class="st">&quot;set&quot;</span>
+
+<span class="kw">class</span> <span class="dt">Object</span>
+   <span class="kw">def</span> is_traceable(variable_name_or_symbol, mode=<span class="st">&quot;rw&quot;</span>)
+      name = variable_name_or_symbol.to_s
+      <span class="kw">if</span> name.start_with <span class="st">'@@'</span>
+         pass
+      <span class="kw">elsif</span> name.start_with <span class="st">'@'</span>
+         pass
+      <span class="kw">elsif</span> <span class="kw">not</span> instance_variables.index(<span class="st">'@'</span>+name).to_sym.nil?
+         pass
+      <span class="kw">elsif</span> <span class="dv">self</span>.is_a? <span class="dt">Class</span> 
+         <span class="kw">if</span> <span class="kw">not</span> class_variables.index(<span class="st">'@@'</span>+name).to_sym.nil?
+            pass
+         <span class="kw">end</span>
+      <span class="kw">else</span>
+         <span class="kw">if</span> <span class="kw">not</span> <span class="dv">self</span>.class.class_variables.index(<span class="st">'@@'</span>+name).to_sym.nil?
+            pass
+         <span class="kw">else</span>
+            raise <span class="dt">ArgumentError</span> <span class="st">&quot;'</span><span class="ot">#{</span>name<span class="ot">}</span><span class="st">' does not name a local variable for </span><span class="ot">#{</span><span class="dv">self</span><span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> _find_rw_methods(names, mode)
+      readers = <span class="dt">Set</span>.new
+      writers = <span class="dt">Set</span>.new
+      names.each <span class="kw">do</span> |cv|
+         stripped = cv.to_s.gsub(<span class="ot">/^@+/</span>, <span class="st">''</span>)
+         <span class="kw">if</span> <span class="dv">self</span>.respond_to? stripped
+            readers.add stripped.to_sym
+         <span class="kw">end</span>
+         <span class="kw">if</span> <span class="dv">self</span>.respond_to? stripped+<span class="st">&quot;=&quot;</span>
+            writers.add stripped.to_sym
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      both = readers &amp; writers
+      <span class="kw">case</span> mode
+      <span class="kw">when</span> <span class="st">&quot;rw&quot;</span>
+         both
+      <span class="kw">when</span> <span class="st">&quot;r&quot;</span>
+         readers
+      <span class="kw">when</span> <span class="st">&quot;w&quot;</span>
+         writers
+      <span class="kw">when</span> <span class="st">&quot;r!&quot;</span>
+         readers - writers
+      <span class="kw">when</span> <span class="st">&quot;w!&quot;</span>
+         writers - readers
+      <span class="kw">when</span> <span class="dv">nil</span>
+         all = readers + writers
+         answer = {}
+         all.each <span class="kw">do</span> |name|
+            <span class="kw">if</span> both.include? name
+               answer[name] = <span class="st">&quot;rw&quot;</span>
+            <span class="kw">elsif</span> readers.include? name
+               answer[name] = <span class="st">&quot;r&quot;</span>
+            <span class="kw">else</span>
+               answer[name] = <span class="st">&quot;w&quot;</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         answer
+      <span class="kw">else</span>
+         legal = <span class="st">&quot;It should be nil or one of </span><span class="ot">#{%w(</span><span class="st">r w rw r! w!</span><span class="ot">)}</span><span class="st">&quot;</span>
+         raise <span class="dt">ArgumentError</span> <span class="st">&quot;Illegal mode: '</span><span class="ot">#{</span>mode<span class="ot">}</span><span class="st">'.  </span><span class="ot">#{</span>legal<span class="ot">}</span><span class="st">&quot;</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> get_traceable_class_variables(mode=<span class="dv">nil</span>)
+      owner <span class="kw">= if</span> <span class="dv">self</span>.kind_of? <span class="dt">Class</span> <span class="kw">then</span> <span class="dv">self</span> <span class="kw">else</span> <span class="dv">self</span>.class <span class="kw">end</span>
+      _find_rw_methods owner.class_variables(), mode
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> get_traceable_instance_variables(mode=<span class="dv">nil</span>)
+      _find_rw_methods <span class="dv">self</span>.instance_variables(), mode
+   <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+</body>
+</html>

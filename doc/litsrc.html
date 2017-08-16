@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Literate Programming Support Via Markdown</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Literate Programming Support Via Markdown</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">February, 2017</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#what-litsrc-does">What <code>litsrc</code> does</a><ul>
+<li><a href="#litcoffee-provided-my-inspiration"><code>litcoffee</code> provided my inspiration</a></li>
+<li><a href="#but-there-are-limits">But there are limits</a></li>
+</ul></li>
+<li><a href="#the-litsrc-document-structure">The <code>litsrc</code> document structure</a><ul>
+<li><a href="#head-sections">Head Sections:</a></li>
+<li><a href="#markdown-sections">Markdown Sections:</a></li>
+<li><a href="#src_code">Source code sections</a></li>
+</ul></li>
+<li><a href="#the_cli">The command-line interface</a><ul>
+<li><a href="#the--s-and---show_source-option">The <code>-s</code> and <code>--show_source</code> option</a></li>
+<li><a href="#the--tabs-command-line-option">The <code>-tabs</code> command line option</a></li>
+<li><a href="#the-addcmdlineparametersspec-method">The <code>addCmdlineParameters(spec)</code> method</a></li>
+<li><a href="#marking_up">Marking up the literate source: the class <code>LanguageSpec</code></a></li>
+</ul></li>
+<li><a href="#programming-notes">Programming Notes</a><ul>
+<li><a href="#the-literatesource-class">The <code>LiterateSource</code> class</a><ul>
+<li><a href="#process_files"><code>process_files()</code></a></li>
+</ul></li>
+<li><a href="#preparing-to-read-and-write">Preparing to read and write</a><ul>
+<li><a href="#get_the_source_pathsoptions"><code>get_the_source_paths(options)</code></a></li>
+<li><a href="#get_the_output_pathsoptions"><code>get_the_output_paths(options)</code></a></li>
+<li><a href="#get_the_css_pathcss_path-default_css_filename"><code>get_the_css_path(css_path, default_css_filename)</code></a></li>
+</ul></li>
+<li><a href="#writing-the-various-output-files">Writing the various output files</a><ul>
+<li><a href="#write_the_html_filemdpath-name"><code>write_the_html_file(mdpath, name)</code></a></li>
+<li><a href="#write_the_md_filename-lines-head-sections"><code>write_the_md_file(name, lines, head, sections) </code></a></li>
+<li><a href="#write_the_lib_filename-lines-all_sections"><code>write_the_lib_file(name, lines, all_sections)</code></a></li>
+</ul></li>
+<li><a href="#the-section-class-and-its-extensions-head-markdown-and-code">The <code>Section</code> class and its extensions, <code>Head</code>, <code>Markdown</code> and <code>Code</code></a></li>
+<li><a href="#the-sections-class-parses-the-input-into-a-list-of-sections">The <code>Sections</code> class: parses the input into a list of <code>Section</code>s</a><ul>
+<li><a href="#sectionslines-name-options-lang_spec"><code>Sections(lines, name, options, lang_spec)</code></a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode ruby"><code class="sourceCode ruby"><span class="kw">#!/usr/bin/env ruby</span></code></pre>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">require <span class="st">&quot;awesome_print&quot;</span>
+require <span class="st">&quot;cmdline&quot;</span>
+require <span class="st">&quot;dbg&quot;</span>
+require <span class="st">&quot;fileutils&quot;</span>
+require <span class="st">&quot;sysutils&quot;</span>
+require <span class="st">&quot;versioning&quot;</span>
+<span class="kw">class</span> <span class="dt">LiterateSource</span>
+   <span class="dt">VERSION</span>       = <span class="st">&quot;1.0.1&quot;</span>
+   <span class="dt">UPDATED</span>       = <span class="st">&quot;2017-07-11&quot;</span>
+</code></pre>
+<h2 id="what-litsrc-does">What <code>litsrc</code> does</h2>
+<p>The idea is to create document formats that are either legal Python or Ruby source code while permitting one to include <a href="http://pandoc.org">markdown</a> with the source in order to be able to create a document that the <a href="http://pandoc.org/MANUAL.html#pandocs-%20markdown"><code>pandoc</code> command</a> can then transform into HTML. This is classic “literate programming”. By making the “literate” version still syntactically correct, one can use any syntax-directed editor to create the code without losing any of the editor’s advantages.</p>
+<p>Both languages have stylized multiline comments/strings that can be used to partition the source file into commentary and code. For Python, triply quoted strings are used, and for Ruby <code>=begin</code> multi-line comments. I’ll get to the details of <code>litsrc</code> syntax shortly, but first a few more words on what it is I am and am <em>not</em> trying to accomplish.</p>
+<h3 id="litcoffee-provided-my-inspiration"><code>litcoffee</code> provided my inspiration</h3>
+<p>I discovered <a href="http://coffeescript.org"><code>CoffeeScript</code></a> and its literate dialect, <code>litcoffee</code>, a few years ago. Once I started writing <code>litcoffee</code>, I found myself much more inclined than I ever had been before (and for me, “before” goes back to the late 1970s) to produce the kind of documentation for my code that I knew that I should, and that a year or so later I knew I would appreciate. The sheer simplicity (indented source code, all else comments) and the relatively uncluttered final source document were an invitation to “write big”, which during the early development stages I have found to be a real help. That was the initial motivation: to make Python and Ruby, which along with litcoffee are the languages I use a lot today, as inviting. The <code>LiterateSource</code> class here is deliberately generic, so as my programming interests change, new languages can easily be accommodated. For now, there are the <a href="rubymd.html"><code>rubymd</code></a> and <a href="panpype.html"><code>panpype</code></a> commands.</p>
+<p>Literate programming is hardly new, but somehow, even relatively accessible tools, like <a href="http://www.oracle.com/technetwork/java/javase/documentation/index-jsp-135444.html">Javadoc,</a> never made me want to write enough. Thinking about it now, I believe the new ingredient that tipped the balance was markdown, as implemented by <a href="http://pandoc.org">Pandoc</a>. I can’t tell you why that is so, because it was not all that hard to produce attractive, readable documentation with Javadoc. One factor is that the discpline that Javadoc imposes on you with the various “<code>@</code>” tags is not always what I’d like, and it leads to source that is cluttered. Its formalized output has the virtue of providing the reader with a clear mental picture, even before the details come into focus, but the same formalism makes the commentary feel utterly tied to the local object of which the commentary is a part. While this makes good sense for a finished product, I don’t think it does for code that is in flux. I could say the same thing about the formalized comments that are the rule for <a href="https://www.python.org/dev/peps/pep-0257/"><code>pydoc</code></a> and <a href="https://ruby.github.io/rdoc/"><code>rdoc</code></a>. Their virtue is the discipline they impose. There are times when that discipline is worthwhile, times when (at least in my opinion) it is not. <code>litcoffee</code> encourages you to unfold your story more flexibly, and that is where I wanted to go.</p>
+<blockquote>
+<p>I am sure I am not alone in preferring a world in which the source code is not interrupted with commentary any more than is necessary. That’s why I’ve gotten in the habit of grouping sets of related methods and putting their documentation in a block immediately preceeding them, rather than keeping each method’s comments with it. The key word here is “related”. The grouping of the comments, and the grouping of the methods, provide helpful visual clue for grokking the code as a whole. This file is an example, and for another, look at <a href="dbgclient.html"><code>dbgclient</code></a>. It had two sets of methods for producing output, one for the class and one for instances. Each has three methods. Each threesome fits on a screen, which makes the reasons for the slight differences in their signatures visible. Also, if you open two windows, you can do a side-by-side comparison of the two sets to see what is common code and what is different. All this with no commentary to distract you. Important? No, not really. But I find it helpful.</p>
+</blockquote>
+<p>Another virtue of <code>litcoffee</code> is that it allows one to produce output that contains some or all of the source code together with the commentary in an elegant format, syntax coloring included. It was not easy to do that with Javadoc in its early days when I was using it extensively. <a href="http://docs.oracle.com/javase/1.5.0/docs/guide/javadoc/doclet/overview.html">Perhaps things are different now.</a> The example of <a href="http://www.javadoq.com">JavaDoq</a> would seem to say that it might be.</p>
+<h3 id="but-there-are-limits">But there are limits</h3>
+<p>What I am definitely not trying to accomplish is to replace rich development environments like <a href="http://jupyter.org">Jupyter</a>. I just wanted something minimal for the short kinds of projects (5,000 to 10,000 lines of source) that I dabble in. On the other hand, most of the work to be done is langauge independent, so it seemed sensible to have the core classes here written so that they could easily be extended to handle other languages.</p>
+<h2 id="the-litsrc-document-structure">The <code>litsrc</code> document structure</h2>
+<p>A <code>litsrc</code> source file is partitioned into sections, of which there are three types. There are blocks of source code, of course. The document’s markup begins with an optional “head” section analogous to an HTML <code>&lt;head&gt;</code> element. The other sections are markdown commentary on the code. The code sections are extracted and written to a file of the appropriate type (<code>.py</code> or <code>.rb</code>). The markdown sections and some or all of the source code are written to a temporary file that is processed by <code>pandoc</code>. The default is to hide all of the code sections from the <code>pandoc</code> input. You can use an entry in the head section to reverse that default, and you can include or exclude the source code from the <code>pandoc</code> output on a line by line basis.</p>
+<h3 id="head-sections">Head Sections:</h3>
+<p>A <code>head</code> section, if present at all, begins the document, except perhaps for a few lines of source code. It serves two purposes. First, it is where you put the document title, author and date information that is to be inserted at the start of the “.md” file. This data is introduced by the keywords</p>
+<pre class="exampleCode">
+Title:
+Author:
+Date:
+</pre>
+
+<p>Each of these ingredients should start at the beginning of a line, as should the two “pretty printing” options described below. The title and author information can be as many lines as you need. Each ends either at the next keyword-initiated line or at the end of the head section.</p>
+<p>The head section’s second purpose is to allow you to provide some defaults as to what is included in the markdown output. By default, none of the source code is copied into the file passed to <code>pandoc</code>. Add the line</p>
+<pre class="exampleCode">
+Show source: yes
+</pre>
+
+<p>in the head to show all source as the file-wide default. The “yes” value is case insensitive.</p>
+<p>As I said earlier, there is <a href="#src_code">markup</a> that allows you to override this file-wide default locally in the literate source file. I should also say that the command line option to show source (or not!) overrides this default, <em>but the explicit local overrides in the document body are respected, whatever the command line and head say.</em> You can therefore keep all of the source shown or hidden by using a local “show” or hide&quot; request (whose syntax is source- language dependent) immediately before the first source code line.</p>
+Another pretty-printing issue, at least when the source is not hidden, is the tab size. By default, tabs are treated as 3 spaces, because that happens to be what I like. If you want some other size, <em><code>n</code></em>, add the line
+<pre class="exampleCode">
+Tab Size: n
+</pre>
+<p>to the head section.</p>
+<p>Unless you request a tab size of <code>0</code>, all tabs are replaced by spaces in the output files.</p>
+<p>Finally, for languages like Python where relative indentation has syntactic force, it is nice to be able to indent the markdown commentary in such a way as not to do violence to the source code’s layout. To that end, the <a href="#marking_up">default</a> is to shift markdown left just far enough so that the opening tag line is at the beginning of the line. You can override that default in the language spec for each new language, and for a particular file by including in the head</p>
+<pre class="exampleCode">
+Left justify markdown: [yes|no]
+</pre>
+
+<p>to turn it on or off. Again the value, “yes” or “no” is case-insensitive.</p>
+<h3 id="markdown-sections">Markdown Sections:</h3>
+<p>The content is markdown as implemented by the <code>pandoc</code> command as documented in <a href="pandoc.org/MANUAL.html#pandocs-markdown">pandoc.org/MANUAL.html#pandocs-markdown</a>. Sample code in the commentary (as opposed to source code) can be supplied in the markdown sections as an HTML section tagged <code>&lt;pre class=&quot;exampleCode&quot;&gt;</code>.</p>
+<h3 id="src_code">Source code sections</h3>
+<p>Any content not in either a head or markdown section is normal, ready-to-roll source code: Python, Ruby, or whatever other extensions of this code folks choose to write. At any point in a code section you can put a “show” or “hide” directive. It should occupy a whole line. For Ruby and Python, I chose “<code>#==&gt; &lt;show&gt;</code>” to turn displaying on, and “<code>#==&gt; &lt;hide&gt;</code>” to turn it off. These directives affect only the HTML output; they have no effect whatsoever on the source file that is extracted from the literate source.</p>
+<h2 id="the_cli">The command-line interface</h2>
+<p>The command for invoking the parse is <code>litsrc</code>. It produces an HTML file and a code file that is the source file stripped of all of the markdown. The intermediate “.md” file that is generated to pass to <code>pandoc</code> is normally discarded, but it will be kept if the “<code>-dbg</code>” option, which governs debugging output, has “<code>md</code>” among its values.</p>
+<blockquote>
+ 
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Option</th>
+<th style="text-align: center;">Purpose</th>
+<th style="text-align: center;">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><em><code>-root</code></em> </td>
+<td style="text-align: center;">src, doc and md are all relative to this path if they are relative</td>
+<td style="text-align: center;"><code>&quot;.&quot;</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>-src</code></em> </td>
+<td style="text-align: center;">where to find the source code files</td>
+<td style="text-align: center;"><code>&quot;src&quot;</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>-css</code></em> </td>
+<td style="text-align: center;">where to find the .css file to send to pandoc.</td>
+<td style="text-align: center;"><code>&quot;css&quot;</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>-bak</code></em> </td>
+<td style="text-align: center;">path for backups relative to directory backed up</td>
+<td style="text-align: center;"><code>&quot;bak&quot;</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>-doc</code></em> </td>
+<td style="text-align: center;">where to write the “<code>.html</code> files</td>
+<td style="text-align: center;"><code>&quot;doc&quot;</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>-md</code></em> </td>
+<td style="text-align: center;">where to write the “<code>.md</code>” files, if they are to be saved</td>
+<td style="text-align: center;"><code>&quot;md&quot;</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>-lib</code></em> </td>
+<td style="text-align: center;">where to write the stripped source code files.</td>
+<td style="text-align: center;"><code>&quot;lib&quot;</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>-pub</code></em> </td>
+<td style="text-align: center;">root directory for published version of the package</td>
+<td style="text-align: center;"><code>&quot;&quot;</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>-s</code></em> </td>
+<td style="text-align: center;">also: <code>--show-source</code>: include the source code in the .html file?</td>
+<td style="text-align: center;"><code>&quot;?&quot;</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>-a</code></em> </td>
+<td style="text-align: center;">also: <code>--assure</code>: create any missing output directories</td>
+<td style="text-align: center;"><code>true</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>-dbg</code></em> </td>
+<td style="text-align: center;">also: <code>--debug</code>: comma-separated keys to filter debugging output</td>
+<td style="text-align: center;"><code>&quot;&quot;</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>-keep</code></em> </td>
+<td style="text-align: center;">the number of backups of the various output files to keep.</td>
+<td style="text-align: center;"><code>5</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>-tabs</code></em> </td>
+<td style="text-align: center;">the size of a tab stop–more on this attribute below.</td>
+<td style="text-align: center;"><code>3</code></td>
+</tr>
+</tbody>
+</table>
+<p><b><i>                         <code>litsrc</code> command-line options</i></b></p>
+</blockquote>
+
+<p>The list of input sources to be processed follows the options in the command line. For example:</p>
+<blockquote>
+<p>the <code>rubymd</code> command uses an extension of <code>LiterateSource</code> called “<code>RubyMd</code>” to process literate Ruby files with extension <code>.rbmd</code>. Executing</p>
+<pre class="exampleCode">
+
+rubymd -root good stuff.rbmd
+
+</pre>
+</blockquote>
+
+<p>will look for the file <code>stuff.rbmd</code> in the directory <code>./good/src</code> and will send its output files <code>stuff.html</code> and <code>stuff.rb</code> to the directories <code>./good/doc</code> and<code>./good/lib</code>, respectively. The backups for <code>stuff.html</code> will be kept in <code>./good/doc/bak</code>, and similarly for the <code>.rb</code> files.</p>
+<p>The normal overall structure for the directories is:</p>
+<pre class="exampleCode">
+
+root
+   src         # literate markdown source
+   lib         # executables
+      bak      # backups for the executables: default keep last 5 
+   doc         # HTML output
+      css      # stylesheets used by the HTML files
+      examples # code that tests the lib entries and illustrates the commentary
+      bak      # backups for the HTML, same default as for executables
+   md          # saved markdown output -- optional and normally not needed
+      bak      # backups for the markdown, same default as for executables
+
+</pre>
+
+<p>There are times when it is really convenient for you as developer to work in the source directory, not its parent or even further up the directory tree. If, in the command line, neither “<code>root</code>” nor “<code>src</code>” is supplied, the current working directory is used for the root, and the source directory is its “<code>src</code>” subdirectory. If only the “<code>src</code>” option is supplied, then <code>root</code> is taken to be the parent directory of that directory. <em>The idea is that the remaining output directories should normally be siblings of the source directory.</em> Thus, the command for literate Ruby source</p>
+<pre class="exampleCode">
+
+rubymd -src . stuff.rbmd
+
+</pre>
+
+<p>will make the current directory the location of the source file <code>stuff.rbmd</code>, and cause the root directory to be its parent, “<code>..</code>”, for purposes of writing the output files.</p>
+<p>Of course, there is nothing to stop you from explicitly specifying both the root and the source directories if you want the output separated from the source, and indeed, all of the various directories are at your command. Remember. though, that relative paths are always taken relative to the root directory, however that directory wound up being specified. Smart folks live with my conventions, even if they don’t like them.</p>
+<h3 id="the--s-and---show_source-option">The <code>-s</code> and <code>--show_source</code> option</h3>
+<p>This option takes a single string value. If you do not supply the option, it will be assumed that what you mean is “I don’t care. Do whatever the file’s head says, but if the file doesn’t say anything, hide the source code.” If you supply the option with <code>&quot;yes&quot;</code> as its value, the source code will be shown in the HTML output, except as overridden locally in the file. If the value is <code>&quot;no&quot;</code>, it will not be displayed–except, again, unless overridden locally.</p>
+<h3 id="the--tabs-command-line-option">The <code>-tabs</code> command line option</h3>
+<p>The <code>tabs</code> attribute also requires a few words of explanation. If its value is not 0, tabs in the input source will be replaced with spaces before any parsing is done, and the detabbed source will be used for the code output. If the value is 0, though, <em>no cleanup at all is done to the input.</em> The tab size can be supplied for each file individually by including the desired value in the head. The <code>tabs</code> parameter here is used as the default. Any integer from 1 to 8 is okay for the value if you want tabs replaced. Positive values out of that range will be replaced by <code>1+(n-1)%8</code>, e.g.: a value a <code>12</code> will get replaced by <code>4</code>.</p>
+<h3 id="the-addcmdlineparametersspec-method">The <code>addCmdlineParameters(spec)</code> method</h3>
+<p>This method is meant to be called as part of the block executed to set up the <a href="cmdline.html">command line processing</a>. The command line options described above are registered with the command line processor. See the call to <code>CmdLine.parse</code> in <a href="rubymd.html">rubymd.html</a> for an example of how it is intended to be used. There is no return value.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> <span class="dv">self</span>.addCmdlineParameters(spec)
+      app      = spec.appname
+      from_ext = spec.help_info[<span class="st">:from</span>]
+      to_ext   = spec.help_info[<span class="st">:to</span>]
+      spec.add_help(
+         before: <span class="st">&quot;</span><span class="ot">#{</span>app<span class="ot">}</span><span class="st"> transforms .</span><span class="ot">#{</span>from_ext<span class="ot">}</span><span class="st"> files into .html and .</span><span class="ot">#{</span>to_ext<span class="ot">}</span><span class="st"> files.\n&quot;</span>,
+         after: <span class="st">&quot;See litsrc.html for more details.&quot;</span>)
+      spec.add_version(version: <span class="dt">LiterateSource</span>::<span class="dt">VERSION</span>,
+         date: <span class="dt">LiterateSource</span>::<span class="dt">UPDATED</span>,
+         appname: <span class="dt">$PROGRAM_NAME</span>)
+      spec.add_string(<span class="st">'-root'</span>,
+         default: <span class="st">''</span>,
+         help: <span class="st">'src, doc, and md are all relative to this path when they are relative'</span>)
+      spec.add_string(<span class="st">'-pub'</span>,
+         default: <span class="st">''</span>,
+         help: <span class="st">'if this is not &quot;&quot;, it is the root directory for publishing the project'</span>)
+      spec.add_string(<span class="st">'-src'</span>,
+         help: <span class="st">'where to find the source'</span>,
+         default: <span class="st">&quot;src&quot;</span>)
+      spec.add_string(<span class="st">'-doc'</span>,
+         help: <span class="st">'where to put the .html output '</span>,
+         default: <span class="st">&quot;doc&quot;</span>)
+      spec.add_string(<span class="st">'-rb'</span>,
+         help: <span class="st">'where to put the .rb output '</span>,
+         default: <span class="st">&quot;rb&quot;</span>)
+      spec.add_string(<span class="st">'-bak'</span>, 
+         help: <span class="st">'where to put backups relative to the directory backed up'</span>,
+         default: <span class="st">&quot;bak&quot;</span>)
+      spec.add_string(<span class="st">'-css'</span>, 
+         help: <span class="st">'where to find stylesheets relative to the doc directory '</span>,
+         default: <span class="st">&quot;css&quot;</span>)
+      spec.add_csv(<span class="st">&quot;-dbg&quot;</span>, <span class="st">&quot;--debug&quot;</span>, 
+         help: <span class="st">'comma-separated list of debug keys'</span>,
+         optional: <span class="dv">true</span>)
+      spec.add_flag(<span class="st">&quot;-a&quot;</span>, <span class="st">&quot;--assure&quot;</span>, 
+         help: <span class="st">&quot;create any missing output directories&quot;</span>,
+         default: <span class="dv">true</span> )
+      spec.add_string(<span class="st">&quot;-s&quot;</span>, <span class="st">&quot;--show-source&quot;</span>, 
+         help: <span class="st">&quot;show the Ruby source in the HTML output&quot;</span>,
+         default: <span class="st">'?'</span> )
+      spec.add_integer(<span class="st">&quot;-keep&quot;</span>, 
+         help: <span class="st">&quot;the number of backups to keep per output file&quot;</span>,
+         default: <span class="dv">3</span>)
+      spec.add_integer(<span class="st">&quot;-tabs&quot;</span>,
+         help: <span class="st">&quot;the number of spaces per tab&quot;</span>,
+         default: <span class="dv">3</span>)
+      spec.add_list_here(<span class="st">'files'</span>,
+         help: <span class="st">'source files'</span>,
+         optional: <span class="dv">true</span>)
+   <span class="kw">end</span>
+<span class="kw">end</span>
+</code></pre>
+<h3 id="marking_up">Marking up the literate source: the class <code>LanguageSpec</code></h3>
+<p>There are a small number of language specific details that one needs to do the processing. It is a small number because I do not do any serious parsing. I simply look for lines that match one of a small set of patterns for starting and ending sections, and use those lines to partition the literate source file. I also need to know the language name and the file type extension for the source code output file: “.py” and “.rb” for the Python and Ruby apps. The basic story on the regular expressions for section boundary markers is</p>
+<table border="1" rules="cols" cellpadding="6px" align="center">
+<tr><th>
+Python
+</th><th>
+Ruby
+</th><th>
+Purpose
+</th></tr>
+<tr><td>
+<code>''' &lt;head&gt;</code>
+</td><td>
+<code>=begin &lt;head&gt;</code>
+</td><td>
+opens the head section, if there is one
+</td></tr>
+<tr><td>
+<code>''' &lt;md&gt;</code>
+</td><td>
+<code>=begin &lt;md&gt;</code>
+</td><td>
+opens a markdown section
+</td></tr>
+<tr><td>
+<code>''' (# &lt;/(md|head)&gt;)?</code>
+</td><td>
+<code>=end (# &lt;/(md|head)&gt;)?</code>
+</td><td>
+ends a head or md section
+</td></tr>
+<tr><td>
+<code>#==&gt; &lt;show&gt;</code>
+</td><td>
+<code>#==&gt; &lt;show&gt;</code>
+</td><td>
+begin showing code in the HTML output
+</td></tr>
+<tr><td>
+<code>#==&gt; &lt;hide&gt;</code>
+</td><td>
+<code>#==&gt; &lt;hide&gt;</code>
+</td><td>
+stop showing code in the HTML output
+</td></tr>
+</table>
+
+<p>The idea here is that the start of a head or markdown section is signalled by a prefix that begins a multi-line source-code comment, followed either by <code>&quot;&lt;head&gt;&quot;</code> or <code>&quot;&lt;md&gt;&quot;</code>, possibly with some white space around it. The ender for these sections is just the string normally used to end a multi-line comment, possibly followed by a “to end of line comment” that affirms the section type–<em>e.g.</em> “<code>''' # &lt;/md&gt;</code>” to end a Python markdown section. The trailing HTML-like ender is optional, but if present will be used to make sure that openers and enders are appropriately paired. Nothing else may appear on either the opening or ending lines.</p>
+<p>As for show and hide directives, they only require a single line, so I use the “ignore to end of line” comment syntax, jazzed up a bit so as not to get in the way of normal comments in the code. I actually allow one or more spaces and/or tabs where a space is shown, and I allow “<code>&lt;show code&gt;</code>” and “<code>&lt;hide code&gt;</code>”, if you prefer that.</p>
+<p>There are three other strings that I need to track,</p>
+<ul>
+<li>the default name for the <code>.css</code> file used by the HTML output files and<br /></li>
+<li>the two strings that one inserts into the markdown to begin and end code sections.</li>
+</ul>
+<p>I use <code>pandoc</code>’s <a href="http://pandoc.org/MANUAL.html#fenced-code-%20blocks">“fenced code block” notation</a> to bracket the code sections in the <code>.md</code> file. The end marker is language independent: a string of tildes of long enough length will do. It must be on its own line and be followed by at least one blank line. The begin marker can allow one to take advantage of pandoc’s syntax hightlighting if it provides a language name that <code>pandoc</code> recognizes–<em>e.g.</em> <code>~~~~{.python}</code>. To see a list of language names that <code>pandoc</code> does recognize, execute</p>
+<pre class="exampleCode">
+
+pandoc --list-highlight-languages.
+
+</pre>
+
+<p>The begin line must be preceeded by an empty line. It may be followed immedately on the next line by the code. The upshot is that the fenced in code is separated from the surrounding commentary by a pair of empty lines, one before and one after it.</p>
+<p>I provided one final tidbit more or less just to accommodate Python, because (if only for literate Python) it is nice to be able to indent the markdown commentary so as not to do too much violence to the perceived structure of the code. This runs into a <code>pandoc</code> convention, which says that</p>
+<blockquote>
+<p>[a] block of text indented four spaces (or one tab) is treated as verbatim text: that is, special characters do not trigger special formatting, and all spaces and line breaks are preserved.</p>
+</blockquote>
+<p>Therefore, I provided the <code>left_justify</code> option, which takes the value <code>true</code> to indicate that the indentation of the begin marker for a markdown section holds for the whole section, and therefore the whole section should be shifted left so that the begin marker is at the start of its line. The default for the option is <code>true</code>: it really is what you normally want.</p>
+<p>The implementation keeps this information in an instance of a class called “<code>LanguageSpec</code>”.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+<span class="kw">class</span> <span class="dt">LanguageSpec</span>
+   <span class="ot">attr_reader</span> <span class="st">:begins</span>, <span class="st">:hide_show</span>, <span class="st">:ends</span>, <span class="st">:lang</span>, <span class="st">:left_justify_md</span>, <span class="st">:lib_ext</span>, <span class="st">:src_ext</span>
+   <span class="ot">attr_accessor</span> <span class="st">:begins_code</span>, <span class="st">:default_css</span>, <span class="st">:ends_code</span>
+   <span class="kw">def</span> initialize(
+      lang_name, src_extension, lib_extension, begins_section, ends_section,
+      hide_show, left_justify=<span class="dv">false</span>
+   )
+      lang_name    = lang_name.downcase
+      <span class="ot">@lang</span>        = lang_name.capitalize
+      <span class="ot">@src_ext</span>     = src_extension
+      <span class="ot">@lib_ext</span>     = lib_extension
+      <span class="ot">@default_css</span> = <span class="st">&quot;</span><span class="ot">#{</span>lang_name<span class="ot">}</span><span class="st">md.css&quot;</span>
+      <span class="ot">@begins</span>      <span class="kw">= if</span> begins_section.kind_of? <span class="dt">Regexp</span> <span class="kw">then</span> begins_section 
+                     <span class="kw">else</span> <span class="dt">Regexp</span>.new begins_section
+                     <span class="kw">end</span>
+      <span class="ot">@ends</span>        <span class="kw">= if</span> ends_section.kind_of? <span class="dt">Regexp</span> <span class="kw">then</span> ends_section
+                     <span class="kw">else</span> <span class="dt">Regexp</span>.new ends_section
+                     <span class="kw">end</span>
+      <span class="ot">@hide_show</span>   <span class="kw">= if</span> hide_show.kind_of? <span class="dt">Regexp</span> <span class="kw">then</span> hide_show
+                     <span class="kw">else</span> <span class="dt">Regexp</span>.new hide_show
+                     <span class="kw">end</span>
+      <span class="ot">@begins_code</span> = <span class="st">&quot;\n~~~~~{.</span><span class="ot">#{</span>lang_name<span class="ot">}</span><span class="st">}\n&quot;</span>
+      <span class="ot">@ends_code</span>   = <span class="st">&quot;\n~~~~~~~~~~~~~~\n\n&quot;</span>
+      <span class="ot">@left_justify_md</span> = left_justify
+   <span class="kw">end</span>
+<span class="kw">end</span>
+</code></pre>
+<h2 id="programming-notes">Programming Notes</h2>
+<p>From this point on, the documentation is intended entirely for those who want to work with the source code for <code>LiterateSource</code>.</p>
+<p>To begin with, in the definition of <code>LanguageSpec</code> above, the three regular expressions should match an entire line. For the two expressions that begin a feature, the thing begun should be separated from the leader by at least one space and should be the second “word” in the line. That word should be exactly as shown in the tables for Python and Ruby above.</p>
+<h3 id="the-literatesource-class">The <code>LiterateSource</code> class</h3>
+<p>The intention was for this class to create a single instance from the command line options. The initializer takes a single argument, the command line options as described above. Any object <code>obj</code> with methods <code>obj.root</code>, <code>obj.src</code>, and so on will do. That is how the options are accessed in the initializer: by method call, not property lookup: <em>i.e.</em> <code>obj.src</code>, not <code>obj[&quot;src&quot;]</code>.</p>
+<p>The initializer for <code>LiterateSource</code> begins by setting up any debugging output requested by the command line. That output is handled by the <a href="dbg.html"><code>DbgMgr</code> class</a>.</p>
+<p>The main job of the initializer is to establish the paths to the source directory and the various output directories as described just above. It also establishes the limits for the number of backups (if any!) to be kept, and if there is no <code>.css</code> file in the <code>css</code> directory, it creates a default file there.</p>
+<blockquote>
+<p>Although there is rarely good reason to do so, the intermediate markdown (“<code>.md</code>”) files can be saved as well. They go into their own directory by default and are backed up with the same discipline as the other output files.</p>
+</blockquote>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+<span class="kw">class</span> <span class="dt">LiterateSource</span>
+
+   <span class="ot">attr_reader</span> <span class="st">:root</span>, <span class="st">:src</span>, <span class="st">:css</span>, <span class="st">:files</span>,                     <span class="co"># input parameters</span>
+               <span class="st">:doc</span>, <span class="st">:ext</span>, <span class="st">:md</span>, <span class="st">:pub</span>, <span class="st">:keep</span>, <span class="st">:assure</span>, <span class="st">:tabs</span>   <span class="co"># output parameters</span>
+
+   <span class="kw">def</span> initialize(options, lang_spec)
+      <span class="ot">@options</span> = options
+      <span class="ot">@lang_spec</span> = lang_spec
+      <span class="kw">if</span> options.dbg.length &gt; <span class="dv">0</span>
+         <span class="dt">DbgMgr</span>.add_patterns options.dbg
+         <span class="kw">if</span> <span class="dt">DbgMgr</span>.active? <span class="st">'file'</span>
+            <span class="dt">File</span>.debug_on <span class="st">'file'</span>
+         <span class="kw">else</span>
+            <span class="dt">File</span>.debug_off
+         <span class="kw">end</span>
+         <span class="dt">DbgMgr</span>.open
+      <span class="kw">end</span>
+      <span class="dt">DbgMgr</span>.add_patterns options.dbg
+      <span class="dt">DbgMgr</span>.pre <span class="st">&quot;opt&quot;</span>, <span class="st">&quot;---------\n</span><span class="ot">#{</span>options.to_s.gsub(<span class="st">&quot; &quot;</span>, <span class="st">&quot;\n   &quot;</span>)<span class="ot">}</span><span class="st">\n---------&quot;</span>, esc: <span class="dv">true</span>
+      <span class="co"># Paths are relative to the &quot;root&quot;:</span>
+      <span class="ot">@root</span> = options.root
+      <span class="co"># Input paths</span>
+      <span class="kw">begin</span>
+         get_the_source_paths options
+         get_the_output_paths options, lang_spec
+         get_the_css_path options.css, lang_spec.default_css
+      <span class="kw">rescue</span> <span class="dt">Exception</span> =&gt; e
+         <span class="dt">DbgMgr</span>.close
+         raise e
+      <span class="kw">end</span>
+      <span class="dt">DbgMgr</span>.pre(<span class="st">&quot;paths&quot;</span>,
+          <span class="st">&quot;Directory paths:\n    root=</span><span class="ot">#{</span>root<span class="ot">}</span><span class="st">\n    src=</span><span class="ot">#{@src}</span><span class="st">\n&quot;</span> +
+          <span class="st">&quot;    doc=</span><span class="ot">#{@doc}</span><span class="st">\n    css=</span><span class="ot">#{@css}</span><span class="st">\n    lib=</span><span class="ot">#{@lib}</span><span class="st">\n    md=</span><span class="ot">#{@md}</span><span class="st">&quot;</span>
+          )
+      <span class="co"># some admin stuff</span>
+      <span class="ot">@show_source</span> = options.s
+      <span class="ot">@head_index</span> = -<span class="dv">1</span>
+      <span class="ot">@head</span> = <span class="dv">nil</span>
+   <span class="kw">end</span>
+</code></pre>
+<p>There are two public instance methods: <code>process_files</code> to create the <code>doc</code> and <code>lib</code> files, and <code>publish</code> to copy the <code>src</code>, <code>lib</code>, and <code>doc</code> directories to a new home.</p>
+<h4 id="process_files"><code>process_files()</code></h4>
+<p>that applications call to actually process the source files once the new <code>LiterateSource</code> instance has been initialized. It has no return value.</p>
+<p>The code is pretty straightforwardly linear: for each literate source file, read it as an array of lines, partition it into sections (kept in an array of <code>Section</code>s), extract and write out the pure source sections, extract and write out the markdown output, then run the markdown through the <code>pandoc</code> command to produce the HTML.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> process_files
+      <span class="kw">begin</span>
+         <span class="ot">@files</span>.each <span class="kw">do</span> |file|
+            name = <span class="dt">File</span>.basename(file, <span class="dt">File</span>.extname(file))
+            <span class="kw">if</span> <span class="kw">not</span> name.end_with? <span class="st">'.'</span> <span class="kw">then</span> name += <span class="st">'.'</span> <span class="kw">end</span>
+            lines = <span class="dt">File</span>.readlines file
+            sections = <span class="dt">Sections</span>.new lines, name, <span class="ot">@options</span>, <span class="ot">@lang_spec</span>
+            <span class="kw">if</span> <span class="dt">DbgMgr</span>.active? <span class="st">&quot;out&quot;</span>
+               output = <span class="st">&quot;non source sections:\n&quot;</span>
+               sections.md_sections.each {|s| 
+                  output += <span class="st">&quot;  </span><span class="ot">#{</span>s.class<span class="ot">}</span><span class="st">: </span><span class="ot">#{</span>s.first_in<span class="ot">}</span><span class="st">...</span><span class="ot">#{</span>s.first_after<span class="ot">}</span><span class="st">&quot;</span>
+               }
+               ouput += <span class="st">&quot;\nruby sections\n&quot;</span>
+               sections.lib_sections.each {|s|
+                  output += <span class="st">&quot;  </span><span class="ot">#{</span>s.class<span class="ot">}</span><span class="st">: </span><span class="ot">#{</span>s.first_in<span class="ot">}</span><span class="st">...</span><span class="ot">#{</span>s.first_after<span class="ot">}</span><span class="st">&quot;</span>
+               }
+               <span class="dt">DbgMgr</span>.put <span class="st">&quot;out&quot;</span>, (output + <span class="st">&quot;\nend\n&quot;</span>)
+            <span class="kw">end</span>
+            write_the_lib_file name, lines, sections.sections
+            md_file = write_the_md_file name, lines, sections.head, sections.sections
+            <span class="kw">if</span> write_the_html_file md_file, name
+               <span class="kw">if</span>  <span class="kw">not</span> <span class="ot">@save_md</span>
+                  <span class="dt">File</span>.delete md_file
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+            <span class="dt">DbgMgr</span>.flush 
+         <span class="kw">end</span>     
+      <span class="kw">rescue</span> <span class="dt">Exception</span> =&gt; e
+         <span class="dt">DbgMgr</span>.err e, now: <span class="dv">true</span> <span class="co"># flush the debugging buffer, but do NOT close the stream</span>
+      <span class="kw">end</span>
+      <span class="dt">DbgMgr</span>.close
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> publish
+      <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@pub</span>.nil?
+         <span class="kw">begin</span>
+            create_the_index
+            populate_a_directory <span class="ot">@src</span>, <span class="ot">@pub_src</span>, <span class="ot">@src_ext</span>
+            populate_a_directory <span class="ot">@lib</span>, <span class="ot">@pub_lib</span>, <span class="ot">@lib_ext</span>
+            populate_a_directory <span class="ot">@doc</span>, <span class="ot">@pub_doc</span>, <span class="st">'html'</span>
+            populate_a_directory <span class="ot">@css</span>, <span class="ot">@pub_css</span>, <span class="st">'css'</span>
+            populate_a_directory <span class="ot">@xmp</span>, <span class="ot">@pub_xmp</span>, <span class="ot">@lib_ext</span>         
+         <span class="kw">rescue</span> <span class="dt">Exception</span> =&gt; e
+            <span class="dt">DbgMgr</span>.err e, now: <span class="dv">true</span> <span class="co"># flush the debugging buffer, but do NOT close the stream</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="dt">DbgMgr</span>.close
+   <span class="kw">end</span>
+</code></pre>
+<h3 id="preparing-to-read-and-write">Preparing to read and write</h3>
+<p>Everything that follows is private to <code>LiterateSource</code>. There is a group of methods for organizing the input and output, and a group of methods for writing the output. Reading the source files is done in initializing an instance of the <code>Sections</code> class. That class’s definition follows the two method sets.</p>
+<h4 id="get_the_source_pathsoptions"><code>get_the_source_paths(options)</code></h4>
+<p>uses the options and the <a href="#the_cli">conventions discussed above</a> to set the instance variables <code>@src</code> and <code>@files</code>. The latter is an array consisting of the fully resolved, absolute paths for the source files.</p>
+<h4 id="get_the_output_pathsoptions"><code>get_the_output_paths(options)</code></h4>
+<p>again uses the options to realize my path conventions, and in this case (unlike getting the source paths) checks what files to write out and that the necessary directories actually exist to which to write them. In particular, the intermediate <code>.md</code> file is normally not saved: add <code>&quot;md&quot;</code> to the list of debug keys held in <code>options.dbg</code> if you want to keep that file around. There is also the question of how many backup files should be kept. The limit is <code>options.keep</code>. The backups are normally put in the <code>bak</code> subdirectory of the directory holding the original. If you wish a different name (perhaps <code>.bak</code> to hide them), use options.bak.</p>
+<h4 id="get_the_css_pathcss_path-default_css_filename"><code>get_the_css_path(css_path, default_css_filename)</code></h4>
+<p>The first argument is either the full path or the directory path for the <code>.css</code> file. If it is the directory path, the convention name for the file, <code>default_css_filename</code> will be appended. If the file does not exist, a default version will be created. The main objective here is to specify the fonts and font sizes to be used in various parts of the HTML file. It also establishes the display parameters for example code and the real source code.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">private</span>
+   <span class="kw">def</span> get_the_source_paths(options)
+      <span class="ot">@src</span> = options.src
+      <span class="dt">DbgMgr</span>.put <span class="st">&quot;paths&quot;</span>, <span class="st">&quot;before: options src is '</span><span class="ot">#{@src}</span><span class="st">' and @root is '</span><span class="ot">#{@root}</span><span class="st">'&quot;</span>
+      <span class="kw">if</span> <span class="ot">@root</span>.nil? <span class="kw">or</span> <span class="ot">@root</span> == <span class="st">''</span>
+         <span class="kw">if</span> <span class="ot">@src</span>.nil?
+            <span class="ot">@root</span> = <span class="dt">Dir</span>.getwd
+            <span class="ot">@src</span> = <span class="dt">File</span>.normalized_path <span class="ot">@root</span>, child: <span class="st">'src'</span>
+         <span class="kw">else</span>
+            <span class="ot">@src</span> = <span class="dt">File</span>.absolute_path <span class="ot">@src</span>
+            <span class="ot">@root</span> = <span class="dt">File</span>.parent_directory <span class="ot">@src</span>
+         <span class="kw">end</span>
+      <span class="kw">else</span>
+         <span class="ot">@root</span> = <span class="dt">File</span>.absolute_path <span class="ot">@root</span>
+         <span class="ot">@src</span> = <span class="dt">File</span>.normalized_path <span class="ot">@root</span>, child: <span class="st">'src'</span>, alternate: <span class="ot">@src</span>
+      <span class="kw">end</span>
+      <span class="dt">DbgMgr</span>.put <span class="st">&quot;paths&quot;</span>, <span class="st">&quot;after: options src is '</span><span class="ot">#{@src}</span><span class="st">' and @root is '</span><span class="ot">#{@root}</span><span class="st">'&quot;</span>
+      <span class="ot">@files</span> = options.files.collect { | file | <span class="dt">File</span>.expand_path file, <span class="ot">@src</span>}
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> get_the_output_paths(options, lang_spec)
+      <span class="co"># the output paths</span>
+      <span class="ot">@save_md</span> = <span class="dt">DbgMgr</span>.active? <span class="st">&quot;md&quot;</span>
+      <span class="ot">@doc</span> = <span class="dt">File</span>.normalized_path <span class="ot">@root</span>, child: <span class="st">'doc'</span>, alternate: options.doc
+      <span class="ot">@examples</span> = <span class="dt">File</span>.normalized_path <span class="ot">@doc</span>, child: <span class="st">'examples'</span>
+      <span class="ot">@md</span> <span class="kw">= if</span> <span class="ot">@save_md</span> <span class="kw">then</span> <span class="dt">File</span>.normalized_path <span class="ot">@root</span>, child: <span class="st">'md'</span>, alternate: options.md
+            <span class="kw">else</span> <span class="ot">@doc</span>
+            <span class="kw">end</span>
+      <span class="ot">@lib</span> = <span class="dt">File</span>.normalized_path <span class="ot">@root</span>, child: <span class="st">'lib'</span>, alternate: options.lib
+      <span class="ot">@src_ext</span> = lang_spec.src_ext
+      <span class="ot">@lib_ext</span> = lang_spec.lib_ext
+      <span class="kw">if</span> options.pub == <span class="st">''</span>
+         <span class="ot">@pub</span> = <span class="ot">@pub_src</span> = <span class="ot">@pub_lib</span> = <span class="ot">@pub_doc</span> = <span class="ot">@pub_css</span> = <span class="ot">@pub_xmp</span> = <span class="dv">nil</span>
+      <span class="kw">else</span>
+         <span class="ot">@pub</span> = <span class="dt">File</span>.expand_path options.pub
+         <span class="dt">File</span>.assure_directory <span class="ot">@pub</span>
+         <span class="ot">@pub_src</span> = <span class="dt">File</span>.normalized_path <span class="ot">@pub</span>, child: <span class="st">'src'</span>
+         <span class="ot">@pub_lib</span> = <span class="dt">File</span>.normalized_path <span class="ot">@pub</span>, child: <span class="st">'lib'</span>
+         <span class="ot">@pub_doc</span> = <span class="dt">File</span>.normalized_path <span class="ot">@pub</span>, child: <span class="st">'doc'</span>
+         <span class="ot">@pub_css</span> = <span class="dt">File</span>.normalized_path <span class="ot">@doc</span>, child: <span class="st">'css'</span>
+         <span class="ot">@pub_xmp</span> = <span class="dt">File</span>.normalized_path <span class="ot">@doc</span>, child: <span class="st">'examples'</span>
+         <span class="dt">File</span>.assure_directory <span class="ot">@pub_src</span>
+         <span class="dt">File</span>.assure_directory <span class="ot">@pub_lib</span>
+         <span class="dt">File</span>.assure_directory <span class="ot">@pub_doc</span>
+         <span class="dt">File</span>.assure_directory <span class="ot">@pub_css</span>
+         <span class="dt">File</span>.assure_directory <span class="ot">@pub_xmp</span>
+      <span class="kw">end</span>
+      <span class="kw">if</span> options.assure
+         <span class="dt">File</span>.assure_directory <span class="ot">@doc</span>
+         <span class="dt">File</span>.assure_directory <span class="ot">@examples</span>
+         <span class="dt">File</span>.assure_directory <span class="ot">@md</span> <span class="kw">if</span> <span class="ot">@save_md</span>
+         <span class="dt">File</span>.assure_directory <span class="ot">@lib</span>
+      <span class="kw">end</span>
+      <span class="co"># what previous output should be saved as backups?</span>
+      <span class="ot">@keep</span> = options.keep
+      <span class="kw">if</span> <span class="ot">@keep</span> == <span class="dv">0</span> <span class="kw">or</span> options.bak.nil?
+         <span class="ot">@doc_bak</span> = <span class="ot">@md_bak</span> = <span class="ot">@lib_bak</span> = <span class="dv">nil</span>
+      <span class="kw">else</span>
+         <span class="ot">@doc_bak</span> = <span class="dt">File</span>.normalized_path <span class="ot">@doc</span>, child: options.bak
+         <span class="ot">@md_bak</span> = <span class="dt">File</span>.normalized_path <span class="ot">@md</span>, child: options.bak
+         <span class="ot">@lib_bak</span> = <span class="dt">File</span>.normalized_path <span class="ot">@lib</span>, child: options.bak
+         <span class="dt">DbgMgr</span>.pre(<span class="st">&quot;paths&quot;</span>, <span class="st">&quot;bak:\n    doc=</span><span class="ot">#{@doc_bak}</span><span class="st">\n    md=</span><span class="ot">#{@md_bak}</span><span class="st">\n    lib=</span><span class="ot">#{@lib_bak}</span><span class="st">&quot;</span>)
+         <span class="kw">if</span> options.assure
+            <span class="dt">File</span>.assure_directory <span class="ot">@doc_bak</span> <span class="kw">if</span> <span class="ot">@doc</span> != <span class="ot">@doc_bak</span>
+            <span class="dt">File</span>.assure_directory <span class="ot">@md_bak</span> <span class="kw">if</span> <span class="ot">@save_md</span> <span class="kw">and</span> <span class="ot">@md</span> != <span class="ot">@md_bak</span>
+            <span class="dt">File</span>.assure_directory <span class="ot">@lib_bak</span> <span class="kw">if</span> <span class="ot">@lib</span> != <span class="ot">@lib_bak</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="dt">DEFAULT_CSS</span> =<span class="ot"> %q&lt;</span>
+<span class="st">@media print { </span>
+<span class="st">   body { font-size: 11pt; }</span>
+<span class="st">   pre { font-family: Courier; font-size: smaller; }</span>
+<span class="st">   .exampleCode {</span>
+<span class="st">      background-color: blanchedalmond !important;</span>
+<span class="st">      -webkit-print-color-adjust: exact; </span>
+<span class="st">      font-family: Monaco; </span>
+<span class="st">      font-size: 9pt;</span>
+<span class="st">   }</span>
+<span class="st">   .sourceCode  { </span>
+<span class="st">      background-color: lightgray !important;</span>
+<span class="st">      -webkit-print-color-adjust: exact; </span>
+<span class="st">      font-family: Courier; </span>
+<span class="st">      font-size: 9pt; ]</span>
+<span class="st">    }</span>
+<span class="st">}</span>
+<span class="st">.author { text-align: center; font-size: 12pt; font-weight: bold; }</span>
+<span class="st">.date { text-align: center; font-size: smaller; }</span>
+<span class="st">code { font-family: Monaco; font-size: smaller; }</span>
+<span class="st">pre {</span>
+<span class="st">    -moz-tab-size:    3;</span>
+<span class="st">    -o-tab-size:      3;</span>
+<span class="st">    -webkit-tab-size: 3;</span>
+<span class="st">    -ms-tab-size:     3;</span>
+<span class="st">    tab-size:         3;</span>
+<span class="st">    line-height: 1.125em</span>
+<span class="st">}</span>
+<span class="st">@media screen {</span>
+<span class="st">   h4 { text-decoration: underline; }</span>
+<span class="st">   .exampleCode { background-color: blanchedalmond; font-family: Monaco; font-size: 9pt; }</span>
+<span class="st">   .sourceCode  { background-color: lightgray; font-family: Courier; font-size: 11pt;  }</span>
+<span class="st">}</span>
+<span class="st">.h1Code { font-family:Courier; font-size: 20pt; font-weight: normal; }</span>
+<span class="st">.h2Code { font-family:Courier; font-size: 18pt; font-weight: normal; }</span>
+<span class="st">.h3Code { font-family:Courier; font-size: 14pt; }</span>
+<span class="st">.title     { text-align: center;  font-size: 17pt; font-weight: bold;}}</span>
+<span class="st">.titleCode { font-family: Courier; font-size: 17pt; font-weight: normal; }</span>
+<span class="ot">&gt;</span>
+   <span class="kw">def</span> get_the_css_path(css_path, default_css_filename)
+      <span class="co">#exists = File.exists? css_path</span>
+      css_path = <span class="dt">File</span>.expand_path css_path, <span class="ot">@doc</span>
+      <span class="dt">DbgMgr</span>.put <span class="st">&quot;in_css&quot;</span>,  <span class="st">&quot;css file at </span><span class="ot">#{</span>css_path<span class="ot">}</span><span class="st">?&quot;</span>
+      <span class="kw">if</span> <span class="dt">File</span>.exists?(css_path) <span class="kw">and</span>  <span class="dt">File</span>.directory?(css_path)
+         css_path +=  <span class="st">&quot;/</span><span class="ot">#{</span>default_css_filename<span class="ot">}</span><span class="st">&quot;</span>
+      <span class="kw">end</span>
+      <span class="kw">if</span> <span class="kw">not</span> css_path.end_with? <span class="st">&quot;.css&quot;</span>  <span class="co"># then it cannot be the file!</span>
+         <span class="dt">File</span>.assure_directory css_path <span class="co"># make sure it exists as a directory</span>
+         css_path += <span class="st">&quot;/</span><span class="ot">#{</span>default_css_filename<span class="ot">}</span><span class="st">&quot;</span> <span class="co"># and use the default file name</span>
+      <span class="kw">end</span>
+      <span class="kw">if</span> <span class="kw">not</span> <span class="dt">File</span>.exists? css_path
+         <span class="dt">DbgMgr</span>.warn <span class="st">&quot;New .css file </span><span class="ot">#{</span>css_path<span class="ot">}</span><span class="st"> created.&quot;</span>
+         <span class="dt">File</span>.open(css_path, <span class="st">&quot;w&quot;</span>) { |io| io.puts <span class="dt">DEFAULT_CSS</span> }
+      <span class="kw">else</span>
+         <span class="dt">DbgMgr</span>.put <span class="st">&quot;in_css&quot;</span>, <span class="st">&quot;using css file '</span><span class="ot">#{</span>css_path<span class="ot">}</span><span class="st">'&quot;</span>
+      <span class="kw">end</span>
+      <span class="ot">@css</span> = css_path
+   <span class="kw">end</span>
+</code></pre>
+<h3 id="writing-the-various-output-files">Writing the various output files</h3>
+<h4 id="write_the_html_filemdpath-name"><code>write_the_html_file(mdpath, name)</code></h4>
+<p>The first argument specifies the path for the <code>.md</code> input file. The output file directory is the <code>@doc</code> directory, and the file name is the second argument plus the usual <code>.html</code> extension.</p>
+<p>All this method does is to set up and execute a call to <code>pandoc</code>. The return value is an array with two entries: the exit status from the <code>pandoc</code> call and the output (if any) to <code>stdout</code> and <code>stderr</code> produced by <code>pandoc</code>.</p>
+<h4 id="write_the_md_filename-lines-head-sections"><code>write_the_md_file(name, lines, head, sections) </code></h4>
+<p>adds the file extension <code>.md</code> to <code>name</code> and loops over the <code>sections</code> array, writing out those sections that are either markdown or visible code. The output path is returned for immediate use by <code>write_the_html_file</code>.</p>
+<h4 id="write_the_lib_filename-lines-all_sections"><code>write_the_lib_file(name, lines, all_sections)</code></h4>
+<p>adds the language-dependent file extension to <code>name</code> and loops over the <code>sections</code> array, writing out those sections that are code.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> write_the_html_file(mdpath, name)
+      <span class="dt">DbgMgr</span>.put <span class="st">&quot;out_html&quot;</span>, <span class="st">&quot;writing </span><span class="ot">#{</span>name<span class="ot">}</span><span class="st">html&quot;</span>
+      file = <span class="dt">File</span>.join <span class="ot">@doc</span>, (name + <span class="st">&quot;html&quot;</span>)
+      <span class="dt">VersionedFile</span>.new_version file, <span class="dv">true</span>, bak: <span class="ot">@doc_bak</span>, keep: <span class="ot">@keep</span>
+      cmd = <span class="st">&quot;pandoc  -p -s -S -f markdown -t html5 --toc --toc-depth=4 &quot;</span> +
+            <span class="st">&quot;--self-contained --css </span><span class="ot">#{@css}</span><span class="st"> -o </span><span class="ot">#{</span>file<span class="ot">}</span><span class="st"> </span><span class="ot">#{</span>mdpath<span class="ot">}</span><span class="st">&quot;</span>
+      <span class="dt">DbgMgr</span>.put <span class="st">&quot;out_html&quot;</span>, cmd
+      output =<span class="ot"> %x[#{</span>cmd<span class="ot">}]</span>
+      [<span class="dt">$?</span>.exitstatus, output]
+
+   <span class="kw">end</span>
+   <span class="kw">def</span> write_the_md_file(name, lines, head, sections) 
+      <span class="dt">DbgMgr</span>.put <span class="st">&quot;out_md&quot;</span>,  <span class="st">&quot;Writing </span><span class="ot">#{</span>name<span class="ot">}</span><span class="st">md!&quot;</span>
+      <span class="kw">begin</span>
+         keep <span class="kw">= if</span> <span class="ot">@save_md</span> <span class="kw">then</span> <span class="ot">@keep</span> <span class="kw">else</span> <span class="dv">0</span> <span class="kw">end</span>
+         output_path = <span class="dt">File</span>.join <span class="ot">@md</span>, (name + <span class="st">&quot;md&quot;</span>)
+         <span class="co">#show_source = if head.show.nil? then false else head.show</span>
+         <span class="dt">VersionedFile</span>.open(output_path, bak: <span class="ot">@md_bak</span>, keep: keep, mode: <span class="st">'w'</span>) <span class="kw">do</span> |fd|
+            fd.puts <span class="st">&quot;% </span><span class="ot">#{</span>head.title<span class="ot">}</span><span class="st">\n% </span><span class="ot">#{</span>head.author<span class="ot">}</span><span class="st">\n% </span><span class="ot">#{</span>head.date<span class="ot">}</span><span class="st">\n&quot;</span>
+            sections.each {| section | section.to_md(fd) }
+         <span class="kw">end</span>
+      <span class="kw">rescue</span> <span class="dt">Exception</span> =&gt; ex
+         <span class="dt">DbgMgr</span>.err ex, my_caller: <span class="st">&quot;write_the_md_file&quot;</span>
+         raise
+      <span class="kw">end</span>
+      output_path
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> write_the_lib_file(name, lines, sections)
+      <span class="dt">DbgMgr</span>.put <span class="st">&quot;out_lib&quot;</span>,  <span class="st">&quot;Writing </span><span class="ot">#{</span>name<span class="ot">}#{@lib_ext}</span><span class="st">!&quot;</span>
+      <span class="kw">begin</span>
+         file = <span class="dt">File</span>.join <span class="ot">@lib</span>, <span class="st">&quot;</span><span class="ot">#{</span>name<span class="ot">}#{@lib_ext}</span><span class="st">&quot;</span>
+         <span class="dt">VersionedFile</span>.open(file, bak: <span class="ot">@lib_bak</span>, keep: <span class="ot">@keep</span>, mode: <span class="st">'w'</span>) <span class="kw">do</span> |fd|
+            sections.each { | section | section.to_lib fd }
+         <span class="kw">end</span> 
+      <span class="kw">rescue</span> <span class="dt">Exception</span> =&gt; ex
+         <span class="dt">DbgMgr</span>.err ex, my_caller: <span class="st">&quot;write_the_lib_file&quot;</span>
+         raise
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+      
+   <span class="kw">def</span> exec_cmd cmd, check_output = <span class="dv">true</span>
+      <span class="dt">DbgMgr</span>.put <span class="st">&quot;exec&quot;</span>, cmd
+      output =<span class="ot"> %x[#{</span>cmd<span class="ot">}]</span>
+      status = <span class="dt">$?</span>.exitstatus
+      <span class="kw">if</span> status != <span class="dv">0</span> <span class="kw">or</span> (check_output <span class="kw">and</span> output != <span class="dv">nil</span> <span class="kw">and</span> output.length &gt; <span class="dv">0</span>)
+          msg = <span class="st">&quot;'</span><span class="ot">#{</span>cmd<span class="ot">}</span><span class="st">' failed with exit status=</span><span class="ot">#{</span>exit_status<span class="ot">}</span><span class="st">&quot;</span>
+          <span class="kw">if</span> check_output
+            msg += <span class="st">&quot;, output='</span><span class="ot">#{</span>output<span class="ot">}</span><span class="st">'&quot;</span>
+          <span class="kw">end</span>
+         <span class="dt">STDERR</span>.puts msg
+         <span class="dt">DbgMgr</span>.warn output
+         <span class="kw">return</span> <span class="dv">false</span>
+      <span class="kw">else</span>
+         <span class="dt">DbgMgr</span>.put <span class="st">&quot;exec&quot;</span>, <span class="st">&quot;</span><span class="ot">#{</span>name<span class="ot">}</span><span class="st">html created, exit code </span><span class="ot">#{</span>status<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">return</span> <span class="dv">true</span>
+      <span class="kw">end</span>
+  <span class="kw">end</span>
+
+   <span class="kw">def</span> create_the_index
+      pubname = <span class="dt">File</span>.basename <span class="ot">@pub</span>
+      index_md = <span class="dt">File</span>.expand_path <span class="st">&quot;index.md&quot;</span>, <span class="ot">@root</span>
+      <span class="kw">if</span> <span class="kw">not</span> <span class="dt">File</span>.exists(index_md)
+         <span class="dt">File</span>.write index_md, <span class="st">&quot;The source files for the </span><span class="ot">#{</span>pubname<span class="ot">}</span><span class="st"> package are:\n&quot;</span>+
+            <span class="st">&quot;&lt;blockquote&gt;\n&lt;!-- source links --&gt;\n&lt;/blockquote&gt;\n&quot;</span>
+      <span class="kw">end</span>
+      index_in = <span class="dt">File</span>.new(index_md)
+      ls_cmd = <span class="st">&quot;ls </span><span class="ot">#{@src}</span><span class="st">/*.</span><span class="ot">#{@src_ext}</span><span class="st">&quot;</span>
+      file_list =<span class="ot"> %x[</span><span class="st">ls_cmd</span><span class="ot">]</span>.collect <span class="kw">do</span> |path|
+         <span class="st">&quot;[</span><span class="ot">#{</span><span class="dt">File</span>.basename path<span class="ot">}</span><span class="st">](path)&quot;</span>
+      <span class="kw">end</span>
+      <span class="dt">Range</span>.new(<span class="dv">0</span>, file_list.size() - <span class="dv">2</span>).each <span class="kw">do</span> |n|
+         file_list[n] += <span class="st">&quot;\\\n&quot;</span>
+      <span class="kw">end</span>
+      temp_index_md = <span class="st">&quot;</span><span class="ot">#{@pub_doc}</span><span class="st">/index.md&quot;</span>
+      <span class="dt">File</span>.open(temp_index_md, <span class="st">&quot;w&quot;</span>) <span class="kw">do</span> |out|
+         line = index_in.gets
+         <span class="kw">while</span> <span class="kw">not</span> line.nil?
+            <span class="kw">if</span> line.strip.start_with? <span class="st">&quot;&lt;!-- source links --&gt;&quot;</span>
+               file_list.each <span class="kw">do</span> |line|
+                  out.puts line
+               <span class="kw">end</span>
+            <span class="kw">else</span>
+               out.puts line
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      file = <span class="dt">File</span>.join <span class="ot">@pub_doc</span>, <span class="st">&quot;index.html&quot;</span>
+      cmd = <span class="st">&quot;pandoc  -p -s -S -f markdown -t html5 --toc --toc-depth=4 &quot;</span> +
+            <span class="st">&quot;--self-contained --css </span><span class="ot">#{@css}</span><span class="st"> -o </span><span class="ot">#{</span>file<span class="ot">}</span><span class="st"> </span><span class="ot">#{</span>temp_index_md<span class="ot">}</span><span class="st">&quot;</span>
+      <span class="kw">if</span> exec_cmd cmd
+         <span class="kw">return</span> exec_cmd(<span class="st">&quot;rm </span><span class="ot">#{</span>temp_index_md<span class="ot">}</span><span class="st">&quot;</span>)
+      <span class="kw">end</span>
+      <span class="dv">false</span> 
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> populate_a_directory src_path, tgt_path, extension
+      <span class="co"># empty the target directory of files that have the same extension as</span>
+      <span class="co"># the copied files, and if that succeeds, do the copy from the source</span>
+      dead_files = <span class="dt">File</span>.join tgt_path, <span class="st">&quot;*</span><span class="ot">#{</span>extension<span class="ot">}</span><span class="st">&quot;</span>
+      <span class="kw">if</span> exec_cmd <span class="st">&quot;rm </span><span class="ot">#{</span>dead_files<span class="ot">}</span><span class="st">&quot;</span>
+         new_files = <span class="dt">File</span>.join src_path, <span class="st">&quot;*</span><span class="ot">#{</span>extension<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">return</span> exec_cmd <span class="st">&quot;cp </span><span class="ot">#{</span>new_files<span class="ot">}</span><span class="st"> </span><span class="ot">#{</span>tgt_path<span class="ot">}</span><span class="st">&quot;</span>
+      <span class="kw">end</span>
+      <span class="dv">false</span>
+   <span class="kw">end</span>
+</code></pre>
+<h3 id="the-section-class-and-its-extensions-head-markdown-and-code">The <code>Section</code> class and its extensions, <code>Head</code>, <code>Markdown</code> and <code>Code</code></h3>
+<p>A section is responsible for a set of lines. It knows how to write them to the markdown and lib files. A section’s line set is determined by two instance variables, <code>@first_in</code> and <code>@first_after</code>. A section has access to the array of lines from the literate source files, and its responsibility is the range of lines <code>[@first_in ... @first_after]]</code>. For <code>Markdown</code> sections there is little more to say, other than that it is responsible for trimming leading white space if left justification was requested. As for the others:</p>
+<p><code>Code</code> sections are also straightforward: the only new ingredient is that they have a leader and a trailer that they have to write to the markdown file so that <code>pandoc</code> will recognize this as source code. The <code>Head</code> section is where there is some real work to do, because it serves two purposes: to provide the header block for the markdown and to track some file-wide defaults. There are two cases. If the author has supplied a head section, the file-wide defaults are first taken from it, and then from the options. If there is no head section, one is created from the options, language specification and the file name. Hence, rather than a single public constructor, there is a pair of static methods to create a <code>Head</code> instance from the appropriate input.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   
+   <span class="kw">class</span> <span class="dt">Section</span>
+      <span class="ot">attr_reader</span> <span class="st">:first_in</span>, <span class="st">:first_after</span>
+      <span class="kw">def</span> initialize(first_in, first_after, lines)
+         <span class="ot">@first_in</span> = first_in
+         <span class="ot">@first_after</span> = first_after
+         <span class="ot">@lines</span> = lines
+      <span class="kw">end</span>
+      <span class="kw">def</span> to_s()
+         <span class="st">&quot;</span><span class="ot">#{</span><span class="dv">self</span>.class<span class="ot">}</span><span class="st">(</span><span class="ot">#{@first_in}</span><span class="st">, </span><span class="ot">#{@first_after}</span><span class="st">)&quot;</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">class</span> <span class="dt">Head</span> &lt; <span class="dt">Section</span>
+      <span class="ot">attr_accessor</span> <span class="st">:title</span>, <span class="st">:author</span>, <span class="st">:date</span>, <span class="st">:tabsize</span>, <span class="st">:show</span>, <span class="st">:left_justify</span>
+      <span class="ot">attr_reader</span> <span class="st">:lines</span>
+      <span class="kw">def</span> <span class="dv">self</span>.newFromOptions(options, lang_spec, name)
+         head = <span class="dt">Head</span>.new -<span class="dv">1</span>, <span class="dv">0</span>, []
+         head.set_from_defaults options, lang_spec, name
+         head
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> <span class="dv">self</span>.newFromLines(begins, ends, lines, options, lang_spec, name)
+         head = <span class="dt">Head</span>.new begins, ends, lines
+         head.set_from_lines 
+         head.set_from_defaults options, lang_spec, name
+         head
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> initialize(first_in, first_after, lines)
+         <span class="dv">super</span> first_in, first_after, lines
+         <span class="ot">@title</span> = <span class="dv">nil</span>
+         <span class="ot">@author</span> = <span class="dv">nil</span>
+         <span class="ot">@date</span> = <span class="dt">Date</span>.today.iso8601
+         <span class="ot">@tabsize</span> = <span class="dv">nil</span>
+         <span class="ot">@show</span> = <span class="dv">false</span>
+         <span class="ot">@left_justify</span> = <span class="dv">false</span>
+      <span class="kw">end</span>
+
+      <span class="dt">KEYS</span> = <span class="dt">Set</span>.new [<span class="st">'author'</span>, <span class="st">&quot;date&quot;</span>, <span class="st">'show source'</span>, <span class="st">'tab size'</span>, <span class="st">'title'</span>]
+      <span class="kw">def</span> set_from_lines()
+         type = <span class="st">''</span>
+         buffers = <span class="dt">Hash</span>.new <span class="st">''</span>
+         (<span class="ot">@first_in</span><span class="dv">+1</span> ... <span class="ot">@first_after</span>).each <span class="kw">do</span> |n|
+            line = <span class="ot">@lines</span>[n].rstrip
+            <span class="kw">if</span> line.length == <span class="dv">0</span> <span class="kw">then</span> <span class="kw">next</span>
+            <span class="kw">elsif</span> line[<span class="dv">0</span>] == <span class="st">&quot; &quot;</span> <span class="kw">or</span> line[<span class="dv">0</span>] == <span class="st">&quot;\t&quot;</span>
+               <span class="kw">if</span> type != <span class="st">''</span> <span class="co"># this is a continuation line</span>
+                  buffers[type] += <span class="st">&quot;\n &quot;</span>+line[<span class="dv">1</span> .. -<span class="dv">1</span>] <span class="co"># get rid of the tab if one leads off</span>
+               <span class="kw">else</span>
+                  raise <span class="dt">SyntaxError</span>.new <span class="st">&quot;No section key for line </span><span class="ot">#{</span>n<span class="ot">}</span><span class="st"> in the head&quot;</span>
+               <span class="kw">end</span>
+            <span class="kw">else</span>
+               line.lstrip!
+               colon_index = line.index <span class="st">':'</span>
+               <span class="kw">if</span> colon_index.nil? <span class="kw">then</span> possible_key = <span class="st">''</span>
+               <span class="kw">else</span> 
+                  possible_key = line[<span class="dv">0</span> ... colon_index].downcase 
+                  rest_of_line = line[colon_index<span class="dv">+1</span> .. -<span class="dv">1</span>].lstrip
+               <span class="kw">end</span>
+               <span class="dt">DbgMgr</span>.put <span class="st">&quot;head&quot;</span>,  <span class="st">&quot;</span><span class="ot">#{</span>possible_key<span class="ot">}</span><span class="st"> key?&quot;</span>
+               <span class="kw">if</span> <span class="dt">KEYS</span>.member? possible_key
+                  type = possible_key
+                  <span class="kw">if</span> type == <span class="st">'tab size'</span>
+                     <span class="ot">@tabsize</span> = <span class="dt">Integer</span>(rest_of_line)
+                  <span class="kw">elsif</span> type == <span class="st">'show source'</span>
+                     <span class="ot">@show</span> = rest_of_line.strip.to_b
+                  <span class="kw">else</span>
+                     <span class="kw">if</span> buffers[type].length &gt; <span class="dv">0</span>
+                        buffers[type] += <span class="st">&quot;\n  &quot;</span>
+                     <span class="kw">end</span>
+                     buffers[type] += line[colon_index<span class="dv">+1</span> .. -<span class="dv">1</span>]
+                  <span class="kw">end</span>
+               <span class="kw">elsif</span> type != <span class="st">''</span> <span class="co"># may just be a ':' in an address or title continuation line</span>
+                  buffers[type] += <span class="st">&quot;\n  &quot;</span> + line
+               <span class="kw">else</span>
+                  raise <span class="dt">SyntaxError</span>.new <span class="st">&quot;Bad section key, </span><span class="ot">#{</span>type<span class="ot">}</span><span class="st"> for line </span><span class="ot">#{</span>n<span class="ot">}</span><span class="st"> in the head&quot;</span>
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> buffers.member? <span class="st">&quot;title&quot;</span> <span class="kw">then</span> <span class="ot">@title</span> = buffers[<span class="st">&quot;title&quot;</span>] <span class="kw">end</span>
+         <span class="kw">if</span> buffers.member? <span class="st">&quot;author&quot;</span> <span class="kw">then</span> <span class="ot">@author</span> = buffers[<span class="st">&quot;author&quot;</span>] <span class="kw">end</span>
+         <span class="kw">if</span> buffers.member? <span class="st">&quot;date&quot;</span> <span class="kw">then</span> <span class="ot">@date</span> = buffers[<span class="st">&quot;date&quot;</span>] <span class="kw">end</span>
+         <span class="kw">if</span> buffers.member? <span class="st">&quot;tab size&quot;</span> <span class="kw">then</span> <span class="ot">@tabsize</span> = <span class="dt">Integer</span> buffers[<span class="st">&quot;tab size&quot;</span>] <span class="kw">end</span>
+         <span class="kw">if</span> buffers.member? <span class="st">&quot;show source&quot;</span> <span class="kw">then</span> <span class="ot">@show</span> = buffers[<span class="st">&quot;show source&quot;</span>].to_b <span class="kw">end</span>
+         <span class="kw">if</span> buffers.member? <span class="st">&quot;left justify markdown&quot;</span>
+            <span class="ot">@left_justify</span> = buffers[<span class="st">&quot;left justify markdown&quot;</span>]
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> set_from_defaults(options, lang_spec, name)
+         <span class="kw">if</span> <span class="ot">@title</span>.nil? <span class="kw">then</span> <span class="ot">@title</span> = <span class="st">&quot;</span><span class="ot">#{</span>name<span class="ot">}</span><span class="st">.</span><span class="ot">#{</span>lang_spec.src_ext<span class="ot">}</span><span class="st">&quot;</span> <span class="kw">end</span>
+         <span class="kw">if</span> <span class="ot">@date</span>.nil? <span class="kw">then</span> <span class="ot">@date</span> = <span class="dt">Date</span>.today.iso8601 <span class="kw">end</span>
+         <span class="kw">if</span> <span class="ot">@tabsize</span>.nil? <span class="kw">then</span> <span class="ot">@tabsize</span> = options.tabs <span class="kw">end</span>
+         <span class="kw">if</span> <span class="ot">@left_justify</span>.nil? <span class="kw">then</span> <span class="ot">@left_justify</span> = lang_spec.left_justify_md <span class="kw">end</span>
+         <span class="kw">if</span> options.s != <span class="st">'?'</span> <span class="kw">then</span> <span class="ot">@show</span> = options.s.to_b 
+         <span class="kw">elsif</span> <span class="ot">@show</span>.nil? <span class="kw">then</span> <span class="ot">@show</span> = <span class="dv">false</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="kw">def</span> to_md(fd)
+         <span class="co"># do nothing!</span>
+      <span class="kw">end</span>
+      <span class="kw">def</span> to_lib(fd)
+         <span class="co"># do nothing!</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">class</span> <span class="dt">Markdown</span> &lt; <span class="dt">Section</span>
+      <span class="kw">def</span> initialize(section_spec, lines, undent)
+         <span class="dv">super</span> section_spec.begins<span class="dv">+1</span>, section_spec.ends, lines
+         <span class="ot">@indent</span> <span class="kw">= if</span> undent <span class="kw">then</span> section_spec.indent <span class="kw">else</span> <span class="dv">0</span> <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="kw">def</span> to_md(fd)
+         <span class="kw">if</span> <span class="ot">@indent</span> == <span class="dv">0</span>
+            (<span class="ot">@first_in</span> ... <span class="ot">@first_after</span>).each <span class="kw">do</span> |n|
+               fd.puts <span class="ot">@lines</span>[n] 
+            <span class="kw">end</span>
+         <span class="kw">else</span> <span class="co"># trim on the  left to justify the markdown</span>
+            (<span class="ot">@first_in</span> ... <span class="ot">@first_after</span>).each <span class="kw">do</span> |n|
+               line = <span class="ot">@lines</span>[n]
+               fd.puts line[<span class="ot">@indent</span> ... line.length]
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="kw">def</span> to_lib(fd)
+         <span class="co"># do nothing!</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">class</span> <span class="dt">Code</span> &lt; <span class="dt">Section</span> 
+      <span class="kw">def</span> initialize(first_in, first_after, lines, show, lang_spec)
+         <span class="dv">super</span> first_in, first_after, lines
+         <span class="ot">@show</span>    = show.to_b
+         <span class="ot">@leader</span>  = lang_spec.begins_code
+         <span class="ot">@trailer</span> = lang_spec.ends_code
+      <span class="kw">end</span>
+      <span class="kw">def</span> to_md(fd)
+         <span class="kw">if</span> <span class="ot">@show</span>
+            fd.puts <span class="ot">@leader</span> <span class="co"># pandoc &quot;fence&quot;: \n~~~~{.lang_name}\n</span>
+            (<span class="ot">@first_in</span> ... <span class="ot">@first_after</span>).each {|n| fd.puts <span class="ot">@lines</span>[n]}
+            fd.puts <span class="ot">@trailer</span> <span class="co"># pandoc &quot;fence&quot;: ~~~~~~\n\n</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="kw">def</span> to_lib(fd)
+         (<span class="ot">@first_in</span> ... <span class="ot">@first_after</span>).each {|n| fd.puts <span class="ot">@lines</span>[n]}
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+</code></pre>
+<h3 id="the-sections-class-parses-the-input-into-a-list-of-sections">The <code>Sections</code> class: parses the input into a list of <code>Section</code>s</h3>
+<p>The constructor does all the work! An instance of this class is a set of “section specs”. where the start and end lines are, the indentation, and the kind.</p>
+<h4 id="sectionslines-name-options-lang_spec"><code>Sections(lines, name, options, lang_spec)</code></h4>
+<p>The first argument, <code>lines</code>, is the input file as a list of lines. The second argument, <code>name</code> is the base name of the input file–<em>e.g.</em> <code>&quot;litsrc&quot;</code> for this file. <code>options</code> is used to fill in the entries in the <code>Head</code> section: tab size, whether to show source by default, etc.. The <code>lang_spec</code> is a <a href="#marking_up"><code>LanguageSpec</code></a> instance.</p>
+<p>Programming notes: The first objective is to match the beginners to the enders and to find the show/hide directives. This done in <code>find_the_section_specs</code>. It loops first over the lines from the input file. For each begin tag and each directive, it creates a <code>SectionSpec</code> that tracks the begin and end pairs for the markdown sections and the locations of the directives. It also tracks the indentation for begin tags. Once the array of section specs is computed, the <code>list_all_the_sections</code> method loops over the section specs array to find the code sections–that is, those lines that are either not in markdown sections or are not directives. It creates a <code>Markdown</code> instance for each markdown section spec, and for each contiguous block of code lines with the same “show” value, it creates a <code>Code</code> instance. The array of these instances is the <code>@sections</code> instance variable of the <code>Sections</code> instance.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   
+   <span class="kw">class</span> <span class="dt">Sections</span>
+      <span class="dt">SectionSpec</span> = <span class="dt">Struct</span>.new <span class="st">:begins</span>, <span class="st">:ends</span>, <span class="st">:indent</span>, <span class="st">:kind</span>
+      <span class="ot">attr_reader</span> <span class="st">:head</span>, <span class="st">:sections</span>
+      <span class="kw">def</span> initialize(lines, name, options, lang_spec)
+         <span class="ot">@lines</span> = lines
+         <span class="ot">@name</span> = name
+         <span class="ot">@head</span> = <span class="dt">Head</span>.newFromOptions options, lang_spec, <span class="ot">@name</span>
+         section_specs = find_the_section_specs options, lang_spec
+         <span class="ot">@sections</span> = list_all_the_sections section_specs, lang_spec
+      <span class="kw">end</span>
+      <span class="kw">private</span>
+      <span class="kw">def</span> find_the_section_specs(options, lang_spec)
+         section_specs = [<span class="dt">SectionSpec</span>.new(-<span class="dv">1</span>, -<span class="dv">1</span>, <span class="dv">0</span>, <span class="st">:before</span>)]
+         last_start = -<span class="dv">1</span>
+         type_started = <span class="st">:none</span>
+         indent = <span class="dv">0</span>
+         head_seen = <span class="dv">false</span>
+         first_md = -<span class="dv">1</span>
+         begins = lang_spec.begins
+         ends = lang_spec.ends
+         hide_show = lang_spec.hide_show
+         <span class="ot">@lines</span>.each_with_index <span class="kw">do</span> | line, n | <span class="co"># find the head and md sections</span>
+            <span class="kw">case</span> 
+            <span class="kw">when</span> (begins =~line) == <span class="dv">0</span>
+               last_start = n
+               line = line.downcase
+               <span class="kw">if</span> line.index(<span class="st">&quot;&lt;head&gt;&quot;</span>) != <span class="dv">nil</span>
+                  type_started = <span class="st">:head</span>
+                  <span class="kw">if</span>  first_md &gt;= <span class="dv">0</span>
+                     raise <span class="dt">SyntaxError</span>.new <span class="st">&quot;line </span><span class="ot">#{</span>n<span class="ot">}</span><span class="st">: head section must come before any markdown&quot;</span>
+                  <span class="kw">elsif</span> head_seen
+                     raise <span class="dt">SyntaxError</span>.new <span class="st">&quot;Second 'head' begun at line </span><span class="ot">#{</span>n<span class="ot">}</span><span class="st">&quot;</span>
+                  <span class="kw">else</span> 
+                     head_seen = <span class="dv">true</span>
+                  <span class="kw">end</span>
+               <span class="kw">elsif</span> line.index(<span class="st">&quot;&lt;md&gt;&quot;</span>) != <span class="dv">nil</span>
+                  type_started = <span class="st">:md</span>
+                  indent = line.index <span class="ot">/\S/</span>
+                  <span class="kw">if</span> first_md &lt; <span class="dv">0</span> <span class="kw">and</span> (<span class="kw">not</span> head_seen) <span class="kw">and</span> <span class="ot">@head</span>.tabsize != <span class="dv">0</span>
+                     tabsize = <span class="ot">@head</span>.tabsize
+                     <span class="ot">@lines</span> = <span class="ot">@lines</span>.collect { |line| line.expandtabs tabsize}
+                  <span class="kw">end</span>
+               <span class="kw">else</span>
+                  raise <span class="dt">SyntaxError</span>.new <span class="st">&quot;Unexpected begin line match: '</span><span class="ot">#{@lines</span>[n]<span class="ot">}</span><span class="st">'&quot;</span>
+               <span class="kw">end</span>
+            <span class="kw">when</span> (ends =~ line) == <span class="dv">0</span>
+               end_match = <span class="ot">/&lt;\/(md|head)&gt;[ \t]*\n?/</span>.match(line)
+               line_ender <span class="kw">= if</span> end_match.nil? <span class="kw">then</span> <span class="dv">nil</span> <span class="kw">else</span> line[end_match.captures[<span class="dv">0</span>]] <span class="kw">end</span>
+               <span class="kw">case</span> type_started
+               <span class="kw">when</span> <span class="st">:head</span>
+                  <span class="kw">if</span> line_ender.nil? <span class="kw">or</span> line_ender==<span class="st">'head'</span>
+                     section_specs.push <span class="dt">SectionSpec</span>.new(last_start, n, indent, <span class="st">:head</span>)
+                     <span class="ot">@head</span> = <span class="dt">Head</span>.newFromLines last_start, n, <span class="ot">@lines</span>, options, lang_spec, <span class="ot">@name</span>
+                     <span class="kw">if</span> <span class="ot">@head</span>.tabsize != <span class="dv">0</span>
+                        <span class="ot">@lines</span> = <span class="ot">@lines</span>.collect { |line| line.expandtabs <span class="ot">@head</span>.tabsize}
+                     <span class="kw">end</span>
+                  <span class="kw">else</span>
+                     <span class="dt">SyntaxError</span>.new <span class="st">&quot;Bad ender, '</span><span class="ot">#{</span>line<span class="ot">}</span><span class="st"> 'for a &lt;head&gt; section&quot;</span>
+                  <span class="kw">end</span>
+               <span class="kw">when</span> <span class="st">:md</span> 
+                  <span class="kw">if</span> line_ender.nil? <span class="kw">or</span> line_ender==<span class="st">'md'</span>
+                     section_specs.push <span class="dt">SectionSpec</span>.new(last_start, n, indent, <span class="st">:md</span>)
+                  <span class="kw">else</span>
+                     <span class="dt">SyntaxError</span>.new <span class="st">&quot;Bad ender, '</span><span class="ot">#{</span>line<span class="ot">}</span><span class="st">' for an &lt;md&gt; section&quot;</span>
+                  <span class="kw">end</span>
+               <span class="kw">when</span> <span class="st">:none</span>
+                  <span class="kw">if</span> <span class="kw">not</span> line_ender.nil?
+                     raise <span class="dt">SyntaxError</span>.new <span class="st">&quot;Unmatched ender '</span><span class="ot">#{</span>line<span class="ot">}</span><span class="st">' at line </span><span class="ot">#{</span>n<span class="ot">}</span><span class="st">&quot;</span>
+                  <span class="kw">end</span>
+               <span class="kw">end</span>
+               last_start = -<span class="dv">1</span>
+               type_started = <span class="st">:none</span>
+            <span class="kw">when</span> (hide_show =~ line) == <span class="dv">0</span>
+               <span class="kw">if</span> type_started == <span class="st">:none</span>
+                  line.downcase!
+                  kind <span class="kw">= if</span> line.index(<span class="st">&quot;show&quot;</span>) != <span class="dv">nil</span> <span class="kw">then</span> <span class="st">:show</span>
+                         <span class="kw">elsif</span> line.index(<span class="st">&quot;hide&quot;</span>) != <span class="dv">nil</span> <span class="kw">then</span> <span class="st">:hide</span>
+                         <span class="kw">else</span> raise <span class="dt">SyntaxError</span>.new <span class="st">&quot;unrecognized hide/show directive '</span><span class="ot">#{</span>line<span class="ot">}</span><span class="st">'&quot;</span>
+                         <span class="kw">end</span>
+                  section_specs.push <span class="dt">SectionSpec</span>.new n, n, <span class="dv">0</span>, kind
+               <span class="kw">else</span>
+                  msg = <span class="st">&quot;directive '</span><span class="ot">#{</span>line.strip<span class="ot">}</span><span class="st">' cannot sit in a(n) </span><span class="ot">#{</span>type_started<span class="ot">}</span><span class="st"> section&quot;</span>
+                  raise <span class="dt">SyntaxError</span>.new msg
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> type_started != <span class="st">:none</span>
+            msg = <span class="st">&quot;Unexpected EOF with open </span><span class="ot">#{</span>type_started<span class="ot">}</span><span class="st"> at line </span><span class="ot">#{</span>last_start<span class="ot">}</span><span class="st">&quot;</span>
+            raise <span class="dt">EOFError</span>.new msg
+         <span class="kw">end</span>
+         section_specs.push <span class="dt">SectionSpec</span>.new <span class="ot">@lines</span>.length, <span class="ot">@lines</span>.length, <span class="dv">0</span>, <span class="st">:ends</span>
+         <span class="dt">DbgMgr</span>.pre <span class="st">&quot;section_specs&quot;</span>, section_specs.to_s.gsub(<span class="ot">/, #/</span>, <span class="st">&quot;\n #&quot;</span>), esc: <span class="dv">true</span>
+         section_specs
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> list_all_the_sections section_specs, lang_spec
+         <span class="co"># Code sections can now be found as the lines not in the head or md sections</span>
+         sections = []
+         prior_stop = -<span class="dv">1</span>     <span class="co"># the ends index or the directive index</span>
+         show = <span class="ot">@head</span>.show   <span class="co"># initially the default, then managed by directives</span>
+         left_justify = lang_spec.left_justify_md <span class="kw">or</span> <span class="ot">@head</span>.left_justify
+         section_specs.each <span class="kw">do</span> |section_spec|
+            first_code  = prior_stop + <span class="dv">1</span> 
+            prior_stop  = section_spec.ends  <span class="co"># first after the section delimited by section_spec</span>
+            <span class="kw">if</span> first_code &lt; section_spec.begins <span class="co"># there may be some code immediately before</span>
+               code_section = <span class="dt">Code</span>.new first_code, section_spec.begins, <span class="ot">@lines</span>, show, lang_spec
+               sections.push code_section
+            <span class="kw">end</span>
+            <span class="kw">case</span> section_spec.kind
+            <span class="kw">when</span> <span class="st">:ends</span> <span class="kw">then</span> <span class="kw">return</span> sections
+            <span class="kw">when</span> <span class="st">:head</span> <span class="kw">then</span> sections.push <span class="ot">@head</span>
+            <span class="kw">when</span> <span class="st">:hide</span> <span class="kw">then</span> show = <span class="dv">false</span>
+            <span class="kw">when</span> <span class="st">:md</span>   <span class="kw">then</span> sections.push <span class="dt">Markdown</span>.new section_spec, <span class="ot">@lines</span>, left_justify
+            <span class="kw">when</span> <span class="st">:show</span> <span class="kw">then</span> show = <span class="dv">true</span>
+            <span class="kw">else</span>
+               <span class="dt">DbgMgr</span>.put <span class="st">&quot;out_list&quot;</span>, <span class="st">&quot;skip a </span><span class="ot">#{</span>section_spec.kind<span class="ot">}</span><span class="st"> section_spec&quot;</span> 
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         raise <span class="dt">Exception</span>.new <span class="st">&quot;Missing :ends SectionSpec&quot;</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+</body>
+</html>

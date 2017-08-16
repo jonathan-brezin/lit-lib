@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Some File Methods Supporting Backups</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Some File Methods Supporting Backups</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">October, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#the-class-versionedfile-file">The class <code>VersionedFile &lt; File</code></a><ul>
+<li><a href="#some-comments-on-version-management">Some comments on version management</a></li>
+</ul></li>
+<li><a href="#the-api">The API</a><ul>
+<li><a href="#the-constructor-versionedfilepath-options">The constructor, <code>VersionedFile(path, options)</code></a></li>
+<li><a href="#static-method-new_versionpath-may_rename-options">Static method <code>new_version(path, may_rename, options)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+require <span class="st">&quot;dbgclient&quot;</span>
+require <span class="st">&quot;fileutils&quot;</span>
+</code></pre>
+<h2 id="the-class-versionedfile-file">The class <code>VersionedFile &lt; File</code></h2>
+<p>This module started because I wanted an “emacs”-style file backup facility that, on opening files for writing, would save up to some fixed number of backups of the file somewhere. The idea was to be able to open a file and, if the mode allowed either “write” or “append”, to create a backup version automatically. Once opened, a <code>VersionedFile</code> instance is just a <code>File</code>.</p>
+<h3 id="some-comments-on-version-management">Some comments on version management</h3>
+<p>In order to preserve the ability to edit the backups easily with syntax-directed editors, I decided to label the version using a (small) number immediately preceeding the file type: <code>foo_001.bar</code>, <code>foo_002.bar</code>, and so on.</p>
+<p>Two issues to be faced are what a good default is for the backup directory, and what a good default is for the limit on how many versions to keep. Here’s my take:</p>
+<ol type="1">
+<li>Two obvious choices for the backup directory are the source’s own path and the current working directory. As the number of backups increases, neither of these choices looks very attractive. A great deal of clutter is introduced into working directories that make the immediately useful files hard to see at a glance. A reasonable alternative is to create a subdirectory of either of these two and save the backups there. The static attribute <span class="citation" data-cites="VersionedFile.backup_path">@VersionedFile.backup_path</span> provides a default for this, which if it is a relative path, is taken relative to the directory for the file being backed up. If for a particular file, you absolutely need to use a path special to that file, the constructor makes that easy to do.</li>
+</ol>
+<blockquote>
+<p>Since I don’t know your tastes, my default for the backup directory is the same directory as the file being backed up. No new directories needed! There are good arguments for using a hidden subdirectory, like <code>.bak</code>, but, again, I did not feel like imposing that default uninvited.</p>
+</blockquote>
+<ol start="2" type="1">
+<li>How many files to keep? This is not “TimeMachine”: I don’t feel like tracking dates and keeping one per hour until some limit, then one per day, and so on. The trade-off I see is: wasting vast amounts of storage versus having only too-recent copies available when you really need to back out a disaster. It is easy to imagine 5 or 10 saves per hour editing something, so if you need to go back to yesterday’s version, keeping only the last 5 backups is not going to help. If you always keep TimeMachine running (or always use some other service’s versioning), then 5 or 10 backups probably does what you need, because yesterday’s stuff–even an hours ago’s stuff–is there in the system-wide backup, so you are really only protecting yourself here against what happened in the last hour or so. My bottom line is that, for the kinds of small files I am concerned with (tens of kilobytes), keeping 5 versions is adequate, and that is the initial value of the static attribute <code>VersionedFile.backup_limit</code>.</li>
+</ol>
+<p>In setting this limit, understand that a value of <code>0</code> will be interpreted as just that: do not create any backups. If the value is <code>nil</code>, it will be interpreted as “no limit has been set, so please keep all the backups”.</p>
+<h2 id="the-api">The API</h2>
+<h3 id="the-constructor-versionedfilepath-options">The constructor, <code>VersionedFile(path, options)</code></h3>
+<p>The <code>path</code> names the file to open. The <code>options</code> are the same as those for <code>File.new</code>, plus:</p>
+<blockquote>
+<p><strong><code>:keep</code></strong>: if supplied, the number of versions to keep for this particular file. The default is kept as <code>VersionedFile.backup_limit</code>, which is initially set to 5 and may be reset at any time during execution by assigning the new value to <code>VersionedFile.backup_limit</code>.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>:bak</code></strong>: if supplied, the directory, normally relative to that named in <code>path</code>, where the backups are to be stored. If absolute, it will be used “as is”. The default is kept as <code>VersionedFile.backup_dir</code>, which is initially set to <code>''</code> and may be reset at any time during execution by assigning the new value to <code>VersionedFile.backup_path</code>.</p>
+</blockquote>
+<p>The default being the empty string implies that the backups live in the same directory as the original. Two common alternatives are <code>'bak' and</code>‘../bak’. Thus, a typical call might look like:</p>
+<pre class="exampleCode">
+
+      file = VersionedFile.new path, mode: 'w', perm: 0644, bak: 'bak'
+      file.each_line do |line| 
+         ...
+
+</pre>
+<p>This opens the file named by the path for writing with the usual file permissions on the file created. If the file is just opened for reading, no new version is created.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby"><span class="kw">class</span> <span class="dt">VersionedFile</span> &lt; <span class="dt">File</span>
+   include <span class="dt">DbgClient</span>
+   <span class="dt">DbgClient</span>::configure <span class="dv">self</span>, <span class="st">&quot;versions&quot;</span>, <span class="st">&quot;versions&quot;</span>
+   <span class="kw">def</span> initialize(path, options)
+      <span class="kw">if</span> <span class="kw">not</span> options.key? <span class="st">:mode</span> <span class="kw">then</span> options[<span class="st">:mode</span>] = <span class="st">'r'</span> <span class="kw">end</span>
+      <span class="kw">if</span> <span class="kw">not</span> <span class="dt">File</span>.exists? path
+         write_dbg_stream <span class="st">&quot;</span><span class="ot">#{</span>path<span class="ot">}</span><span class="st"> is a new file: no backup created.&quot;</span>
+      <span class="kw">else</span>
+         <span class="kw">case</span> options[<span class="st">:mode</span>].gsub(<span class="st">'b'</span>, <span class="st">''</span>)
+         <span class="kw">when</span> <span class="st">'w'</span>, <span class="st">'w+'</span>
+            <span class="dt">VersionedFile</span>.new_version path, <span class="dv">true</span>, options
+         <span class="kw">when</span> <span class="st">'a'</span>, <span class="st">'a+'</span>, <span class="st">'r+'</span>
+            <span class="dt">VersionedFile</span>.new_version path, <span class="dv">false</span>, options
+         <span class="kw">else</span> <span class="co"># do nothing</span>
+            write_dbg_stream <span class="st">&quot;</span><span class="ot">#{</span>path<span class="ot">}</span><span class="st"> opened read-only: no new version needed&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="dv">super</span> path, options
+   <span class="kw">end</span>
+   <span class="ot">@@backup_limit</span> = <span class="dv">5</span>  <span class="co"># the default is to keep at most 5 backup versions</span>
+   <span class="ot">@@backup_path</span> = <span class="st">'.'</span> <span class="co"># the default is to backup in the same directory as the file</span>
+   <span class="kw">def</span> <span class="dv">self</span>.backup_limit=(new_limit)
+      old_limit = <span class="ot">@@backup_limit</span>
+      <span class="ot">@@backup_limit</span> <span class="kw">= if</span> new_limit.nil? <span class="kw">then</span> <span class="dv">nil</span> <span class="kw">else</span> <span class="dt">Integer</span>(new_limit) <span class="kw">end</span>
+      write_dbg_msg <span class="st">&quot;Default backup limit reset to </span><span class="ot">#{</span>new_limit<span class="ot">}</span><span class="st">&quot;</span>, key: <span class="st">&quot;backup&quot;</span>
+      old_limit
+   <span class="kw">end</span>
+   <span class="kw">def</span> <span class="dv">self</span>.backup_limit
+       <span class="ot">@@backup_limit</span>
+   <span class="kw">end</span>
+   <span class="kw">def</span> <span class="dv">self</span>.backup_path=(new_path)
+      old_path = <span class="ot">@@backup_path</span>
+      <span class="ot">@@backup_path</span> = new_path
+      write_dbg_msg <span class="st">&quot;Default backup path reset to </span><span class="ot">#{</span>new_path<span class="ot">}</span><span class="st">&quot;</span>, key: <span class="st">&quot;backup&quot;</span>
+      old_path
+   <span class="kw">end</span>
+   <span class="kw">def</span> <span class="dv">self</span>.backup_path
+      <span class="ot">@@backup_path</span>
+   <span class="kw">end</span>
+</code></pre>
+<h3 id="static-method-new_versionpath-may_rename-options">Static method <code>new_version(path, may_rename, options)</code></h3>
+<p>determines the path to the new version from the given path, and, if provided, the value of <code>options[:bak]</code>, which, if relative, is taken to be relative to <code>path</code>. Once the backup directory is known, the backup file is created. If <code>may_rename</code> is <code>true</code>, the existing file is simply renamed (and, of course, put in the backup directory). Otherwise a copy is put in the backup directory.</p>
+<p>The name for the new copy is the base name of the original, followed by an underscore, followed by at least 3 digits, followed by the extension used by the original. Preserving the original’s extension makes using syntax-directed editors easier, as noted earlier.</p>
+<p>If adding the new version would exceed the limit on backups established by the value of <code>options[:keep]</code>, if supplied, or <code>VersionedFile.backup_limit</code> if not, versions are deleted with the lowest numbered version deleted first.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> <span class="dv">self</span>.new_version(path, may_rename, options)
+      write_dbg_msg <span class="st">&quot;new=</span><span class="ot">#{</span>path<span class="ot">}</span><span class="st">, bak='</span><span class="ot">#{</span>options[<span class="st">:bak</span>]<span class="ot">}</span><span class="st">'&quot;</span>
+      path = <span class="dt">File</span>.expand_path path
+      <span class="kw">if</span> <span class="kw">not</span> <span class="dt">File</span>.exists? path
+         <span class="kw">return</span>
+      <span class="kw">end</span>
+      
+      to_keep <span class="kw">= if</span> options[<span class="st">:keep</span>].nil? <span class="kw">then</span> <span class="ot">@@backup_limit</span> <span class="kw">else</span> <span class="dt">Integer</span> options[<span class="st">:keep</span>] <span class="kw">end</span>
+      <span class="kw">if</span> to_keep == <span class="dv">0</span>
+         msg = <span class="st">&quot;Request to backup '</span><span class="ot">#{</span>path<span class="ot">}</span><span class="st">', but 0 versions are to be kept!!!&quot;</span>
+         write_dbg_msg msg
+         <span class="kw">return</span>
+      <span class="kw">end</span> 
+      directory = <span class="dt">File</span>.dirname path <span class="co"># path is already absolute here, so dirname works ok</span>
+      filename = <span class="dt">File</span>.basename path
+      write_dbg_msg <span class="st">&quot;File name from path is </span><span class="ot">#{</span>filename<span class="ot">}</span><span class="st">&quot;</span>
+      last_dot = filename.rindex <span class="st">'.'</span>
+      <span class="kw">if</span> last_dot.nil?
+         extension = <span class="st">''</span>
+      <span class="kw">else</span>
+         extension = filename[last_dot .. -<span class="dv">1</span>]
+         filename  = filename[<span class="dv">0</span> ... last_dot]
+      <span class="kw">end</span>
+      msg = <span class="st">&quot;after split, filename is </span><span class="ot">#{</span>filename<span class="ot">}</span><span class="st"> and the extension is </span><span class="ot">#{</span>extension<span class="ot">}</span><span class="st">&quot;</span>
+      write_dbg_msg msg
+      backup_dir = <span class="dt">File</span>.expand_path (options[<span class="st">:bak</span>] <span class="kw">or</span>  <span class="ot">@@backup_path</span>), directory
+      msg = <span class="st">&quot;backups go to </span><span class="ot">#{</span>backup_dir<span class="ot">}</span><span class="st">; options[:bak] is </span><span class="ot">#{</span>options[<span class="st">:bak</span>]<span class="ot">}</span><span class="st"> &quot;</span>
+      write_dbg_msg msg
+      <span class="dt">File</span>.assure_directory(backup_dir)
+      new_version, versions = <span class="dv">self</span>.name_the_next_version(backup_dir, filename, extension)
+      <span class="co"># if there are too many backups, delete some before creating a new one</span>
+      <span class="kw">if</span> <span class="kw">not</span> (to_keep.nil? <span class="kw">or</span> to_keep &gt; versions.length)
+         number_to_delete = versions.length + <span class="dv">1</span> - to_keep
+         versions[<span class="dv">0</span> ... number_to_delete].each <span class="kw">do</span> | version |
+            write_dbg_msg <span class="st">&quot;removing backup </span><span class="ot">#{</span>version<span class="ot">}</span><span class="st"> of </span><span class="ot">#{</span>path<span class="ot">}</span><span class="st">&quot;</span>
+            <span class="dt">File</span>.delete(<span class="dt">File</span>.join backup_dir, version)
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      new_path = <span class="dt">File</span>.join(backup_dir, new_version)
+      <span class="kw">if</span> may_rename <span class="co"># don't save original, which will be truncated on opening for write</span>
+         <span class="dt">File</span>.rename path, new_path
+      <span class="kw">else</span>   
+         <span class="dt">IO</span>.copy_stream path, new_path
+      <span class="kw">end</span> 
+   <span class="kw">end</span>
+
+   <span class="kw">private</span>
+   <span class="kw">def</span> <span class="dv">self</span>.name_the_next_version(directory, filename, extension)
+      write_dbg_msg <span class="st">&quot;filename: </span><span class="ot">#{</span>filename<span class="ot">}</span><span class="st">, ext: </span><span class="ot">#{</span>extension<span class="ot">}</span><span class="st">&quot;</span>, key: <span class="st">&quot;next_version&quot;</span>
+      regexp_src = <span class="st">'^'</span> + <span class="dt">Regexp</span>.escape(filename) + <span class="st">&quot;_0*([1-9][0-9]*)&quot;</span> + <span class="dt">Regexp</span>.escape(extension) +<span class="st">'$'</span>
+      matcher = <span class="dt">Regexp</span>.compile(regexp_src)
+      versions = <span class="dt">Dir</span>.entries(directory).find_all {|entry| matcher.match(entry) != <span class="dv">nil</span>}
+      write_dbg_msg <span class="st">&quot;Saved versions:\n</span><span class="ot">#{</span>versions<span class="ot">}</span><span class="st">&quot;</span>, key: <span class="st">&quot;next_version&quot;</span>
+      <span class="kw">if</span> versions.length == <span class="dv">0</span>
+         new_version = filename+<span class="st">&quot;_001&quot;</span>+extension
+      <span class="kw">else</span>
+         versions.sort! 
+         last_version = <span class="dt">Integer</span> matcher.match(versions[-<span class="dv">1</span>]).captures[<span class="dv">0</span>]
+         next_version = last_version + <span class="dv">1</span>
+         new_version = filename + <span class="st">&quot;_</span><span class="ot">#{</span><span class="st">'%.3d'</span> % next_version<span class="ot">}</span><span class="st">&quot;</span> + extension
+      <span class="kw">end</span>
+      [new_version, versions]
+   <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+</body>
+</html>

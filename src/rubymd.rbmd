@@ -1,0 +1,78 @@
+#!/usr/bin/env ruby
+=begin <head>
+Title: Literate Ruby Support Via Markdown
+Author: Jonathan Brezin
+Date: February, 2017
+Show source: Yes
+Tab Size: 3
+=end
+
+require "cmdline"
+require "litsrc"
+
+=begin <md>
+
+## What <code>rubymd</code> does ##
+
+This code is intended to be invoked directly from the command line, although the computation of
+the hash that is passed `RubyMd`'s constructor could be computed from anywhere.  The test on
+`$PROGRAM_NAME` below is exactly designed to guaranty that this is so: the program is expected to
+be named `rubymd`, with some minor variations, as captured by the regular expression
+
+=end
+
+EXPECTED_NAME_RE = /ru?by?md(\.rb(md)?)?/
+
+=begin <md>
+
+The idea is to create a document format that is legal Ruby while permitting one to include
+[Pandoc](http://pandoc.org) markdown that allows one to turn the file easily into a
+["`pandoc`" document](http://pandoc.org/MANUAL.html#pandocs-markdown).  This intermediate file
+has type "`.md`" and is passed to the `pandoc` command to be transformed into the final HTML
+document.  I extend `pandoc`'s markdown conventions only by
+
+* using `=begin <???> `/`=end #</???>` multi-line comments _that start a line_ with `???` being
+either "`<head>`" or "`<md>`", to guide this code in separating Ruby source from markdown, and
+
+* using `#=> <show>` and `#=> <hide>` _at the start of a line_ to filter what source code gets
+written to the HTML output.
+
+Actually the regular expression I use to match the begin, end and show/hide markup is much more
+lenient about white than I've shown.  I do insist on starting the markup at the start of a line,
+and I expect at least one space or tab after the "`begin`" and "`end`".  Also, I allow more than
+one `"="` for the show/hide marker: `#======> <show>` is fine.
+
+For more details, see [`LiterateSource`'s documentation](litsrc.html).  That document describes
+the command line parameters and the general philosophy behind this program.
+
+=end
+
+class RubyMd < LiterateSource
+   VERSION       = "1.0.1"
+   UPDATED       = "2017-07-11"
+   LANG_SPEC     = LanguageSpec.new(
+      "ruby", "rbmd", "rb",
+      /^=begin[ \t]+<(md|head)>[ \t]*\n?$/, 
+      /^=end([ \t]+#[ \t]*<\/(md|head)>)?[ \t]*\n?$/,
+      /^#=(=*)>( *)<(show|hide)( code)?>[ \t]*\n?$/,
+      false
+   )
+   def initialize(options)
+      super options, LANG_SPEC
+   end
+end
+
+# Normally this has been invoked directly from the command line...if not do nothing
+cmdname = File.basename($PROGRAM_NAME)
+if not EXPECTED_NAME_RE.match(cmdname).nil? 
+   begin
+      fromto = { from: "rbmd", to: "rb"}
+      args = CmdLine.parse(appname: cmdname, helpinfo: fromto) do |spec|
+         LiterateSource.addCmdlineParameters spec
+      end
+   rescue RuntimeError => re 
+      print "Could not parse the command line: ", re.message, "\n"
+      exit(1001)
+   end
+   RubyMd.new(args).process_files
+end

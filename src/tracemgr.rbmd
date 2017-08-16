@@ -1,0 +1,561 @@
+=begin <head> 
+Title: <code>TraceMgr</code>: tracing class and instance variables
+Author: Jonathan Brezin
+Date: December 2016
+Show source: Yes
+Tab Size: 3
+=end
+
+require "awesome_print"
+require "dbg"
+require "sysutils"
+require "wrapping"
+
+=begin <md>
+
+## Introduction
+
+Ruby, like Smalltalk, does not allow direct references to the state of an object outside of the
+object's class's own code, except through method calls ("message sends" in Smalltalk).  One
+virtue of this is that requests to query the state, or to update it, may be manipulated in the
+same way that the language permits any other method to be manipulated.  In the case of a dynamic
+language like Ruby, this means that one can vary at run-time the methods that access that
+state in order to create a trace of its evolution.
+
+Tracing variables has issues analogous to those that [`DbgMgr`](DbgMgr.html) was written to
+manage. The basic problem is too much output.  One needs a convenient way of limiting the
+output.  In the case of debugging, attaching a keyword to each output call is the natural way to
+handle this, and it seems to work very well once you allow a wild-card key lookup.  It is less
+obvious how to constrain tracing output.  I am not even sure that there is as simple a solution.
+
+The problem, to be more absolutely "Ruby concrete", is selectively tracing _`@var`_ and
+_`@@var`_ variables.  I see no reason not to assume that classes use _`var`_ and _`var=`_ for
+the methods that get and set the variable named _`@var`_ (or _`@@var`_).  Wrapping these
+functions is a [straightforward task](wrapping.html), so if that were all there were to it, we'd
+be done.  There are, though, other things that one might want.
+
+1) How can we set things up so that what gets traced is easily modified during the running of
+the program?  The answer here is that the `TraceMgr` tracks all the variables being traced and
+uses the wrapping code's [`turn_on`](wrapping.html#turn_on) and
+[`turn_on_my`](wrapping.html#turn_on_my) methods to turn tracing on and off.
+
+2) Which variables are to be traced?  If `C` is a class whose instances have an instance
+variable `@x`, and if `c` is an instance of `C`, do we want to trace `@x` for all instances of
+`C`, or is it enough to trace only `c`'s accesses?  Calls are provided to do both.  If you 
+explicitly turn tracing on or off for `c`, turning it on or off for `C` has no effect on `c`. 
+
+3) Even if we restrict our attention to a single object like `c`, the question remains: which
+accesses should be displayed?.  All reads, all writes, or all of both?   Should we only display
+when the value is outside (or inside) of some (reasonable) range?  On every thousand-th time
+through some loop?  The solution here is to provide, as part of the trace request, a "guard
+block" that is free to compute whatever it wants and then return a boolean.  If that boolean is 
+`true`, the access is logged; otherwise, it is not.
+
+### Global variables
+
+Global variables (those that start with a "`$`", _e.g._ `$PROGRAM_NAME`) pose a whole separate
+set of issues.  Unlike class and instance variables, they seem to have no conventional get and
+set method-naming convention--where would those methods live?  The upshot is that the simple
+kind of wrapping that I am proposing here will not work for them.  I haven't enough experience
+with the kinds of programs where tracing a global becomes an issue to have developed any
+intuition as to what might be helpful. _Bottom line:_ there is nothing here that deals with
+globals.
+
+### The companion module, "`trace_utils`"
+
+The code here assumes you have at your fingertips the names of the variables to be traced.  The
+module ["`trace_utils`"](trace_utils.html) has a few functions that make it less painful to discover
+which instance and class variables do have read and write methods that can be wrapped.
+
+## The <code>TraceManagement</code> class
+
+### The unique trace manager: `TraceMgr`
+
+The `TraceManagement` class serves the purpose of providing access to a unique object `TraceMgr`
+that implements the UI for a `TraceImpl` that is described below.  Pardon the Java-like naming
+convention.
+
+
+=end
+class TraceManagement
+   class TraceImpl
+      attr_accessor :dbg_key
+      attr_reader   :registry
+
+      def initialize dbg_key: 'trc'
+         @dbg_key = dbg_key
+         DbgMgr.add_patterns dbg_key
+         @registry = {}  # maps context+variable names to the info needed to trace
+      end
+   end
+   @mgr = TraceImpl.new
+   class << self
+      attr_reader :mgr
+   end
+end
+
+TraceMgr = TraceManagement.mgr
+
+=begin <md>
+
+### Getting started
+
+A common case--maybe even the most common--is to trace all accesses to an instance variable for
+all instances of some fixed class.
+
+#### <code>TraceMgr.trace_instance(context, variable, mode="rw", &guard_block)</code>{#trace_in}
+
+* `context` is a `Class` \
+* `variable` is a symbol or a string that names an instance variable for `context`\
+* `mode` is one of the strings `"r"`, `"w"`, `"rw"`, or the empty string, `""` \
+* `guard_block` is an optional block used to filter the logging output. 
+
+The arguments for `guard_block` are:
+
+* `zelf`, the object being accessed,
+* `variable`, the name of the object's variable
+* `old_value`, the current value of the variable, and
+* `new_value`, the new value, if this is a write operation, nil otherwise
+</blockquote>
+
+This call does two things: it registers the (`context`, `variable`) pair with the `TraceMgr`,
+and, if `mode` is not the empty string, turns tracing on for reads, writes, or both. The
+registration creates four aliases: one each for the original get and set methods for the 
+variable, and one each for the wrapped get and set methods.  The original get and set names 
+are then aliased to the plain or wrapped accessors according to the `mode`.
+
+There is no return value.
+
+The wrapped methods call the guard block, if there is one, and if it returns `true`, the access
+is logged.  If there is no guard block, all accesses are logged.  The logging is done by the
+[DbgMgr](dbg.html).  The instance variable `@dbg_key` of the `TraceMgr` is the key passed to the
+`DbgMgr`, so you can turn all tracing off by telling the `DbgMgr` to allow that key or not.  By
+default, the key is `"trc"`.  It may be reset at any time.
+
+The wrapped "getter" returns the current value of the variable (of course!), _but the wrapped
+"setter" returns the right-hand side of the assignment._ Be careful! This is done in order to be
+consistent with Ruby's own semantics.   Consider the following example in which the setter
+perform two modifications to the value it is asked to assign (converting it to an integer and
+then mod'ing by 100):
+
+<blockquote><pre class="exampleCode">
+
+      class Foo
+         def initialize(x); @x = Integer(x) % 100 end
+         def x(); @x end
+         def x=(value); @x = Integer(value) % 100 end # value gets altered? 
+      end
+      foo = Foo.new 25
+      puts "foo.x is initiallly #{foo.x}"
+      z = foo.x = 241
+      puts "After the assignment, z is #{z}, but foo.x is #{foo.x}"
+
+</pre></blockquote>
+
+If you run this code, the output from the `puts` that you will see is
+
+<blockquote><pre class="exampleCode">
+      foo.x is initiallly 25
+      After the assignment, z is 241, but foo.x is 41
+</pre></blockquote>
+
+The moral here is that _in Ruby "`a=b=c`" is not the same as "`b=c; a=b`"_.  It is a shorthand
+for "`b=c; a=c`".
+
+#### <code>TraceMgr.trace_me(context, variable, mode="rw", &guard_block)</code>{#trace_me}
+
+does for class variables, class instance variables, and instance variables for a particular
+object what `trace_instance` does for instance variables of a class.  The difference between
+these three cases and that of all instances of a class is that the `context` argument here is
+also the `self` for the body of the wrapped accessors, whereas for `trace_instance`, `context`
+is a `Class` and in its wrapped code, `self` will be some arbitrary instance of that `Class`.
+See [wrapping.html](wrapping.html) for a discussion of this (subtle!) distinction.
+
+All of the other arguments have the same meaning as they do for \`trace_instance`.   The
+functionality is also the same: the only reason for having two methods is to make clear the
+distinction between tracing a particular object versus tracing a set of objects.
+
+#### <code>replace_the_guard(context, variable, &guard_block)</code>
+#### <code>replace_my_guard(context, variable, &guard_block)</code>
+
+It can happen while an application is running, the guard on the trace needs to be replaced.
+These methods do just that.  The arguments have the same meanings as for the corresponding
+`trace_...` calls.  Both report an error if (`context`,`variable`) is not a currently
+registered pair with the `TraceMgr`.  The "`my`" version corresponds to `trace_me`, and the
+"`the`" version to `trace_instance`.
+
+=end
+class TraceManagement
+   class TraceImpl
+      private
+      def _trace(context, variable, own, mode, guard_block)
+         info = find_key context, variable, own
+         if info.nil? 
+            info = TraceItem.new context, variable, own, guard_block
+            key = make_key context, variable, own
+            @registry[key] = info
+            admin_msg "trace for #{key} registered"
+         else
+            admin_warn "trace(#{key}) already active."
+         end
+         # registering starts tracing by default, so if we don't want that, we need to pause.
+         off = if not mode.include? 'r' then 'r' else '' end
+         if not mode.include? 'w' then off += 'w' end
+         _pause(context, variable, own, off) if off.length > 0    
+      end
+
+      def make_key(context, variable, own)
+         variable = variable.to_s.gsub('@', '')
+         key = if own then "#{context}.#{variable}"
+               else "#{context}@#{variable}"
+               end
+      end
+
+      def find_key(context, variable, own, show_missing: false)
+         key = make_key context, variable, own
+         if @registry[key].nil?
+            altkey = make_key context, variable, (not own)
+            if show_missing
+               admin_err "Could not find #{key}.  Did you mean #{altkey}"
+            end
+            nil
+         else
+            @registry[key]
+         end
+      end
+
+      def _replace_the_guard(context, variable, own, &guard_block)
+         info = find_key context, variable, own, show_missing: true
+         if not info.nil?
+            _end(context, variable, own)
+            trace info.context, info.variable, info.own, info.current_mode, guard_block
+         else
+            admin_err "'#{context}, #{variable}' is not a registered trace pair"
+         end
+      end
+
+      public 
+      def trace_instance(context, variable, mode='rw', &guard_block)
+         _trace context, variable, false, mode, guard_block
+      end
+
+      def trace_me(context, variable, mode='rw', &guard_block)
+         _trace context, variable, true, mode, guard_block
+      end
+
+      def replace_instance_guard(context, variable, &guard_block)
+         _replace_the_guard context, variable, false, guard_block
+      end
+
+      def replace_my_guard(context, variable, &guard_block)
+         _replace_the_guard context, variable, true, guard_block
+      end
+
+      def replace_the_guard(context, variable, &guard_block)
+         info = find_key context, variable, true
+         altinfo = find_key context, variable, false
+         if info.nil?
+            if altinfo.nil?
+               admin_err "No TraceMgr entry for #{context}, #{variable}"
+            else
+               _replace_the_guard context, variable, false, guard_block
+            end
+         elsif altinfo.nil?
+            _replace_the_guard context, variable, true, guard_block
+         else
+            admin_err "Ambiguous call for #{context},#{variable}: use _instance and _my calls"
+         end
+      end
+
+=begin <md>
+
+### The public UI: start, pause, and end tracing {#public_ui}
+
+#### <code>TraceMgr.start_instance(context, variable, mode="rw", should_flush=false)</code> {#start}
+#### <code>TraceMgr.start_my(context, variable, mode="rw", should_flush=false)</code> {#start_me}
+
+wraps the read and/or write method for the context/variable entry in the `TracedMgr`'s registry,
+so that the tracing action occurs.  The mode governs which methods get wrapped: if 'r' is in it,
+the read method is wrapped, if 'w', then the write method.  The default is to wrap both.  The
+final argument has to do with the interoperation of this facility with the [`DbgMgr`](dbg.html).
+If it is buffering output, and if `should_flush` is passed in as `true`, then `DbgMgr` flushes
+its buffers once the the wrapping is done.
+
+The `trace` method automatically calls this method, which is a no-op if `mode` argument contains
+neither 'r' nor 'w'.
+
+#### <code>TraceMgr.pause_instance(context, variable, mode="rw", should_flush = false)</code> {#pause}
+#### <code>TraceMgr.pause_me(context, variable, mode="rw", should_flush = false)</code> {#pause_me}
+
+unwraps the read and/or write method for the context/variable entry in the `TraceMgr`'s
+registry so that the tracing action(s) no longer occur.  The arguments are the same as those for
+`start_...`.
+
+#### <code>TraceMgr.end_instance(context, variable, should_flush = false)</code> {#end_i}
+#### <code>TraceMgr.end_me(context, variable, should_flush = false)</code> {#end_me}
+
+pauses any active tracing, then removes the (`context`, `variabele`) pair from the registry.
+
+=end
+      private
+      def _end(context, variable, own, should_flush = false)
+         info = find_key context, variable, own
+         unless info.nil?
+            _pause context, variable, own, "rw", false 
+            @registry.delete make_key context, variable, own
+            admin_msg "ended tracing for #{make_key(context, variable, own)}", should_flush
+         end
+      end
+         
+      def _pause(context, variable, own, mode, should_flush = false)
+         info = find_key context, variable, own
+         if info.nil?
+            key = make_key context, variable, own
+            admin_warn "#{key} is no longer registered with the TraceMgr"
+         else
+            paused = _swap mode, info, :pause
+            if paused.length > 0
+               key = make_key(context, variable, own)
+               admin_msg "paused tracing '#{paused}' for #{key}", should_flush
+            end
+         end
+      end
+
+      def _start(context, variable, own, mode, should_flush=false)
+         info = find_key context, variable, own
+         if info.nil?
+            admin_warn "#{make_key(context, variable, own)} is no longer registered with the TraceMgr"
+         else
+            started = _swap mode, info, :start
+            if started.length > 0
+               key = make_key context, variable, own
+               admin_msg "started tracing  '#{started}' for #{key} now", should_flush
+            end
+         end
+      end
+
+      public
+      def end_instance(context, variable, should_flush = false)
+         _end context, variable, false, should_flush
+      end
+         
+      def end_me(context, variable, should_flush = false)
+         _end context, variable, true, should_flush
+      end
+         
+      def pause_instance(context, variable, mode="rw", should_flush = false)
+         _pause context, variable, false, mode, should_flush
+      end
+         
+      def pause_me(context, variable, mode="rw", should_flush = false)
+         _pause context, variable, true, mode, should_flush
+      end
+
+      def start_instance(context, variable, mode="rw", should_flush=false)
+         _start context, variable, false, mode, should_flush
+      end
+
+      def start_me(context, variable, mode="rw", should_flush=false)
+         _start context, variable, true, mode, should_flush
+      end
+
+=begin <md>
+   
+### Output methods
+
+Unless told otherwise, the `TraceMgr` writes its output to the standard out stream.  To both
+buffer it and redirect it to a file, one calls:
+
+####  <code>buffer(path='.', asis: false, esc: false)</code> {#buffer}
+
+The call simply sets up a call to [`DbgMgr.open`](dbg.html#openpath.-asis-false-esc-false).  If
+the keyword second argument, `asis`, is `true`, path will be used as the directory path “as is”.
+Otherwise, if path does not end in `/log`, `/log` will be appended and the result used as the
+directory path. The default is to append `/log` to the current working directory. The final
+argument, `esc`, sets the default for whether to replace characters that affect HTML syntax with
+the corresponding named HTML entities–e.g. whether or not to replace `<` with `&lt;`. The
+default is to reproduce the output as is: no escapes, the caller must have done that job. The
+reason for this default is to allow (not to say encourage) HTML markup to be put in the output
+easily.
+
+#### <code>flush(before: 'Trace Manager requests flushing the DbgMgr stream', after: '')</code> {#flush}
+
+This again just sets up a call to the corresponding method for `DbgMgr`.  The `before` and
+`after` messages will bracket the section, along with horizontal rules.  This method can be
+called not just to flush the buffer, but simply to frame a section in the output stream with the
+`before` and `after` messages.
+
+There are three methods that `TraceMgr` calls to write directly to the debug output stream:
+
+#### <code>admin_msg(message, should_flush = false)</code>
+
+#### <code>admin_err(message, should_flush = false)</code>
+
+#### <code>admin_warn(message, should_flush = false)</code>
+
+These methods call the `DbgMgr`'s `put`, `err`, and `warn` calls.  If `should_flush` is `true`,
+they also then flush the buffer.
+
+=end     
+
+      def admin_msg(message, should_flush = false)
+         DbgMgr.put @dbg_key, message, esc: true, my_caller: "TraceMgr"
+         if should_flush
+            TraceMgr.flush
+         end
+      end
+
+      def admin_err(message, should_flush = false)
+         DbgMgr.err message, esc: true, my_caller: "TraceMgr"
+         if should_flush 
+            TraceMgr.flush before: "Trace Manager flush requested due to an error"
+         end
+      end
+
+      def admin_warn(message, should_flush = false)
+         DbgMgr.warn message, esc: true, my_caller: "TraceMgr"
+         if should_flush
+            TraceMgr.flush
+         end
+      end
+
+      def buffer(path='.', asis: false, esc: false)
+         DbgMgr.open(path=path, asis: asis, esc: esc)
+         self
+      end
+
+      def flush(before: 'Trace Manager flush request', after: "")
+         DbgMgr.flush before: before, after: after
+      end
+
+      private
+      def _swap(mode, info, action)
+         msg = "swap #{info.reader}, mode=#{mode}, action: #{action}, state=#{info.active_reads}/#{info.active_writes}"
+         admin_msg msg
+         swapped = ''
+         if mode.include? 'r'
+            if info.r_info.nil?
+               admin_warn "Cannot trace #{info.variable} reads: no method defined", true
+            elsif ((action == :start and not info.active_reads) or 
+               (action == :pause and info.active_reads))
+               swapper = if info.own then :turn_on_my else :turn_on end
+               which = if info.active_reads then :plain else :wrapped end
+               info.context.send swapper, which, info.r_info         
+               info.active_reads ^= true
+               swapped = 'r'
+            end
+         end
+         if mode.include? 'w'
+            if info.w_info.nil?
+               admin_warn "Cannot trace #{info.variable} writes: no method defined", true
+            elsif ((action == :start and not info.active_writes) or 
+               (action == :pause and info.active_writes))
+               swapper = if info.own then :turn_on_my else :turn_on end
+               which = if info.active_writes then :plain else :wrapped end
+               info.context.send swapper, which, info.w_info                               
+               info.active_writes ^= true
+               swapped += 'w'
+            end
+         end
+         swapped
+      end
+   end
+
+=begin <md>
+
+### Implementation Note: The <code>TraceItem</code> class
+
+An instance of this class, which is a protected member of the `TraceMgr`'s class, holds all of
+the information that the `TraceMgr` needs about a (`context`, `variable`) pair.
+
+=end
+   protected
+   class TraceItem
+      attr_reader :context,  # the class or object id to which the identifier belongs
+         :variable,          # the symbol (including leading @'s) naming the variable
+         :reader,            # var stripped of '@'s
+         :writer,            # var stripped of '@'s, followed by '='
+         :own,               # true means only the context's method is wrapped 
+         :r_info,            # template returned by the wrapping call for the getter
+         :w_info             # template returned by the wrapping call for the setter
+      attr_accessor :active_reads, # boolean--true if we are currently tracing reads
+         :active_writes            # boolean--true if we are currently tracing writes
+
+      def initialize(context, variable, own, guard_block)
+         @context = context
+         @variable = variable.to_s
+         @own = own
+         @reader = @variable.gsub('@', '').to_sym
+         @writer = (@reader.to_s + "=").to_sym
+         @r_info = read_action(guard_block)
+         @w_info = write_action(guard_block)
+         @active_reads = true
+         @active_writes = true # see start and pause methods for TraceImpl
+      end
+
+      # the actions are set after the mode has been established
+      def read_action(guard_block)
+         if not @own
+            return nil unless @context.instance_methods.include? @reader
+            called = @context.instance_method @reader
+            method_to_call = :wrap_instance_method
+         else
+            return nil unless @context.methods.include? @reader
+            called = @context.method @reader
+            method_to_call = :wrap_my_method
+         end
+         variable = @variable
+         if guard_block.nil?
+            @context.send method_to_call, @reader do |org, args, block_in, zelf|
+               value = org.call
+               message = "#{zelf}.#{variable} ---> #{value}"
+               DbgMgr.put TraceMgr.dbg_key, message, esc: true, my_caller: "TraceMgr"
+               value
+            end
+         else
+            @context.send method_to_call, @reader  do |org, args, block_in, zelf|
+               value = org.call
+               if guard_block.call zelf, variable, value, nil
+                  message = "#{zelf}.#{variable} ---> #{value}"
+                  DbgMgr.put TraceMgr.dbg_key, message, esc: true, my_caller: "TraceMgr"
+               end
+               value
+            end
+         end
+      end
+
+      def write_action(guard_block)
+         if not @own
+            return nil unless @context.instance_methods.include? @writer
+            called = @context.instance_method @writer
+            method_to_call = :wrap_instance_method
+         else
+            return nil unless @context.methods.include? @writer
+            called = @context.method @writer
+            method_to_call = :wrap_my_method
+         end
+         variable = @variable
+         if guard_block.nil?
+            @context.send method_to_call, @writer do |org, args, block_in, zelf|
+               value = args[0]
+               message = "#{zelf}.#{variable} <--- #{value}"
+               DbgMgr.put TraceMgr.dbg_key, message, esc: true, my_caller: "TraceMgr"
+               org.call value
+            end
+         else
+            getter = @r_info.source_alias
+            @context.send method_to_call, @writer  do |org, args, block_in, zelf|
+               new_value = args[0]
+               old_value = zelf.send getter
+               if guard_block.call zelf, variable, old_value, new_value
+                  message = "#{zelf}.#{variable} <--- #{new_value}"
+                  DbgMgr.put TraceMgr.dbg_key, message, esc: true, my_caller: "TraceMgr"
+               end
+               org.call new_value
+            end
+         end
+      end
+
+      def to_s; "TraceItem[#{@context}#{if @own then '.' else '#' end}#{@variable}]" end
+   end
+end

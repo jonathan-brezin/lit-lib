@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="dcterms.date" content="2017-08-15">
+  <title>wildcardlookup..rbmd</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">wildcardlookup..rbmd</h1>
+<h3 class="date">2017-08-15</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#the-structure-of-the-store">The structure of the store</a></li>
+<li><a href="#details-of-the-api">Details of the API</a><ul>
+<li><a href="#the-class-wildcardlookup">The class, <code>WildCardLookup</code></a></li>
+<li><a href="#clone"><code>clone()</code></a></li>
+<li><a href="#lengths"><code>lengths</code></a></li>
+<li><a href="#add_patternpattern-and-add_patternspatterns"><code>add_pattern(pattern)</code> and <code>add_patterns(patterns)</code></a></li>
+<li><a href="#remove_patternpattern-and-remove_patternspatterns"><code>remove_pattern(pattern)</code> and remove_patterns(patterns)</code></a></li>
+<li><a href="#matchedkey"><code>matched?(key)</code></a></li>
+<li><a href="#all_matched-args"><code>all_matched?( *args )</code></a></li>
+<li><a href="#any_matched-args"><code>any_matched?( *args )</code></a></li>
+<li><a href="#head_tail_matchkey-head-tail"><code>head_tail_match?(key, head, tail)</code></a></li>
+<li><a href="#pattern_matchkey"><code>pattern_match?(key)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<h2 id="overview">Overview</h2>
+<p>A common coding problem is to maintain a set of strings, normally patterns of some kind, in which the lookup is just a little looser than string equality. I’ll talk about the strings in my set as “patterns”, and the strings that I’m looking to match against these patterns as “keys”.</p>
+<p>What I mean by “looser” is the simplest sort of wildcard match:</p>
+<blockquote>
+<p>If “*&quot; is one of the patterns in my set <code>wcl</code>, then <code>wcl.matched? x</code> will be <code>true</code> whatever value <code>x</code> may have, except the empty string.</p>
+</blockquote>
+<blockquote>
+<p>Patterns whose syntax is “<code>*</code><em><code>xxx</code></em>” match all keys ending with “<em><code>xxx</code></em>” that are at least one character longer–e.g. <code>*_in</code> matches <code>x_in</code>, but not <code>_in</code>.</p>
+</blockquote>
+<blockquote>
+<p>Patterns whose syntax is “<em><code>xxx</code></em><code>*</code>” match all keys that start with “<em><code>xxx</code></em>” and (again) are at least one character longer.</p>
+</blockquote>
+<blockquote>
+<p>Patterns whose syntax is “<em><code>xxx</code></em><code>*</code><em><code>yyy</code></em>” match all keys that start with “<em><code>xxx</code></em>”, end with “<em><code>yyy</code></em>”, and are at least one character longer. If you really need “<em><code>xxxyyy</code></em>” and “<em><code>xxx</code></em>*<code>_yyy_&quot; to be matched, just add the exact match &quot;_</code>xxxyyy`_&quot; to the active list, as well as adding the wildcard pattern.</p>
+</blockquote>
+<p>The typical use cases have patterns like</p>
+<blockquote>
+<p><code>user_*</code>, <code>cart_*</code>, <code>prefs_*</code>, etc.</p>
+</blockquote>
+<blockquote>
+<p><code>*.txt</code>, <code>*.py</code>, etc.</p>
+</blockquote>
+<p>As might be clear from these examples, the flexibility permitted with the “*&quot; is what I felt is convenient for a couple of common tasks filtering debugging code, as in <a href="dbg.html"><code>dbg.py</code></a>, and tracking sets of file paths with common directories or file-types. In both these examples, the pattern set is modest in size, and there is rarely any reason to have any more flexible pattern matching facility.</p>
+<p>Of course, some minimal care in choosing the patterns is required to get sensible behavior. Having, for instance, both<code>&quot;user&quot;</code> and <code>&quot;user*&quot;</code> as a pattern is a recipe for confusion–why not use <code>&quot;user_*&quot;</code> for the longer keys? Having both <code>&quot;*_in&quot;</code> and <code>&quot;file_*&quot;</code> as patterns and <code>&quot;file_in&quot;</code> as a key is also a good way to get confused.</p>
+<h2 id="the-structure-of-the-store">The structure of the store</h2>
+<p>The wild-card free patterns are kept in their own <code>Set</code>. Since I only permit one ‘*’ per pattern, wild-card patterns split into head-tail pairs. I keep them in a hash keyed by the head, the values being the set of “tail” strings for the given head. I also keep a hash that is a cache of the (key, boolean) pairs for the keys for which a wild-card match was attempted. A <code>true</code> value for the pair means that the key was matched.</p>
+<p>The cache is a modest efficiency hack. I want to avoid redoing wild-card checks repeatedly on the same key, particularly for keys that will not be matched. So, once a key is looked for, I cache it together whether its status, matched or not. When patterns are removed, I clear the positive entries of the cache that are affected. When keys are added, I update the failed part of the cache. Once a key is in the cache, its lookup cost is <code>O(1)</code>.</p>
+<h2 id="details-of-the-api">Details of the API</h2>
+<h3 id="the-class-wildcardlookup">The class, <code>WildCardLookup</code></h3>
+<p>The constructor <code>WildCardLookup(arg1, arg2,...)</code> takes 0 or more strings as arguments. Each argument must be a <code>String</code>. The arguments are added to the set of patterns. If no arguments are provide the pattern set is initially empty.</p>
+<p>The relational operators <code>==</code> and <code>!=</code> are implemented in the obvious way: same exact, pair, and star matches, or not.</p>
+<h3 id="clone"><code>clone()</code></h3>
+<p>allows you to create of clone of this <code>WildCardLookup</code> instance.</p>
+<h3 id="lengths"><code>lengths</code></h3>
+<p>returns a list of the lengths of the exact match set, the head-tail pairs set, and the cache, in that order.</p>
+<h3 id="add_patternpattern-and-add_patternspatterns"><code>add_pattern(pattern)</code> and <code>add_patterns(patterns)</code></h3>
+<p><code>add_pattern</code> adds its argument to the pattern set. The argument must be a <code>String</code> and can have at most one <code>'*'</code> in it. There is no escape mechanism for inserting stars into the matched text. <code>add_patterns</code> is just a convenient wrapper around <code>add_pattern</code> so that you don’t have to write the obvious “each do” loop. On exit, the cache’s integrity will have been restored.</p>
+<h3 id="remove_patternpattern-and-remove_patternspatterns"><code>remove_pattern(pattern)</code> and remove_patterns(patterns)</code></h3>
+<p><code>remove_pattern</code> removes its argument from the pattern set if it is present, and restores the integrity of the cache. It is not an error to remove a pattern that is not present. The return value is <code>true</code>, if the pattern was present, <code>false</code> otherwise. <code>remove_patterns</code> is the obvious wrapper around <code>remove_pattern</code>. It returns the number of patterns it actually removed.</p>
+<p>The next three methods are the public methods that implement the pattern matching.</p>
+<h3 id="matchedkey"><code>matched?(key)</code></h3>
+<p>is the call one normally makes: it returns <code>true</code> precisely when its argument is matched by at least one pattern.</p>
+<h3 id="all_matched-args"><code>all_matched?( *args )</code></h3>
+<p>Each argument may be a list of strings or a single string. Each string will be checked against the active patterns and if all are matched, <code>true</code> will be returned; otherwise, <code>false</code> will be returned.</p>
+<h3 id="any_matched-args"><code>any_matched?( *args )</code></h3>
+<p>Each argument may be a list of strings or a single string. Each string will be checked against the active patterns and if at least one is matched, <code>true</code> will be returned; otherwise, <code>false</code> will be returned.</p>
+<p>At a slightly lower level, the two methods that follow do the real work of finding a wildcard pattern that matches a given string</p>
+<h3 id="head_tail_matchkey-head-tail"><code>head_tail_match?(key, head, tail)</code></h3>
+<p>is the wild-card match of <code>key</code> against <code>head*tail</code>.</p>
+<h3 id="pattern_matchkey"><code>pattern_match?(key)</code></h3>
+<p>is the wild-card match of key against all of the pairs in the instance. The return value is <code>true</code> precisely when one pattern matches.</p>
+</body>
+</html>

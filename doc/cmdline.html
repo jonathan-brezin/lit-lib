@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>CmdLine: Simplified Command Line Processing</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title"><code>CmdLine</code>: Simplified Command Line Processing</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">November, 2015</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#introduction">Introduction</a><ul>
+<li><a href="#some-vocabulary">Some vocabulary</a></li>
+<li><a href="#the-syntax-for-a-parameter">The syntax for a parameter</a><ul>
+<li><a href="#shorthands">Shorthands</a></li>
+<li><a href="#names-are-ruby-identifiers-keys-are-not">Names are Ruby identifiers, keys are not</a></li>
+<li><a href="#keys-consuming-exactly-one-value">Keys consuming exactly one value</a></li>
+<li><a href="#keys-having-a-list-as-their-value">Keys having a list as their value</a></li>
+<li><a href="#end-markers">End markers</a></li>
+<li><a href="#help-and-version">Help and version</a></li>
+<li><a href="#the-rest-are-positional">The rest are positional</a></li>
+</ul></li>
+<li><a href="#some-issues">Some issues</a></li>
+<li><a href="#the-implementation-of-the-parser">The implementation of the parser</a><ul>
+<li><a href="#parse"><code>CmdLine.parse(argv=ARGV, …, spec: nil, &amp;spec_builder)</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#the-parm-class">The <code>Parm</code> class</a></li>
+<li><a href="#spec">The <code>Spec</code> class</a><ul>
+<li><a href="#spec.newappname-nil-debug-nil-group_flags-true-may_abbreviate-true-cat_on_dup-true"><code>Spec.new(appname: nil, debug: nil, group_flags: true, may_abbreviate: true, cat_on_dup: true)</code></a></li>
+<li><a href="#adding-keyword-parameters-to-a-spec">Adding keyword parameters to a <code>Spec</code></a><ul>
+<li><a href="#add_stringshort_key-long_key-default-nil-help"><code>add_string(short_key, long_key = ‘’, default: nil, help:’???’)</code></a></li>
+<li><a href="#add_flag"><code>add_flag(short_key, long_key = ‘’, default=false, help:’???’)</code></a></li>
+<li><a href="#add_integershort_key-long_key-default-0-help"><code>add_integer(short_key, long_key = ‘’, default: 0, help:’???’)</code></a></li>
+<li><a href="#add_floatshort_key-long_key-default-0.0-help"><code>add_float(short_key, long_key = ‘’, default: 0.0, help:’???’)</code></a></li>
+<li><a href="#add_csvshort_key-long_key-optionalfalse-help"><code>add_csv(short_key, long_key = ‘’, optional=False, help:’???’)</code></a></li>
+<li><a href="#add_listshort_key-long_key-optionalfalse-help"><code>add_list(short_key, long_key = ‘’, optional=False, help:’???’)</code></a></li>
+<li><a href="#add_pathshort_key-long_key-default-nil-must_exist-false-must_be_dir-false-help"><code>add_path(short_key, long_key = ‘’, default: nil, must_exist: false, must_be_dir: false, help:’???’)</code></a></li>
+<li><a href="#add_path_listshort_key-long_key-optional-false-must_exist-false-must_be_dir-false-help"><code>add_path_list(short_key, long_key = ‘’, optional: false must_exist: false, must_be_dir: false, help:’???’)</code></a></li>
+</ul></li>
+<li><a href="#adding-positional-parameters-to-a-spec">Adding positional parameters to a <code>Spec</code></a><ul>
+<li><a href="#add_string_hereattrname-default-nil-help"><code>add_string_here(attrname, default: nil, help: ‘???’)</code></a></li>
+<li><a href="#add_flag_hereattrname-help"><code>add_flag_here(attrname, help: ‘???’)</code></a></li>
+<li><a href="#add_integer_hereattrname-default-0-help"><code>add_integer_here(attrname, default: 0, help: ‘???’)</code></a></li>
+<li><a href="#add_float_hereattrname-default-0.0-help"><code>add_float_here(attrname, default: 0.0, help: ‘???’)</code></a></li>
+<li><a href="#add_csv_hereattrname-optional-false-help"><code>add_csv_here(attrname, optional: False, help: ‘???’)</code></a></li>
+<li><a href="#add_list_hereattrname-optionalfalse-help"><code>add_list_here(attrname, optional=False, help: ‘???’)</code></a></li>
+<li><a href="#add_path_hereattrname-default-.-must_exist-false-must_be_dir-false-help"><code>add_path_here(attrname, default: “.”, must_exist: false, must_be_dir: false, help: ‘???’)</code></a></li>
+<li><a href="#add_path_list_hereattrname-default-.-must_exist-false-must_be_dir-false-help"><code>add_path_list_here(attrname, default: “.”, must_exist: false, must_be_dir: false, help: ‘???’)</code></a></li>
+<li><a href="#add_end_marker_heremarker">add_end_marker_here(marker=‘–’)</a></li>
+</ul></li>
+<li><a href="#adding-help-and-version-parameters">Adding help and version parameters</a><ul>
+<li><a href="#add_help"><code>add_help(short_key=“-?”, long_key=“–help”, before: ‘’, after:’’)</code></a></li>
+<li><a href="#add_version"><code>add_version(short_key=“-v”, long_key=“–version”, appname: nil, version: nil, date: nil)</code></a></li>
+</ul></li>
+<li><a href="#the-core-method">The core method</a><ul>
+<li><a href="#register_a_parmshort_key-long_keynil-rest"><code>register_a_parm(short_key, long_key=nil, **rest)</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#the-parser-class-parser.newspecargvargvdebugnil">The <code>Parser</code> class: <code>Parser.new(spec,argv=ARGV,debug:nil)</code></a></li>
+<li><a href="#usage-example">Usage example</a></li>
+</ul>
+</nav>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+require <span class="st">'awesome_print'</span>
+require <span class="st">'csv'</span>
+require <span class="st">'ostruct'</span>
+require <span class="st">'rbconfig'</span>
+require <span class="st">'set'</span>
+require <span class="st">'sysutils'</span>
+
+</code></pre>
+<h2 id="introduction">Introduction</h2>
+<p>The aim here is to simplify adding command line argument specifications to a “main” Ruby entry point. One might try to extend the Ruby library’s <a href="https://docs.ruby-lang.org/en/2.1.0/OptionParser.html"><code>OptionParser</code></a> class, but, for me at least, that code and its API are impenetrable. For whatever reason, I cannot grok their underlying model.</p>
+<h3 id="some-vocabulary">Some vocabulary</h3>
+<p><b><em>Parameters</em></b> are values that the application is supplied from the command line as a sequence of key/value pairs. Parameters are sometimes called <b><em>options</em></b>.</p>
+<p><b><em>Arguments</em></b> are the entries in a list that is normally gotten by splitting a command line at whitespace, and that is available as the global <code>ARGV</code>. Any list of strings will do, though. Arguments will be parsed to yield the sequence of key/value pairs for the parameters.</p>
+<p><b><em>Keys</em></b> or <b><em>keywords</em></b> identify a parameter. Entries the argument list are recognized as keys if they begin with a “<code>-</code>” or “<code>--</code>”. (Negative numbers look like this, but are–of course–not treated as keys.) By convention, a single dash introduces a short, and possibly only, version of a key, and a double dash introduces a longer, less cryptic version. A parameter may have one of each.</p>
+<p><b><em>Values</em></b> are those entries in the argument list that are not keywords.</p>
+<p><b><em>Positional Parameters</em></b> A key may be followed in the argument list by zero or more entries that make up its value. Not all values need be associated with a key, though. They may be “positional”, in the sense that their meaning is derived from where they appear in the argument list, not from being paired with a keyword. Typically these occur at the beginning and end of the argument list, an example being the file specification at the end of “<code>ls -l *.rb</code>” command for listing the Ruby files in the current directory.</p>
+<p><b><em>Names</em></b> In order to be able to give the application convenient access to positional as well as keyword parameters, one needs to be able to name the positional parameters in a way that works with the conventions for keywords. To that end, the “name” of a keyword will be taken to mean the keyword, <em>stripped of its leading dashes.</em> Positional parameters will be given names <em>that do not begin with dashes.</em> Every parameter thus has a name, some have associated keys as well. The name must uniquely identify the parameter. Keyword parameters may have two names, their short and long names.</p>
+<p><b><em>Flags</em></b> are keywords that do not consume any arguments. The parameter associated with the flag <code>-xxx</code> has the value <code>true</code> or <code>false</code> depending on whether <code>-xxx</code> appears in the argument list or not.</p>
+<p>For obvious reasons, a flag is normally given the default value <code>false</code>. Occasionally, though, it makes the command line more readable for the parameter’s default to be <code>true</code>. If you do so, then in order to give it the value <code>false</code>, you need to preceed the name in the keyword with either “<code>no</code>” or “<code>no-</code>”, <em>e.g.</em> <code>-noxxx</code> or <code>-no-xxx</code>. Regardless of what its default is, the appearance of a flag “<code>-xxx</code>” in a command line <em>always</em> means “make <code>xxx</code> <code>true</code>”, and similarly, the appearance of “<code>-noxxx</code>” <em>always</em> means “make <code>xxx</code> <code>false</code>”.</p>
+<p><b><em>Attributes</em></b> An attribute of an object “<code>obj</code>” is a string that may be used as the right hand operand for the “dot” operator to get some sort of value: “<code>obj.attr</code>”.</p>
+<p><b><em>Properties</em></b> For our purposes here, a property of an object “<code>obj</code>” is a string “<code>str</code>” for which “<code>obj[str]</code>” has been assigned non-nil value.</p>
+<p>The result of parsing the command line is an object–an instance, as it happens, of the class <code>OpenStruct</code>–for which:</p>
+<blockquote>
+<p>the parameter names, as described above, are the attributes, and</p>
+</blockquote>
+<blockquote>
+<p>both the keys and the names are properties.</p>
+</blockquote>
+<p>If “<code>-a</code>” is a key, and “<code>options</code>” is the result of parsing the command line, then <code>options[&quot;a&quot;]</code>, <code>options[&quot;-a&quot;]</code>, and <code>options.a</code> all yield <code>-a</code>’s value. If “<code>--app</code>” is the long key of this parameter, then <code>options[&quot;app&quot;]</code>, <code>options[&quot;--app&quot;]</code>, and <code>options.app</code> all work as well.</p>
+<h3 id="the-syntax-for-a-parameter">The syntax for a parameter</h3>
+<h4 id="shorthands">Shorthands</h4>
+<p>By default, for an argument to be recognized as a key, you need only supply enough of it to pin it down uniquely. Thus, if <code>--very-long-key</code> is the real key, and if <code>--very-l</code> is enough to distinguish it from all the remaining keys, <code>--very-l</code> is all that need appear in the command line. You can turn this off by supplying the argument <code>may_abbreviate: false</code> to the parser–see the description of <a href="#parse"><code>CmdLine.parse</code></a>.</p>
+<p>As another convenient shorthand, you may group flags whose keys are single characters. For example, if <code>-x</code>, <code>-y</code>, and <code>-z</code> are flags, the parser will interpret “<code>-xyz</code>” as a shorthand for “<code>-x</code> <code>-y</code> <code>-z</code>”. Again: this only works for single character names. You can turn this off if you wish by supplying the argument <code>group_flags: false</code> to the <a href="#parse">parser</a>.</p>
+<p>These shorthands can lead to ambiguities. If you allow grouping, and if “<code>-xyz</code>” turns out to be both an adequate abbreviation for a key, or a key in its own right, and is also a group of three flags, the parser will interpret it as a key. If <code>xyz</code> really is the whole key, there would be no way to set its value if we treated <code>-xyz</code> as a group of three flags.</p>
+<h4 id="names-are-ruby-identifiers-keys-are-not">Names are Ruby identifiers, keys are not</h4>
+<p>Something to be careful of is that a key may contain characters that are not legal in Ruby identifiers, most particularly a dash: ‘-’. Since there is a long history of using dashes in the middle of keys, I allow them and translate each to an underscore (“<code>_</code>”) when I create the key’s attribute name for the <code>OpenStruct</code> that is the final result of the parse. <em>If a key contains other bad characters, I simply and silently don’t create the corresponding attribute.</em> You have to access it as a property.</p>
+<h4 id="keys-consuming-exactly-one-value">Keys consuming exactly one value</h4>
+<p>There are really two cases here:</p>
+<blockquote>
+<p>You provide a default value when you add the key to the command line spec. The key is then optional, and the default value will be made available to the command if the key is not present in the command line.</p>
+</blockquote>
+<blockquote>
+<p>You do <em>not</em> provide a default value. In this case, if the key must appear.</p>
+</blockquote>
+<p>The command line can provide the value either as its next argument or, if <code>-yyy</code> is the key, in the form “<code>-yyy=</code><em><code>value</code></em>”. There must be no white space around the “<code>=</code>”. If the key appears in the command line, a value must also appear in one of these two ways, whether or not the key has a default value. The default is intended only to used when the key is not present at all.</p>
+<h4 id="keys-having-a-list-as-their-value">Keys having a list as their value</h4>
+<p>You may also specify a key that consumes more than one argument. The key is optional if you provide a default, which is normally the empty list.</p>
+<p>Once the key is seen, there are again two possibilities. Let “<code>-yyy</code>” be a list valued keyword parameter.</p>
+<blockquote>
+<p>If the value is supplied as “<code>-yyy=</code><i><code>value</code>”</i> and a list is expected, <code>value</code> will be treated as a comma-separated list: <em>e.g.</em> “<code>--colors=blue,tan</code>”, <em>and no further values will be checked.</em> All commas in the value will be treated as punctuation between list items, so do not use this form if there are commas in individual list items.</p>
+</blockquote>
+<blockquote>
+<p>Otherwise, all the arguments that follow “<code>-yyy</code>” will be added to the list until the next key is seen.</p>
+</blockquote>
+<h4 id="end-markers">End markers</h4>
+<p>A long-standing convention is that if the key “<code>--</code>” consisting of the two dashes, <em>and nothing else</em>, is present, the remaining arguments are not parsed or even inspected in any way, but are held in reserve, normally to be passed on to a command invoked by the application whose command line we are processing. In other words, “<code>--</code>” serves as an <em>end marker</em>. You must tell me if you want an end marker, and at the point you may supply your own key for the end marker if, for some reason, “<code>--</code>” does not work for you.</p>
+<h4 id="help-and-version">Help and version</h4>
+<p>The keys <code>-?</code> and <code>--help</code> are provided automatically and if present in the command line, cause the help message to be written to <code>STDOUT</code> and the program to exit with a non-zero return code. You may supply your own help key or keys. See <a href="add_help">add_help</a>.</p>
+<p>The keys “<code>-v</code>” and “<code>--version</code>” are the default keys for a version parameter. If you add a version parameter, and if it appears in the command line, the effect is to write a line describing the version to <code>STDOUT</code>. The output for command <code>do_it</code> that you have told me is now at version 1.0.2, dated 09/2014, is: “<code>do_it: version: 1.0.2 dated: 09/2014</code>”. See <a href="add_version">add_version</a>.</p>
+<h4 id="the-rest-are-positional">The rest are positional</h4>
+<p>It remains to deal with arguments that are not keys and not consumed by a key. How the parser knows where and what these parameters are is dealt with in the API for specifying the parameter list, which we will get to in due time. For the moment, suffice it to say that the parameter specification is indeed a list, and the ordering of the list counts. <em>Postional parameters are recognized in that list by having their <code>Parm</code>‘s’ <code>short_key</code> attribute not begin with a dash.</em> Keyword parameters that added to the list before or after a positional parameter must appear in the command line in the same position relative to it.</p>
+<h3 id="some-issues">Some issues</h3>
+<blockquote>
+<p><b><em>Duplicate Flags</em></b>: How to handle repeated appearances of the same key in a command line is a vexed issue. First wins? Last? Keep all the values as a list? For flags, my policy is that so long as both <code>-x</code> and <code>-nox</code> are not specified on the same command line, I ignore duplicates.</p>
+</blockquote>
+<blockquote>
+<p><b><em>Duplicated single argument parameters</em></b>: So long as both appearances yield the same value, I ignore the duplicate. Otherwise, duplicates raise an error.</p>
+</blockquote>
+<blockquote>
+<p><b><em>Duplicated list valued parameters</em></b>: You may not like this, but what I do by default is just append the second list to the first. There is something to be said for allowing the specifier to force an error to be raised. The parameter <code>cat_on_dup</code> to the constructor takes care of this: if its value is <code>false</code>, more than one appearance of a key with differing value lists raises an error. Also, don’t forget that you may provide a function to vet the parameter’s value. If you do, it will be given the whole list to vet every time the key is seen.</p>
+</blockquote>
+<blockquote>
+<p><b><em>Unregcognized keys</em></b> At the risk of being accused of “piling on”, I have to raise another issue, namely, what to do when there are unrecognized keys. This code is designed to process command lines, so it is not unreasonable to assume that garbage keys will be recoverable only by re-entering the command line correctly. Either there will be someone sitting at the keyboard and ready to deal with it, or not. Not my problem: I will exit the command with a non-zero return code whenever an unrecognized key is found, or arguments not consumed by the parameters remain.</p>
+</blockquote>
+<blockquote>
+<p><b><em>Leftover arguments</em></b> This last point is important. I shift values off of <code>ARGV</code> to do the parse. You can use “<code>--</code>” as an end marker, or provide your own key for that purpose. When the parse completes, <code>ARGV</code> will only contain the arguments that follow the end marker, and these the parser will not look at at all. Alternatively, if you expect a list at the end of the command, you can provide a list valued positional parameter as the final parameter. What is <em>not</em> okay is not to provide parameters so that all arguments are consumed.</p>
+</blockquote>
+<h3 id="the-implementation-of-the-parser">The implementation of the parser</h3>
+<p>The main module here is <strong><code>CmdLine</code></strong>, and within it, there are three classes, <strong><code>Parm</code></strong>, <strong><code>Spec</code></strong> and <strong><code>Parser</code></strong>. An instance of <code>Parm</code> describes everything we need to know about an individual parameter. An instance of <code>Spec</code> manages the list of <code>Parm</code>s needed for a particular command, together with such other information that we need to do the parse. Finally, an instance of <code>Parser</code> takes a tokenized command line, like the global “<code>ARGV</code>”, together with a <code>Spec</code>, and produces an <code>OpenStruct</code> instance that has all of the parameter names as attributes, all of both the keys and names as properties.</p>
+<p>The one-stop shopping call here is:</p>
+<h4 id="parse"><code>CmdLine.parse(argv=ARGV, …, spec: nil, &amp;spec_builder)</code></h4>
+<p>The ellipsis here stands for some keyword arguments that will be explained shortly.</p>
+<p>The function parses a command line and returns the <code>OpenStruct</code> that is the result of the parse. The simplest call just requires a <code>Spec</code> instance for the keyword parameter <code>spec</code>:</p>
+<pre class="exampleCode">
+
+      args = CmdLine.parse(spec: spec)
+
+</pre>
+
+<p>Because <code>parse</code>’s first argument defaults to the runtime global <code>ARGV</code>, executing this will use the syntax prescribed by the <code>spec</code> to parse the incoming command line. Any list of strings “<code>list</code>” with the correct syntax will do in place of <code>ARGV</code>:</p>
+<pre class="exampleCode">
+
+      args = CmdLine.parse(list, spec: spec)
+
+</pre>
+
+<p>You can also use <code>parse</code> to construct the <code>Spec</code> “on the fly.” The elided keyword parameters are those used by the <a href="#spec"><code>Spec</code> constructor</a>: <code>appname</code>, <code>debug</code>, <code>group_flags</code>, <code>may_abbreviate</code>, <code>cat_on_dup</code>, and <code>spec_builder</code>. The keyword arguments are passed directly to the <code>Spec</code> constructor, and the block <code>spec_builder</code> is called to initialize the <code>Spec</code>. The call for parsing <code>ARGV</code> looks like</p>
+<pre class="exampleCode">
+
+      args = CmdLine.parse(appname: 'app', group_flags: false) do |spec|
+         # compute the Spec here--see an example at this doc's end
+      end
+
+</pre>
+
+
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+<span class="kw">module</span> <span class="dt">CmdLine</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.parse(argv=<span class="dt">ARGV</span>, 
+                  appname: <span class="dv">nil</span>, 
+                  helpinfo: {},
+                  debug: <span class="st">''</span>, 
+                  group_flags: <span class="dv">true</span>, 
+                  may_abbreviate: <span class="dv">true</span>, 
+                  cat_on_dup: <span class="dv">true</span>,
+                  spec: <span class="dv">nil</span>, 
+                  &amp;spec_builder)
+      <span class="kw">if</span> spec.nil?
+         spec = <span class="dt">CmdLine</span>::<span class="dt">Spec</span>.new(
+               appname: appname, 
+               helpinfo: helpinfo,
+               debug: debug, 
+               group_flags: group_flags, 
+               may_abbreviate: may_abbreviate, 
+               cat_on_dup: cat_on_dup, 
+               &amp;spec_builder)
+      <span class="kw">end</span>
+      <span class="kw">if</span> debug.length == <span class="dv">0</span>
+         debug = spec.debug
+      <span class="kw">end</span>
+      <span class="dt">CmdLine</span>::<span class="dt">Parser</span>.new(spec, argv, debug: debug).args
+   <span class="kw">end</span>
+</code></pre>
+<h2 id="the-parm-class">The <code>Parm</code> class</h2>
+<p>This class is one that users should be aware of, but rarely have to make direct use of. The public API is really that of the <a href="#spec"><code>Spec</code></a> class, which has methods for adding parameters of every type, and methods for accessing whatever information is needed based on keys and their brethren, the corresponding attribute names.</p>
+<p><code>Parm</code> is really, as its name suggests, a generic class. It has subclasses for each of the roles, each of which, not surprisingly, require slightly different treatment from the rest.</p>
+<p>A <code>Parm</code> has the following attributes:</p>
+<blockquote>
+<p><strong><code>short_key</code></strong> and <strong><code>long_key</code></strong>: the keywords used in the command line, or the name for a positional parameter.</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>The short key begins with at most one or two dashes, the optional long key with two. By convention, short keys are shorter than their long counterpart and begin with a single dash. If the short key has no dash, the option is positional. Keywords added before the positional argument must appear before it in the command line, and those appearing after it must appear after.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<p><strong><code>attrnames</code></strong>: a list of names to use for the attributes of the <code>Parser</code> instance you want to use to get the value for the parameter. You can access the list and modify it whenever convenient.</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>Keyword arguments will have attribute names for both the long and short forms. Positional parameters have a single name, which must be a valid Ruby identifier. There is no need for an application to specify an attribute name (by pushing onto this list) unless the long or short key’s name is not a valid Ruby attribute name, but you still really want to access the parameter as an attribute and not just as a property.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>The constructor allows you to provide a single attribute name, using the keyword argument <code>attrname</code>. If you provide a name this way, it will wind up as the <em>only</em> attribute name for the parameter. The motivation for what might seem an unnecessarily strict policy is to give a simple way for dealing with situations where the short and long names may be lexically valid attribute names, but either are too cryptic for use by the application, or are misleading outside of the immediate context of the command line, and you have no need for them cluttering up the argument list’s attribute set.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<p><strong><code>default</code></strong>: the initial value to provide for the parameter if it is optional and does not appear in the argument list. This is a writable attribute, so may be set whenever convenient.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>howmany</code></strong>: the number of arguments to consume: either 0, 1 or “as many as you like”..</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>I know of no convincing examples where 2, 3, or any other count is really needed. So my cases are: <code>:NONE</code>, <code>:ONE</code>, <code>:ZERO_OR_ONE</code>, <code>:ZERO_OR_MORE</code>, and <code>:ONE_OR_MORE</code>.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<p><strong><code>position</code></strong>: a non-negative integer that normally is the index of the parameter in the <code>Spec</code> list. Keywords with position <code>p</code> must appear in a command line after positional parameters with position <code>q &lt; p</code>, and before positional parameters with position <code>q &gt; p</code>.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>role</code></strong>: one of a small set listed in <code>ROLE_TYPES</code> below. Essentially this is the same as the class of the parameter, but not quite. I could probably do without it.</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>A parameter’s role answers the question: “What are we supposed to do when we see this parameter in the command line?” For example, if the role is <code>:HELP</code> we put a usage message out to <code>STDOUT</code> and exit.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<p><strong><code>value_type</code></strong>: one of a small set of types to be found in <code>VALUE_TYPES</code> below.</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>The “value type” here just refers to what the command line parser needs to know about the parameter’s value (if any) to be read from the command line, <em>not the application.</em> When the key has a string (or list of strings) value, it is the application that is responsible converting the value to whatever type it needs, should a simple string or list of string not do.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>To see an example, look at the implementation of the methods in <code>Spec</code> for adding integer and floating point parameters.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<p><strong><code>vet</code></strong>: a block of code that vets the values after they are read in from the command line and before they are assigned to the <code>Parser</code> instance.</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>It should take a single argument, the value to be vetted, and should return the value in the form that the calling application would like to see it. <code>vet()</code> is intended for two purposes. One is simply to make sure that the value is valid. The other is to perform any conversions, like from string to integer, that are convenient for the calling application. This is a writable attribute, so may be set whenever convenient.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<p><strong><code>help</code></strong>: for the usage message, which will look like: “<em><code>short_key[long_key]: help</code></em>”. You can reset this value at any time: it is a writable attribute.</p>
+</blockquote>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="dt">CMD_LINE_END</span> = <span class="ot">/^--$/</span>
+   <span class="dt">LEADING_NO_REG_EXP</span> = <span class="ot">/^((NO|no)-?)?(.+)$/</span>
+   <span class="dt">VALUE_TYPES</span>  = [<span class="st">:NIL</span>, <span class="st">:BOOL</span>, <span class="st">:CSV</span>, <span class="st">:END</span>, <span class="st">:HELP</span>, <span class="st">:LIST</span>, <span class="st">:STRING</span>, <span class="st">:VERSION</span>]
+   <span class="dt">COUNT_TYPES</span>  = [<span class="st">:UNKNOWN</span>, <span class="st">:NONE</span>, <span class="st">:ONE</span>, <span class="st">:ZERO_OR_ONE</span>, <span class="st">:ZERO_OR_MORE</span>, <span class="st">:ONE_OR_MORE</span>]
+   <span class="dt">ROLE_TYPES</span> = [<span class="st">:UNKNOWN</span>, <span class="st">:END</span>, <span class="st">:HELP</span>, <span class="st">:KEYWORD</span>, <span class="st">:POSITION</span>, <span class="st">:VERSION</span>]
+   <span class="dt">VALUE_SEPARATORS</span> = <span class="dt">Regexp</span>.new(<span class="st">&quot;[,</span><span class="ot">#{</span><span class="dt">RbConfig</span>::<span class="dt">CONFIG</span>[<span class="st">'PATH_SEPARATOR'</span>]<span class="ot">}</span><span class="st">]&quot;</span>)
+
+
+   <span class="kw">class</span> <span class="dt">Parm</span>
+
+      <span class="ot">attr_reader</span> <span class="st">:role</span>, <span class="st">:debug</span>, <span class="st">:howmany</span>, <span class="st">:long_key</span>, <span class="st">:short_key</span>, <span class="st">:value_type</span>
+      <span class="ot">attr_reader</span> <span class="st">:attrnames</span>, <span class="st">:position</span>
+      <span class="ot">attr_accessor</span> <span class="st">:default</span>, <span class="st">:help</span>, <span class="st">:vet</span>
+
+      <span class="dt">SHORT_REG_EXP</span>  = <span class="ot">/^((-{1,2})?([^-=][^=]*)?)$/</span>
+      <span class="dt">LONG_REG_EXP</span>   = <span class="ot">/^--([^-=][^=]*)/</span>
+
+      <span class="kw">def</span> initialize(short_key, long_key=<span class="st">''</span>, rest)
+         <span class="co"># set the debug keys early, so we can do filtered debugging prints from the start</span>
+         <span class="co"># this is really for debugging...ordinary users should ignore this.  It is passed</span>
+         <span class="co"># in by Spec's methods for registering parameters.</span>
+         <span class="ot">@debug</span> = rest[<span class="st">:debug</span>]
+         <span class="co"># the short (or only) name determines the role</span>
+         short_match = <span class="dt">SHORT_REG_EXP</span>.match short_key
+         <span class="kw">if</span> short_match.nil?
+            raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;</span><span class="ot">#{</span>short_key<span class="ot">}</span><span class="st"> is not a valid short key&quot;</span>
+         <span class="kw">end</span>
+         ignore, short_dashes, short_name = short_match.captures
+         <span class="ot">@short_key</span> = short_key
+         role = rest[<span class="st">:role</span>]
+         <span class="ot">@role</span> <span class="kw">= if</span> <span class="kw">not</span> role.nil?
+                     role.to_sym
+                  <span class="kw">elsif</span> short_key == <span class="st">'--'</span> 
+                     <span class="st">:END</span>
+                  <span class="kw">elsif</span> short_dashes.nil?
+                     <span class="st">:POSITION</span>
+                  <span class="kw">else</span> 
+                     <span class="st">:KEYWORD</span>
+                  <span class="kw">end</span>
+         <span class="kw">if</span> <span class="kw">not</span> <span class="dt">ROLE_TYPES</span>.member?(<span class="ot">@role</span>)
+            raise <span class="st">&quot;role, </span><span class="ot">#{@role}</span><span class="st"> not recognized&quot;</span>
+         <span class="kw">end</span>
+         long_match = <span class="dt">LONG_REG_EXP</span>.match long_key
+         <span class="kw">if</span> long_match.nil? 
+            <span class="kw">if</span> long_key.length &gt; <span class="dv">0</span>
+               raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;</span><span class="ot">#{</span>long_key<span class="ot">}</span><span class="st"> is not a valid long key&quot;</span>
+            <span class="kw">else</span>
+               <span class="ot">@long_key</span> = <span class="dv">nil</span>
+            <span class="kw">end</span>
+         <span class="kw">else</span>
+            <span class="kw">if</span> <span class="ot">@role</span> == <span class="st">:POSITION</span>
+               raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;</span><span class="ot">#{@short_key}</span><span class="st"> is positional: long key not permitted&quot;</span>
+            <span class="kw">end</span>
+            <span class="ot">@long_key</span> = long_key
+            long_name = long_match.captures[<span class="dv">0</span>] 
+            <span class="kw">if</span> <span class="ot">@short_key</span>.start_with? <span class="st">'--'</span> 
+               <span class="kw">if</span> <span class="ot">@long_key</span> != <span class="ot">@short_key</span>
+                  raise <span class="st">&quot;only one double-dashed key allowed, not </span><span class="ot">#{</span>short_key<span class="ot">}</span><span class="st">/</span><span class="ot">#{</span>long_key<span class="ot">}</span><span class="st">.&quot;</span>
+               <span class="kw">else</span>
+                  <span class="ot">@long_key</span> = <span class="dv">nil</span>
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="co"># derive the attribute names from the short and long names.  A single name may be </span>
+         <span class="co"># provided in the arguments to this call as rest[:attrname].  If no such name is</span>
+         <span class="co"># provided, the short and long names are both used.  They are stripped of the leading</span>
+         <span class="co"># dashes, the remaining dashes are converted to underscores, and non-&quot;word&quot;</span>
+         <span class="co"># characters are removed.    </span>
+         <span class="ot">@attrnames</span> = []
+         attrname = rest[<span class="st">:attrname</span>]
+         <span class="kw">if</span> attrname != <span class="dv">nil</span> &amp;&amp; attrname.length &gt; <span class="dv">0</span>
+            <span class="kw">if</span> <span class="ot">@debug</span>.member? <span class="st">'attrs'</span> <span class="kw">then</span> print <span class="st">&quot;attr from user\n&quot;</span> <span class="kw">end</span>
+            <span class="ot">@attrnames</span>.push attrname
+         <span class="kw">else</span> 
+            <span class="kw">if</span> short_name != <span class="dv">nil</span>
+               short_name = short_name.tr_s(<span class="st">'-'</span>, <span class="st">'_'</span>)-<span class="ot">/\W/</span>
+               <span class="kw">if</span> short_name.length &gt; <span class="dv">0</span> 
+                  <span class="ot">@attrnames</span>.push short_name
+                  <span class="kw">if</span> <span class="ot">@debug</span>.member? <span class="st">'attrs'</span>
+                     print <span class="st">&quot;attribute name '</span><span class="ot">#{</span>short_name<span class="ot">}</span><span class="st">' pushed\n&quot;</span>
+                  <span class="kw">end</span>
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+            <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@long_key</span>.nil?
+               long_name = long_name.tr_s(<span class="st">'-'</span>, <span class="st">'_'</span>)-<span class="ot">/\W/</span>
+               <span class="ot">@attrnames</span>.push long_name
+               <span class="kw">if</span> <span class="ot">@debug</span>.member? <span class="st">'attrs'</span> 
+                  print <span class="st">&quot;attribute name '</span><span class="ot">#{</span>long_name<span class="ot">}</span><span class="st">' pushed\n&quot;</span>
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="ot">@default</span> = rest[<span class="st">:default</span>]
+         howmany = rest[<span class="st">:howmany</span>]
+         <span class="kw">if</span> howmany == <span class="dv">nil</span>
+            <span class="ot">@howmany</span> <span class="kw">= if</span> default.nil? <span class="kw">then</span> <span class="st">:ONE</span> <span class="co"># no default: cmd line must supply if key found</span>
+                       <span class="kw">else</span> <span class="st">:ZERO_OR_ONE</span>
+                       <span class="kw">end</span>
+         <span class="kw">else</span>
+            <span class="ot">@howmany</span> = howmany.to_sym
+            <span class="kw">if</span> <span class="kw">not</span> <span class="dt">COUNT_TYPES</span>.member?(<span class="ot">@howmany</span>)
+               raise <span class="st">&quot;count type, </span><span class="ot">#{@howmany}</span><span class="st"> not recognized&quot;</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+
+         value_type = rest[<span class="st">:value_type</span>]
+         <span class="kw">if</span> value_type.nil?
+            <span class="kw">if</span> <span class="ot">@role</span> == <span class="st">:KEYWORD</span> <span class="kw">and</span> <span class="ot">@howmany</span> == <span class="st">:NONE</span> <span class="kw">then</span> <span class="ot">@value_type</span> = <span class="st">:BOOL</span>
+            <span class="kw">else</span> <span class="ot">@value_type</span> =<span class="st">:STRING</span>
+            <span class="kw">end</span>
+         <span class="kw">else</span>
+            <span class="ot">@value_type</span> = value_type.to_sym
+            <span class="kw">if</span> <span class="dt">VALUE_TYPES</span>.index(<span class="ot">@value_type</span>) == <span class="dv">nil</span>
+               raise <span class="st">&quot;value type, </span><span class="ot">#{@value_type}</span><span class="st"> not recognized&quot;</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+
+         <span class="ot">@vet</span> = rest[<span class="st">:vet</span>]
+         <span class="kw">if</span> <span class="kw">not</span> (<span class="ot">@vet</span>.nil? <span class="kw">or</span> vet.respond_to?(<span class="st">:call</span>))
+            raise <span class="st">&quot;if non-nil, vet must respond to :call: </span><span class="ot">#{@vet}</span><span class="st"> does not!&quot;</span>
+         <span class="kw">end</span>
+         <span class="ot">@help</span> = rest[<span class="st">:help</span>] || <span class="st">'???'</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> arg_look
+         raise <span class="st">&quot;subclass must implement&quot;</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> help_msg
+         <span class="kw">if</span> <span class="ot">@default</span>.nil?
+            <span class="st">&quot;\t</span><span class="ot">#{</span>arg_look<span class="ot">}</span><span class="st">:  </span><span class="ot">#{@help}</span><span class="st">.\n&quot;</span>
+         <span class="kw">else</span>
+            <span class="st">&quot;\t</span><span class="ot">#{</span>arg_look<span class="ot">}</span><span class="st">:  </span><span class="ot">#{@help}</span><span class="st">. Default: </span><span class="ot">#{@default}</span><span class="st">\n&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> printname
+         <span class="kw">if</span> <span class="ot">@long_key</span>.nil?
+            <span class="ot">@short_key</span>
+         <span class="kw">else</span>
+            <span class="st">&quot;</span><span class="ot">#{@short_key}</span><span class="st">[</span><span class="ot">#{@long_key}</span><span class="st">]&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="co"># the following methods are not intended for public use, but rather by Spec and Parser</span>
+      <span class="co"># instances in this module</span>
+
+      <span class="kw">def</span> _call_vet(what_to_check)
+         <span class="kw">if</span> <span class="ot">@vet</span>.nil? <span class="kw">then</span> what_to_check
+         <span class="kw">else</span> <span class="ot">@vet</span>.call what_to_check
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> _set_position(value); <span class="ot">@position</span> = value <span class="kw">end</span>       
+   <span class="kw">end</span>
+
+   <span class="kw">class</span> <span class="dt">Flag</span> &lt; <span class="dt">Parm</span>
+      <span class="kw">def</span> initialize(short_key, long_key=<span class="st">''</span>, **rest)
+         rest[<span class="st">:howmany</span>] = <span class="st">:NONE</span>
+         rest[<span class="st">:value_type</span>] = <span class="st">:BOOL</span>
+         rest[<span class="st">:default</span>] <span class="kw">= if</span> rest[<span class="st">:default</span>].nil? <span class="kw">then</span> <span class="dv">false</span> <span class="kw">else</span> rest[<span class="st">:default</span>] <span class="kw">end</span>
+         <span class="dv">super</span>(short_key, long_key, rest)
+         <span class="ot">@add_negative</span> = rest[<span class="st">:add_negative</span>] || <span class="dv">false</span>
+      <span class="kw">end</span>
+      <span class="kw">def</span> arg_look
+         <span class="kw">if</span> <span class="ot">@add_negative</span>
+            negative_prefix <span class="kw">= if</span> <span class="ot">@add_negative</span> <span class="kw">then</span> <span class="st">&quot;[NO|no][-]&quot;</span>; <span class="kw">else</span> <span class="st">&quot;&quot;</span> <span class="kw">end</span>
+            dashes, short = <span class="ot">/(--?)?(\w*)/</span>.match(<span class="ot">@short_key</span>).captures
+            short = <span class="st">&quot;</span><span class="ot">#{</span>dashes<span class="ot">}#{</span>negative_prefix<span class="ot">}#{</span>short<span class="ot">}</span><span class="st">&quot;</span>
+            <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@long_key</span>.nil?
+               dashes, long_key = <span class="ot">/(--?)?(\w*)/</span>.match(<span class="ot">@long_key</span>).captures
+               long_key = <span class="st">&quot;, </span><span class="ot">#{</span>dashes<span class="ot">}#{</span>negative_prefix<span class="ot">}#{</span>long_key<span class="ot">}</span><span class="st">&quot;</span>
+            <span class="kw">else</span>
+               long_key = <span class="st">&quot;&quot;</span>
+            <span class="kw">end</span>
+         <span class="kw">else</span>
+            short = <span class="ot">@short_key</span>
+            long_key <span class="kw">= if</span> <span class="kw">not</span> <span class="ot">@long_key</span>.nil? <span class="kw">then</span> <span class="ot">@long_key</span>; <span class="kw">else</span> <span class="st">&quot;&quot;</span> <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="st">&quot;</span><span class="ot">#{</span>short<span class="ot">}#{</span>long_key<span class="ot">}</span><span class="st">&quot;</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">class</span> <span class="dt">KeyValue</span> &lt; <span class="dt">Parm</span>
+      <span class="kw">def</span> initialize(short_key, long_key=<span class="st">''</span>, **rest)
+         <span class="dv">super</span>
+         <span class="kw">if</span> short_key[<span class="dv">0</span>] != <span class="st">'-'</span>
+            raise <span class="st">&quot;command line key, </span><span class="ot">#{</span>short_key<span class="ot">}</span><span class="st">, does not start with '-' as required.&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="kw">def</span> arg_look
+         dashes, body = <span class="ot">/(--?)?(\w*)/</span>.match(<span class="ot">@short_key</span>).captures
+         body.upcase!
+         <span class="kw">case</span> <span class="ot">@howmany</span>
+         <span class="kw">when</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">then</span> data = <span class="st">&quot;</span><span class="ot">#{</span>body<span class="ot">}</span><span class="st">?&quot;</span>
+         <span class="kw">when</span> <span class="st">:ONE</span> <span class="kw">then</span> data = body
+         <span class="kw">when</span> <span class="st">:ZERO_OR_MORE</span> <span class="kw">then</span> data =  <span class="st">&quot;[</span><span class="ot">#{</span>body<span class="ot">}</span><span class="st">1[,</span><span class="ot">#{</span>body<span class="ot">}</span><span class="st">2[,...]]]}&quot;</span>
+         <span class="kw">when</span> <span class="st">:ONE_OR_MORE</span> <span class="kw">then</span> data = <span class="st">&quot;</span><span class="ot">#{</span>body<span class="ot">}</span><span class="st">1[,</span><span class="ot">#{</span>body<span class="ot">}</span><span class="st">2[,...]]}&quot;</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> <span class="ot">@long_key</span>.nil? <span class="kw">then</span> <span class="st">&quot;</span><span class="ot">#{@short_key}</span><span class="st"> </span><span class="ot">#{</span>data<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">else</span> <span class="st">&quot;</span><span class="ot">#{@short_key}</span><span class="st">[</span><span class="ot">#{@long_key}</span><span class="st">] </span><span class="ot">#{</span>data<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">class</span> <span class="dt">End</span> &lt; <span class="dt">KeyValue</span>
+      <span class="kw">def</span> initialize(key, **rest)
+         rest[<span class="st">:value_type</span>] = <span class="st">:END</span>
+         rest[<span class="st">:role</span>] = <span class="st">:END</span>
+         <span class="dv">super</span>(key, <span class="st">''</span>, rest)
+         <span class="ot">@help</span> = <span class="st">&quot;end of argument list: remainder ignored&quot;</span>
+      <span class="kw">end</span>
+      <span class="kw">def</span> arg_look; <span class="st">&quot;-- (ignored)&quot;</span> <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">class</span> <span class="dt">Help</span> &lt; <span class="dt">KeyValue</span>
+      <span class="kw">def</span> initialize(short_key, long_key=<span class="st">''</span>, **rest)
+         <span class="dv">super</span>
+         <span class="ot">@role</span> = <span class="ot">@value_type</span> = <span class="st">:HELP</span>
+         <span class="ot">@help</span> = <span class="st">&quot;print this message to the console and exit.&quot;</span> 
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">class</span> <span class="dt">Version</span> &lt; <span class="dt">KeyValue</span>
+      <span class="ot">attr_reader</span> <span class="st">:message</span>
+      <span class="kw">def</span> initialize(short_key, long_key=<span class="st">''</span>, **rest)
+         rest[<span class="st">:value_type</span>] = <span class="st">:VERSION</span>
+         rest[<span class="st">:role</span>] = <span class="st">:VERSION</span>
+         <span class="dv">super</span> short_key, long_key, rest
+         <span class="ot">@version</span> = rest[<span class="st">:version</span>]
+         <span class="ot">@date</span> = rest[<span class="st">:date</span>] || <span class="dv">nil</span>
+         <span class="ot">@appname</span> = rest[<span class="st">:appname</span>]
+         <span class="ot">@help</span> = <span class="st">&quot;print version information to the console&quot;</span>
+         msg = <span class="st">''</span>
+         <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@appname</span>.nil? <span class="kw">then</span> msg = <span class="st">&quot;</span><span class="ot">#{@appname}</span><span class="st">: &quot;</span> <span class="kw">end</span>
+         msg += <span class="kw">if</span> <span class="ot">@version</span>.nil? <span class="kw">then</span> <span class="st">&quot;(no version provided)&quot;</span>
+                <span class="kw">else</span>  <span class="st">&quot;Version </span><span class="ot">#{@version}</span><span class="st">&quot;</span>
+                <span class="kw">end</span>
+         <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@date</span>.nil? <span class="kw">then</span> msg += <span class="st">&quot;, </span><span class="ot">#{@date}</span><span class="st">&quot;</span> <span class="kw">end</span>
+         <span class="ot">@message</span> = msg
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">class</span> <span class="dt">Positional</span> &lt; <span class="dt">Parm</span>
+      <span class="kw">def</span> initialize(short_key, **rest)
+         <span class="dv">super</span>(short_key, <span class="st">''</span>, rest)
+         <span class="kw">if</span> <span class="ot">@role</span> != <span class="st">:POSITION</span>
+            raise <span class="st">&quot;positional option name, </span><span class="ot">#{</span>short_key<span class="ot">}</span><span class="st">, illegal: no leading dashes!&quot;</span> 
+         <span class="kw">end</span>
+         <span class="kw">if</span> <span class="ot">@debug</span>.member? <span class="st">&quot;all&quot;</span>
+            print <span class="st">&quot;leaving constructor for </span><span class="ot">#{@short_key}</span><span class="st">, </span><span class="ot">#{@attributes}</span><span class="st">\n&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="kw">def</span> arg_look
+         data = <span class="ot">@short_key</span>.upcase
+         <span class="kw">case</span> <span class="ot">@howmany</span>
+         <span class="kw">when</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">then</span> <span class="st">&quot;</span><span class="ot">#{</span>data<span class="ot">}</span><span class="st">?&quot;</span>
+         <span class="kw">when</span> <span class="st">:ONE</span> <span class="kw">then</span> data
+         <span class="kw">when</span> <span class="st">:ZERO_OR_MORE</span> <span class="kw">then</span> <span class="st">&quot;[</span><span class="ot">#{</span>data<span class="ot">}</span><span class="st">1 [,</span><span class="ot">#{</span>data<span class="ot">}</span><span class="st">2[,...]]]&quot;</span>
+         <span class="kw">when</span> <span class="st">:ONE_OR_MORE</span> <span class="kw">then</span> <span class="st">&quot;</span><span class="ot">#{</span>data<span class="ot">}</span><span class="st">1[,</span><span class="ot">#{</span>data<span class="ot">}</span><span class="st">2[,...]]}&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+</code></pre>
+<h2 id="spec">The <code>Spec</code> class</h2>
+<p>This class provides a simple API for specifying command line parameters. The spec is then used by a <code>Parser</code> to interpret a command line. The constructor is</p>
+<h4 id="spec.newappname-nil-debug-nil-group_flags-true-may_abbreviate-true-cat_on_dup-true"><code>Spec.new(appname: nil, debug: nil, group_flags: true, may_abbreviate: true, cat_on_dup: true)</code></h4>
+<p>The parameters are all keyword parameters.</p>
+<blockquote>
+<p><code>appname</code> is the name of the application, for use in constructing the usage and version messages.</p>
+</blockquote>
+<blockquote>
+<p><code>debug</code> allows one to turn on various sorts of debugging output by providing keys that name what output you want. The value may be a single string, which will be interpreted as a comma- separated list of keys, or any collection that responds to “each”, in which case iterating over the entries should yield the set of keys. The default is “no output”. You really should not need this service.</p>
+</blockquote>
+<blockquote>
+<p><code>group_flags</code> is a boolean and true by default: if true, allow keys like <code>-xy</code>… as shorthand for “<code>-x -y</code>…” whenever <code>-x</code> and <code>-y</code> are one character long flags.</p>
+</blockquote>
+<blockquote>
+<p><code>may_abbreviate</code> is a boolean and true by default. If true, a long key may be abbreviated to any shorter initial segment that still identifies it uniquely.</p>
+</blockquote>
+<blockquote>
+<p><code>cat_on_dup</code> is a boolean and is <code>true</code> by default. If true, keyword parameters that appear more than once, and whose values are lists, have their lists concatenated in the order seen. If false, keywords may not appear more than once, unless with identical values at each appearance. Every time a parameter’s value is updated, its <code>vet</code> method is called, so there is always an opportunity to clean up the concatenated lists.</p>
+</blockquote>
+<h3 id="adding-keyword-parameters-to-a-spec">Adding keyword parameters to a <code>Spec</code></h3>
+<p>The two most basic methods for adding keyword parameters are <code>add_string</code> and <code>add_flag</code>.</p>
+<h4 id="add_stringshort_key-long_key-default-nil-help"><code>add_string(short_key, long_key = ‘’, default: nil, help:’???’)</code></h4>
+<p>adds a parameter with “short name” (or only name) and optional “long name”. The parameter consumes the next argument as its value, if that argument is itself not a key, or the value may follow the key immediately after an <code>=</code>, as in “<code>err=erm.log</code>”. If the key is present, a value must be provided. If no default is supplied, and the key is not present in the command line, an error is raised.</p>
+<h4 id="add_flag"><code>add_flag(short_key, long_key = ‘’, default=false, help:’???’)</code></h4>
+<p>The arguments have the same meanings as they have for <code>add_string</code>. If the default is supplied to be <code>true</code>, and the flag is <code>-x</code>, then either <code>-nox</code> or <code>-nox</code> must appear in the command line to get the value <code>false</code>.</p>
+<p>There are also four methods for keyword parameters of various non-string types:</p>
+<h4 id="add_integershort_key-long_key-default-0-help"><code>add_integer(short_key, long_key = ‘’, default: 0, help:’???’)</code></h4>
+<h4 id="add_floatshort_key-long_key-default-0.0-help"><code>add_float(short_key, long_key = ‘’, default: 0.0, help:’???’)</code></h4>
+<p><code>add_integer</code> and <code>add_float</code> provide values for the <code>vet</code> attribute of the <code>Parm</code> which assure the value saved for a parameter is a number of the appropriate type.</p>
+<h4 id="add_csvshort_key-long_key-optionalfalse-help"><code>add_csv(short_key, long_key = ‘’, optional=False, help:’???’)</code></h4>
+<h4 id="add_listshort_key-long_key-optionalfalse-help"><code>add_list(short_key, long_key = ‘’, optional=False, help:’???’)</code></h4>
+<p>These two methods create values that are <code>Array</code>s. <code>add_csv</code> creates a parameter that takes at most a single argument, a comma-separated list of strings. <code>add_list</code>’s parameter consumes all the arguments that follow it, up to the next keyword or the end of the argument list.</p>
+<p>The first keyword parameter in both is named “<code>optional</code>” rather than “<code>default</code>” because the only question here is whether there must be at least one value in the list. The default, false, says “yes, at least one value must assignable to this parameter.”</p>
+<h4 id="add_pathshort_key-long_key-default-nil-must_exist-false-must_be_dir-false-help"><code>add_path(short_key, long_key = ‘’, default: nil, must_exist: false, must_be_dir: false, help:’???’)</code></h4>
+<h4 id="add_path_listshort_key-long_key-optional-false-must_exist-false-must_be_dir-false-help"><code>add_path_list(short_key, long_key = ‘’, optional: false must_exist: false, must_be_dir: false, help:’???’)</code></h4>
+<p>These two methods create a parameter that consumes either one, or all arguments up to the next keyword or the list end. If <code>must_exist</code> is <code>true</code>, the vetting function provided here will check that that all of the files named by the the paths actually exist already, and if <code>must_be_dir</code> is <code>true</code>, it will check that all of the paths that exist already name directories.</p>
+<h3 id="adding-positional-parameters-to-a-spec">Adding positional parameters to a <code>Spec</code></h3>
+<p>There are corresponding positional methods for each of the keyword methods. They have “here” appended to remind you that the attributes’s data is expected to appear, relative to other options, in the relative position it is being added. There is also one positional parameter that is not keyword-related: the end marker.</p>
+<h4 id="add_string_hereattrname-default-nil-help"><code>add_string_here(attrname, default: nil, help: ‘???’)</code></h4>
+<h4 id="add_flag_hereattrname-help"><code>add_flag_here(attrname, help: ‘???’)</code></h4>
+<h4 id="add_integer_hereattrname-default-0-help"><code>add_integer_here(attrname, default: 0, help: ‘???’)</code></h4>
+<h4 id="add_float_hereattrname-default-0.0-help"><code>add_float_here(attrname, default: 0.0, help: ‘???’)</code></h4>
+<h4 id="add_csv_hereattrname-optional-false-help"><code>add_csv_here(attrname, optional: False, help: ‘???’)</code></h4>
+<h4 id="add_list_hereattrname-optionalfalse-help"><code>add_list_here(attrname, optional=False, help: ‘???’)</code></h4>
+<h4 id="add_path_hereattrname-default-.-must_exist-false-must_be_dir-false-help"><code>add_path_here(attrname, default: “.”, must_exist: false, must_be_dir: false, help: ‘???’)</code></h4>
+<h4 id="add_path_list_hereattrname-default-.-must_exist-false-must_be_dir-false-help"><code>add_path_list_here(attrname, default: “.”, must_exist: false, must_be_dir: false, help: ‘???’)</code></h4>
+<h4 id="add_end_marker_heremarker">add_end_marker_here(marker=‘–’)</h4>
+<p>The default, namely “<code>--</code>” may not be one you can use (rare though that may be). You can substitute any other key by supplying your own value for <code>marker</code>.</p>
+<h3 id="adding-help-and-version-parameters">Adding help and version parameters</h3>
+<h4 id="add_help"><code>add_help(short_key=“-?”, long_key=“–help”, before: ‘’, after:’’)</code></h4>
+<p>You get a minimal usage message for free, with the keys the defaults shown here. This default lists the parameters and the help messages, if any, that you provided for them. The two parameters <code>before</code> and <code>after</code> allow you to add text before and after the parameter display. The “usage message” for this parameter is “print this message and exit”. That is what happens if a help message key is seen in the argument list.</p>
+<h4 id="add_version"><code>add_version(short_key=“-v”, long_key=“–version”, appname: nil, version: nil, date: nil)</code></h4>
+<p>The version parameter is meant send a version message to <code>STDOUT</code>. The default short and long cars are as shown. If you provided an app name to the <code>Spec</code> instance, you won’t need it here, unless for some reason you want to use a different string here from that in the help/usage message. There is no default for the version itself: you have to supply a string. The same holds for the date.</p>
+<h3 id="the-core-method">The core method</h3>
+<p>If you want complete control over the various aspects of a parameter, the low level call that all of the above calls are wrappers for is:</p>
+<h4 id="register_a_parmshort_key-long_keynil-rest"><code>register_a_parm(short_key, long_key=nil, **rest)</code></h4>
+<p>in which “<code>rest</code>” gathers up all of the various keyword parameters for the call. I would like to hear from you if you really need it, as I have tried to make the API at the higher level complete. Before calling it, remember that once you’ve used the “<code>add_</code>” calls to create a <code>Parm</code>, you can set individual attributes of that <code>Parm</code>, like <code>vet</code>, by an ordinary assignment. Even that should be rare, the two most common problems being getting the attribute names you want and the vetting function.</p>
+<p>As an example, the sequence of calls</p>
+<pre class="exampleCode">
+
+       spec = CmdLine::Spec.new may_abbreviate: true
+       spec.add_string_here(&quot;first&quot;, help: &quot;name for what we do&quot;)
+       spec.add_flag(&quot;-a&quot;, help: &quot;should we give it an 'a'?&quot;)
+       spec.add_string(&quot;-b&quot;, default: &quot;BBB&quot;, help: &quot;bureau name&quot;)
+       spec.add_integer_here(&quot;middle&quot;, help: &quot;where it is caught&quot;)
+       spec.add_string(&quot;-c&quot;, &quot;--cod&quot;, help: &quot;what is caught&quot;)
+       spec.add_list_here(&quot;final&quot;, help: &quot;the rest&quot;, optional: true)
+       spec.add_end_marker_here
+    end
+
+</pre>
+
+<p>is designed to handle a command line that looks like</p>
+<pre class="exampleCode">
+
+    do_it FIRST -a -b BBB MIDDLE --c=FISH FINAL1 ... -- IGNORE --this
+
+</pre>
+
+<p>with the upper-case arguments being the data values. The position parameters, <code>first</code>, <code>middle</code> and <code>final</code> pick up values <code>FIRST</code>, <code>MIDDLE</code>, and the list starting with <code>FINAL1</code> and including any arguments that follow.</p>
+<p>The two keyword arguments, <code>-a</code> and <code>-b</code>, must follow <code>first</code>, if they appear at all. They must also preceed the positional argument <code>middle</code>. When both <code>-a</code> and <code>-b</code> are needed, they may appear in either order. The positional argument <code>middle</code> may be followed by the keyword argument <code>--c</code>, which is an abbreviation for the actual keyword, <code>--cod</code>. It picks up <code>FISH</code>, and the remaining arguments are combined into a list and assigned to <code>final</code>.</p>
+<p>I put <code>MIDDLE</code> in the real middle of the example just to make the example “complete”. More realistically, the positional arguments come at the beginning and (as here) once again at the end.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+
+   <span class="kw">class</span> <span class="dt">Spec</span> 
+
+      <span class="ot">attr_accessor</span> <span class="st">:appname</span>, <span class="st">:help_prefix</span>, <span class="st">:help_suffix</span>, <span class="st">:help_info</span>
+      <span class="ot">attr_reader</span>   <span class="st">:cat_on_dup</span>, <span class="st">:debug</span>, <span class="st">:defaults</span>, <span class="st">:may_group_flags</span>, <span class="st">:may_abbreviate</span>
+      <span class="ot">attr_reader</span>   <span class="st">:parms_list</span>, <span class="st">:parms_hash</span>, <span class="st">:positionals</span>, <span class="st">:simple_flags</span>, <span class="st">:attributes</span>
+
+      <span class="kw">def</span> <span class="dv">self</span>.vet_a_path(path, must_exist, must_be_dir)
+         exists = <span class="dt">File</span>.exists? path
+         <span class="kw">if</span> must_exist <span class="kw">and</span> <span class="kw">not</span> exists
+            raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;'</span><span class="ot">#{</span>path<span class="ot">}</span><span class="st">' does not exist&quot;</span>
+         <span class="kw">else</span>
+            <span class="kw">if</span> exists <span class="kw">and</span> must_be_dir <span class="kw">and</span> <span class="kw">not</span> <span class="dt">File</span>.directory? path
+               raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;'</span><span class="ot">#{</span>path<span class="ot">}</span><span class="st">' exists, but does not name a directory&quot;</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         path
+      <span class="kw">end</span>
+      <span class="kw">def</span> <span class="dv">self</span>.vet_a_path_list(paths, must_exist, must_be_dir)
+         missing = paths.find_all  { |path| <span class="kw">not</span> <span class="dt">File</span>.exists? path }
+         <span class="kw">if</span> must_exist <span class="kw">and</span> missing.length &gt; <span class="dv">0</span>
+            raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;Paths </span><span class="ot">#{</span>missing<span class="ot">}</span><span class="st"> do not exist.&quot;</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> must_be_dir
+            non_dirs = paths.find_all { |path| <span class="kw">not</span> <span class="dt">File</span>.directory? path }
+            <span class="kw">if</span> non_dirs.length &gt; <span class="dv">0</span>
+               raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;</span><span class="ot">#{</span>non_dirs<span class="ot">}</span><span class="st"> all exist, but do not name directories&quot;</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         paths
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> initialize(appname: <span class="dv">nil</span>,
+                     helpinfo: {},
+                     group_flags: <span class="dv">true</span>, 
+                     may_abbreviate: <span class="dv">true</span>, 
+                     cat_on_dup: <span class="dv">true</span>, 
+                     debug: <span class="dt">Set</span>.new,
+                     &amp;builder)
+         <span class="ot">@appname</span>       = appname
+         <span class="ot">@help_info</span>     = helpinfo
+         <span class="ot">@parms_list</span>    = [] <span class="co"># position to CmdLineOption map</span>
+         <span class="ot">@parms_hash</span>    = <span class="dt">Hash</span>.new <span class="co"># key to CmdLineOption map</span>
+         <span class="ot">@simple_flags</span>  = <span class="dt">Set</span>.new <span class="co"># to make finding grouped flags easy to unravel</span>
+         <span class="ot">@attributes</span>    = [] <span class="co"># for use in constructing the OpenStruct</span>
+         <span class="ot">@defaults</span>      = <span class="dt">OpenStruct</span>.new <span class="co"># maps attributes to default values</span>
+         <span class="ot">@positionals</span>   = []
+         <span class="ot">@help_prefix</span>   = <span class="st">&quot;USAGE:\n&quot;</span>
+         <span class="ot">@help_suffix</span>   = <span class="st">'--------'</span>
+         <span class="co"># flags limiting what may appear</span>
+         <span class="ot">@may_group_flags</span> = group_flags
+         <span class="ot">@may_abbreviate</span>  = may_abbreviate
+         <span class="ot">@cat_on_dup</span>      = cat_on_dup
+         <span class="ot">@needs_help</span>      = <span class="dv">true</span>
+         <span class="ot">@ready_to_go</span>     = <span class="dv">false</span>
+         <span class="ot">@version_parm</span>    = <span class="dv">nil</span>
+         <span class="ot">@debug</span>           = <span class="dt">Set</span>.new
+         <span class="kw">if</span> debug.kind_of? <span class="dt">String</span> 
+            debug.strip!
+            <span class="kw">if</span> debug.length &gt; <span class="dv">0</span> <span class="co"># it had better be a string that is a comma-separated list of debug keys</span>
+               debug.split(<span class="st">'.'</span>).each {|dk| <span class="ot">@debug</span>.add dk}
+            <span class="kw">end</span>
+         <span class="kw">elsif</span> debug.respond_to? <span class="st">:each</span>
+            debug.each {|dk| <span class="ot">@debug</span>.add dk}
+         <span class="kw">end</span>
+         <span class="kw">if</span> <span class="kw">not</span> builder.nil?
+            builder.call <span class="dv">self</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> register_a_parm(parm, **rest)
+         <span class="kw">if</span> <span class="ot">@parms_hash</span>[parm.short_key] != <span class="dv">nil</span>
+            raise <span class="st">&quot;Duplicate (short) parameter name, '</span><span class="ot">#{</span>parm.short_key<span class="ot">}</span><span class="st">' rejected.&quot;</span> 
+         <span class="kw">elsif</span> parm.long_key != <span class="dv">nil</span> &amp;&amp; <span class="ot">@parms_hash</span>[parm.long_key] != <span class="dv">nil</span>
+            raise <span class="st">&quot;Duplicate long parameter name, '</span><span class="ot">#{</span>parm.long_key<span class="ot">}</span><span class="st">' rejected.&quot;</span>
+         <span class="kw">end</span>
+         parm._set_position <span class="ot">@parms_list</span>.length
+         <span class="ot">@parms_list</span>.push(parm)
+         <span class="kw">if</span> parm.short_key.length == <span class="dv">2</span> <span class="kw">and</span> parm.value_type == <span class="st">:BOOL</span>
+            <span class="ot">@simple_flags</span>.add(parm.short_key[<span class="dv">1</span>])
+         <span class="kw">end</span>
+         <span class="ot">@parms_hash</span>[parm.short_key] = parm
+         <span class="kw">if</span> <span class="kw">not</span> parm.long_key.nil?
+            <span class="ot">@parms_hash</span>[parm.long_key] = parm 
+         <span class="kw">end</span>
+         <span class="kw">if</span> <span class="ot">@debug</span>.member? <span class="st">&quot;attrs&quot;</span> 
+            puts <span class="st">&quot;Register </span><span class="ot">#{</span>parm.short_key<span class="ot">}</span><span class="st">[</span><span class="ot">#{</span>parm.long_key<span class="ot">}</span><span class="st">]}&quot;</span>
+            ap parm.attrnames
+            print <span class="st">&quot;\n&quot;</span>
+         <span class="kw">end</span>
+         parm.attrnames.each <span class="kw">do</span> |name|  
+            <span class="ot">@attributes</span>.push name
+            <span class="ot">@defaults</span>[name] = parm.default
+         <span class="kw">end</span>
+         <span class="kw">if</span> parm.role == <span class="st">:POSITION</span>
+            <span class="ot">@positionals</span>.push parm.position
+         <span class="kw">end</span>
+         parm
+      <span class="kw">end</span>
+
+      <span class="co">#################### Adding keyword parameters ####################</span>
+
+      <span class="kw">def</span> add_csv(short_key, long_key = <span class="st">''</span>, help: <span class="st">'???'</span>, optional: <span class="dv">false</span>)
+         howmany <span class="kw">= if</span> optional <span class="kw">then</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">else</span> <span class="st">:ONE</span> <span class="kw">end</span>
+         vetter = -&gt;x {
+            <span class="kw">if</span> x.kind_of? <span class="dt">String</span> <span class="kw">then</span> x.split(<span class="st">','</span>) 
+            <span class="kw">elsif</span> x.kind_of? <span class="dt">Array</span> <span class="kw">then</span> x
+            <span class="kw">else</span> raise <span class="dt">TypeError</span>.new <span class="st">&quot;Illegal type, </span><span class="ot">#{</span>x.class<span class="ot">}</span><span class="st"> for </span><span class="ot">#{</span>short_key<span class="ot">}</span><span class="st">&quot;</span>
+            <span class="kw">end</span>
+            }
+         register_a_parm <span class="dt">KeyValue</span>.new(short_key, long_key, howmany: howmany,
+               default: <span class="st">&quot;&quot;</span>, help: help, value_type: <span class="st">:CSV</span>, vet: vetter, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_flag(short_key, long_key = <span class="st">''</span>, default: <span class="dv">true</span>, help: <span class="st">'???'</span>, add_negative: <span class="dv">true</span>)
+         register_a_parm <span class="dt">Flag</span>.new(short_key, long_key,
+            default: default,  help: help, add_negative: <span class="dv">true</span>, debug: <span class="ot">@debug</span>
+            )
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_float(short_key, long_key = <span class="st">''</span>, default: <span class="dv">nil</span>, help: <span class="st">'???'</span>)
+         howmany <span class="kw">= if</span> default.nil? <span class="kw">then</span> <span class="st">:ONE</span> <span class="kw">else</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">end</span>
+         register_a_parm <span class="dt">KeyValue</span>.new(short_key, long_key, howmany: howmany,
+               default: default, help: help, vet: -&gt;(x) {<span class="dt">Float</span>(x)}, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_integer(short_key, long_key = <span class="st">''</span>, default: <span class="dv">nil</span>, help: <span class="st">'???'</span>)
+         howmany <span class="kw">= if</span> default.nil? <span class="kw">then</span> <span class="st">:ONE</span> <span class="kw">else</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">end</span>
+         register_a_parm <span class="dt">KeyValue</span>.new(short_key, long_key, howmany: howmany,
+               default: default, help: help, vet: -&gt;(x) {<span class="dt">Integer</span>(x)}, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_list(short_key, long_key = <span class="st">''</span>, help: <span class="st">'???'</span>, optional: <span class="dv">false</span>)
+         howmany <span class="kw">= if</span> optional <span class="kw">then</span> <span class="st">:ZERO_OR_MORE</span> <span class="kw">else</span> <span class="st">:ONE_OR_MORE</span> <span class="kw">end</span>
+         register_a_parm <span class="dt">KeyValue</span>.new(short_key, long_key, howmany: howmany,
+               default: [], help: help, value_type: <span class="st">:LIST</span>, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_path(short_key, long_key = <span class="st">''</span>, 
+                   default: <span class="dv">nil</span>, help: <span class="st">'???'</span>, 
+                   must_exist: <span class="dv">false</span>, must_be_dir: <span class="dv">false</span>)
+         howmany <span class="kw">= if</span> default.nil? <span class="kw">then</span> <span class="st">:ONE</span> <span class="kw">else</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">end</span>
+         vet =  -&gt;(x) {<span class="dt">Spec</span>.vet_a_path(x, must_exist, must_be_dir)}
+         register_a_parm <span class="dt">KeyValue</span>.new(short_key, long_key, howmany: howmany,
+               default: default, help: help, vet: vet, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_path_list(short_key, long_key = <span class="st">''</span>, 
+                   optional: <span class="dv">false</span>, help: <span class="st">'???'</span>, 
+                   must_exist: <span class="dv">false</span>, must_be_dir: <span class="dv">false</span>)
+         howmany <span class="kw">= if</span> optional <span class="kw">then</span> <span class="st">:ZERO_OR_MORE</span> <span class="kw">else</span> <span class="st">:ONE_OR_MORE</span> <span class="kw">end</span>
+         vet =  -&gt;(x) {<span class="dt">Spec</span>.vet_a_path_list(x, must_exist, must_be_dir)}
+         register_a_parm <span class="dt">KeyValue</span>.new(short_key, long_key, howmany: howmany,
+               default: [], help: help, vet: vet, value_type: <span class="st">:LIST</span>, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_string(short_key, long_key = <span class="st">''</span>, default: <span class="dv">nil</span>, help: <span class="st">'???'</span>)
+         howmany <span class="kw">= if</span> default.nil? <span class="kw">then</span> <span class="st">:ONE</span> <span class="kw">else</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">end</span>
+         register_a_parm <span class="dt">KeyValue</span>.new(short_key, long_key, howmany: howmany,
+               default: default, help: help, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="co">#################### Adding positional parameters ####################</span>
+      
+      <span class="kw">def</span> add_csv_here(key, help: <span class="st">'???'</span>, optional: <span class="dv">false</span>)
+         howmany <span class="kw">= if</span> optional <span class="kw">then</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">else</span> <span class="st">:ONE</span> <span class="kw">end</span>
+         vetter = -&gt;(x) {<span class="dt">CSV</span>.parse(x)[<span class="dv">0</span>]}
+         register_a_parm <span class="dt">Positional</span>.new(key, howmany: howmany,
+               default: <span class="st">&quot;&quot;</span>, help: help, value_type: <span class="st">:CSV</span>, vet: vetter)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_float_here(key, default: <span class="dv">nil</span>, help:<span class="st">'???'</span>)
+         howmany <span class="kw">= if</span> default.nil? <span class="kw">then</span> <span class="st">:ONE</span> <span class="kw">else</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">end</span>
+         register_a_parm <span class="dt">Positional</span>.new(key, howmany: howmany,
+               default: default, help: help, vet: -&gt;(x) {<span class="dt">Float</span>(x)}, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_integer_here(key, default: <span class="dv">nil</span>, help:<span class="st">'???'</span>)
+         howmany <span class="kw">= if</span> default.nil? <span class="kw">then</span> <span class="st">:ONE</span> <span class="kw">else</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">end</span>
+         register_a_parm <span class="dt">Positional</span>.new(key,
+               default: default, howmany: howmany, help: help,
+               vet: -&gt;(x) {<span class="dt">Integer</span>(x)}, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_list_here(attrname, help:<span class="st">'???'</span>, optional: <span class="dv">false</span>)
+         howmany <span class="kw">= if</span> optional <span class="kw">then</span> <span class="st">:ZERO_OR_MORE</span> <span class="kw">else</span> <span class="st">:ONE_OR_MORE</span> <span class="kw">end</span>
+         register_a_parm <span class="dt">Positional</span>.new(attrname, howmany: howmany,
+               default: [], help: help, value_type: <span class="st">:LIST</span>, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_path_here(attrname, 
+                   default: <span class="dv">nil</span>, help: <span class="st">'???'</span>, 
+                   must_exist: <span class="dv">false</span>, must_be_dir: <span class="dv">false</span>)
+         howmany <span class="kw">= if</span> default.nil? <span class="kw">then</span> <span class="st">:ONE</span> <span class="kw">else</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">end</span>
+         vet =  -&gt;(x) {<span class="dt">Spec</span>.vet_a_path(x, must_exist, must_be_dir)}
+         register_a_parm <span class="dt">Positional</span>.new(attrname, howmany: howmany,
+               default: default, help: help, vet: vet, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_path_list_here(attrname, 
+                   optional: <span class="dv">false</span>, help: <span class="st">'???'</span>, 
+                   must_exist: <span class="dv">false</span>, must_be_dir: <span class="dv">false</span>)
+         howmany <span class="kw">= if</span> optional <span class="kw">then</span> <span class="st">:ZERO_OR_MORE</span> <span class="kw">else</span> <span class="st">:ONE_OR_MORE</span> <span class="kw">end</span>
+         vet =  -&gt;(x) {<span class="dt">Spec</span>.vet_a_path_list(x, must_exist, must_be_dir)}
+         register_a_parm <span class="dt">Positional</span>.new(attrname, howmany: howmany,
+               default: [], help: help, vet: vet, value_type: <span class="st">:LIST</span>, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_string_here(key, default<span class="st">:nil</span>, help:<span class="st">'???'</span>)
+         howmany <span class="kw">= if</span> default.nil? <span class="kw">then</span> <span class="st">:ONE</span> <span class="kw">else</span> <span class="st">:ZERO_OR_ONE</span> <span class="kw">end</span>
+         register_a_parm <span class="dt">Positional</span>.new(key,
+            howmany: howmany, default: default, help: help, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="co">############ Adding end markers, help, and version info #############</span>
+      
+      <span class="kw">def</span> add_end_marker_here(marker=<span class="st">'--'</span>)
+         register_a_parm <span class="dt">End</span>.new(marker, howmany: <span class="st">:NONE</span>, debug: <span class="ot">@debug</span>)
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_help(short_key=<span class="st">&quot;-?&quot;</span>, long_key=<span class="st">&quot;--help&quot;</span>, before: <span class="st">&quot;USAGE:\n&quot;</span>, after: <span class="st">'--------'</span>)
+         register_a_parm <span class="dt">Help</span>.new(short_key, long_key,
+            howmany: <span class="st">:NONE</span>, help: <span class="st">&quot;Display this message&quot;</span>, debug: <span class="ot">@debug</span>)
+         <span class="ot">@help_prefix</span> = before
+         <span class="ot">@help_suffix</span> = after
+         <span class="ot">@needs_help</span> = <span class="dv">false</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> add_version(short_key=<span class="st">&quot;-v&quot;</span>, long_key=<span class="st">&quot;--version&quot;</span>, appname: <span class="dv">nil</span>, version: <span class="st">&quot;0.0.0&quot;</span>, date: <span class="dv">nil</span>)
+         <span class="kw">if</span> appname.nil? <span class="kw">then</span> appname = <span class="ot">@appname</span> <span class="kw">end</span>
+         version_parm = register_a_parm <span class="dt">Version</span>.new(short_key, long_key, 
+            appname: (appname||<span class="ot">@appname</span>), version: version, date: date, howmany: <span class="st">:NONE</span>,
+            help: <span class="st">&quot;print version to stdout&quot;</span>, debug: <span class="ot">@debug</span>)
+         <span class="ot">@version_parm</span> = version_parm
+      <span class="kw">end</span>
+
+      <span class="co">################### Methods required by the parser ####################</span>
+
+      <span class="kw">def</span> finalize()
+         <span class="kw">if</span> <span class="ot">@ready_to_go</span>
+            <span class="kw">return</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> <span class="ot">@needs_help</span>
+            add_help 
+         <span class="kw">end</span>
+         <span class="ot">@attributes</span>.sort!
+         dups = []
+         previous = <span class="dv">nil</span>
+         <span class="ot">@attributes</span>.each <span class="kw">do</span> |an_attr|
+            <span class="kw">if</span> an_attr ==  previous
+               dups.push(an_attr)
+            <span class="kw">else</span>
+               previous = an_attr
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> dups.length &gt; <span class="dv">0</span>
+            raise <span class="st">&quot;Duplicate attribute names, </span><span class="ot">#{</span>dups<span class="ot">}</span><span class="st">, for command line options.&quot;</span>
+         <span class="kw">end</span>
+         <span class="ot">@positionals</span>.push(<span class="ot">@parms_list</span>.length)
+         <span class="ot">@attributes</span>.freeze
+         <span class="ot">@defaults</span>.freeze
+         <span class="ot">@parms_list</span>.freeze
+         <span class="ot">@parms_hash</span>.freeze
+         <span class="ot">@positionals</span>.freeze
+         <span class="ot">@ready_to_go</span> = <span class="dv">true</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> [](key_or_int)
+         <span class="kw">if</span> key_or_int.is_a? <span class="dt">Fixnum</span> <span class="kw">then</span> <span class="ot">@parms_list</span>[key_or_int] <span class="kw">else</span> <span class="ot">@parms_hash</span>[key_or_int] <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> help_msg
+         as_list = <span class="ot">@parms_list</span>.map { |parm| <span class="st">&quot;</span><span class="ot">#{</span>parm.arg_look<span class="ot">}</span><span class="st">&quot;</span> }
+         parameters = as_list.join(<span class="st">&quot; &quot;</span>)
+         cmdline = <span class="st">&quot;  </span><span class="ot">#{@appname}</span><span class="st"> </span><span class="ot">#{</span>parameters<span class="ot">}</span><span class="st">\n\n&quot;</span>
+         help_list =  <span class="ot">@parms_list</span>.map { |parm| <span class="st">&quot;\n</span><span class="ot">#{</span>parm.help_msg<span class="ot">}</span><span class="st">&quot;</span> }.join(<span class="st">''</span>)
+         prefix <span class="kw">= if</span> <span class="ot">@version_parm</span>.nil?  <span class="kw">then</span> <span class="ot">@help_prefix</span>
+                  <span class="kw">else</span> <span class="st">&quot;</span><span class="ot">#{@version_parm</span>.message<span class="ot">}</span><span class="st">\n\n</span><span class="ot">#{@help_prefix}</span><span class="st">&quot;</span>
+                  <span class="kw">end</span>
+         <span class="st">&quot;</span><span class="ot">#{</span>prefix<span class="ot">}</span><span class="st">\n</span><span class="ot">#{</span>cmdline<span class="ot">}</span><span class="st">PARAMETERS:\n</span><span class="ot">#{</span>help_list<span class="ot">}</span><span class="st">\n</span><span class="ot">#{@help_suffix}</span><span class="st">\n\n&quot;</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> version_msg(parm); parm.version_msg <span class="kw">end</span>
+
+      <span class="kw">def</span> determines_key(arg)
+         arg = arg.split(<span class="st">&quot;=&quot;</span>)[<span class="dv">0</span>] <span class="co"># trim off any trailing value</span>
+         arglength = arg.length
+         <span class="kw">if</span> arglength == <span class="dv">0</span>
+            <span class="kw">return</span> <span class="dv">nil</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> arglength == <span class="dv">0</span> <span class="kw">or</span> arg[<span class="dv">0</span>] != <span class="st">'-'</span>
+            <span class="kw">return</span> <span class="dv">nil</span>
+         <span class="kw">end</span>
+         first <span class="kw">= if</span> arg[<span class="dv">1</span>] == <span class="st">'-'</span> <span class="kw">then</span> <span class="dv">2</span> <span class="kw">else</span> <span class="dv">1</span> <span class="kw">end</span>
+         last = arglength - <span class="dv">1</span>
+         <span class="kw">if</span> first == <span class="dv">2</span> <span class="kw">and</span> last == <span class="dv">2</span>
+            <span class="kw">return</span> <span class="ot">@parms_hash</span>[<span class="st">'--'</span>]
+         <span class="kw">end</span>
+         candidates = []
+         <span class="ot">@parms_hash</span>.each <span class="kw">do</span> |key, parm|
+            <span class="kw">if</span> key.start_with? arg
+               <span class="kw">if</span> key.length == arglength <span class="kw">then</span> <span class="kw">return</span> key
+               <span class="kw">else</span> candidates.push parm
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> candidates.length == <span class="dv">1</span> <span class="kw">then</span> candidates[<span class="dv">0</span>] <span class="kw">else</span> <span class="dv">nil</span> <span class="kw">end</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span></code></pre>
+<h2 id="the-parser-class-parser.newspecargvargvdebugnil">The <code>Parser</code> class: <code>Parser.new(spec,argv=ARGV,debug:nil)</code></h2>
+<p>The constructor does all of the work here. Once a <code>Spec</code> has been initialized, you call the constructor with the <code>Spec</code> and an <code>Array</code>, normally the command line argument array <code>ARGV</code>. When the constructor returns, the attribute <code>args</code> of the instance is a read-only <code>OpenStruct</code> with the parameter key-value pairs both as attributes and as properties accessible via the <code>[]</code> operator.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">class</span> <span class="dt">Parser</span> 
+      <span class="ot">attr_reader</span> <span class="st">:args</span>, <span class="st">:debug</span>
+      <span class="dt">KEY_ARG_REG_EXP</span>  = <span class="ot">/^((-{1,2})?([^-=][^=]*)?)(=(.*))?$/</span>
+      <span class="kw">def</span> parse_an_arg(arg)
+         matched = <span class="dt">KEY_ARG_REG_EXP</span>.match(arg)
+         <span class="kw">if</span> <span class="kw">not</span> matched
+            [<span class="dv">nil</span>, <span class="dv">nil</span>, <span class="dv">nil</span>, <span class="dv">nil</span>]
+         <span class="kw">else</span>
+            whole_key, dashes, key, ignore, value = matched.captures
+            [whole_key, dashes, key, value]
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> initialize(spec, argv = <span class="dt">ARGV</span>, debug: <span class="dv">nil</span>)
+         <span class="ot">@spec</span> = spec
+         <span class="ot">@spec</span>.finalize
+         <span class="ot">@debug</span> = <span class="dt">Set</span>.new
+         <span class="kw">if</span> <span class="kw">not</span> debug.nil?
+            <span class="kw">if</span> debug.is_a? <span class="dt">Array</span> <span class="kw">or</span> debug.is_a? <span class="dt">Set</span> 
+               debug.each {|dk| <span class="ot">@debug</span>.add dk}
+            <span class="kw">else</span> <span class="co"># it had better be a string that is a comma-separated list of debug keys</span>
+               <span class="dt">CSV</span>.parse(debug)[<span class="dv">0</span>].each <span class="kw">do</span>|dk| 
+                  <span class="ot">@debug</span>.add dk
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+            <span class="kw">if</span> <span class="ot">@debug</span>.length &gt; <span class="dv">0</span>
+               print(<span class="st">&quot;Final debug flags: &quot;</span>)
+               ap(<span class="ot">@debug</span>)
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> <span class="ot">@debug</span>.member? <span class="st">&quot;final&quot;</span>
+            print <span class="st">&quot;Final parms list:\n-------\n&quot;</span>
+            ap <span class="ot">@spec</span>.parms_list
+            print <span class="st">&quot;\n------\n&quot;</span>
+         <span class="kw">end</span>
+         <span class="ot">@args</span> = <span class="dt">OpenStruct</span>.new(<span class="ot">@spec</span>.defaults)
+         <span class="ot">@positionals_seen</span> = <span class="dv">0</span>
+         <span class="ot">@last_positional</span> = -<span class="dv">1</span>
+         <span class="ot">@next_positional</span> = <span class="ot">@spec</span>.positionals[<span class="dv">0</span>]
+         <span class="ot">@done</span> = <span class="dv">false</span>
+         <span class="ot">@parms_seen_set</span> = <span class="dt">Set</span>.new() <span class="co"># so we can quickly find duplicate keys</span>
+         <span class="kw">while</span> argv.length &gt; <span class="dv">0</span> <span class="kw">and</span> <span class="kw">not</span> <span class="ot">@done</span>
+            arg = argv.shift
+            <span class="kw">if</span> <span class="ot">@debug</span>.member? <span class="st">&quot;parser&quot;</span>
+               print <span class="st">&quot;next arg is '</span><span class="ot">#{</span>arg<span class="ot">}</span><span class="st">' and key? arg is </span><span class="ot">#{</span>key? arg<span class="ot">}</span><span class="st">\n&quot;</span>
+            <span class="kw">end</span>
+            <span class="kw">if</span> <span class="kw">not</span> key? arg <span class="co"># it is a value, not a key</span>
+               handle_positional(arg, argv)
+            <span class="kw">elsif</span> <span class="kw">not</span> (
+               handle_keyword(arg, argv) || handle_possible_flags(arg, argv)|| handle_abbreviation(arg, argv)
+               )
+               raise <span class="st">&quot;Unexpected command line key, '</span><span class="ot">#{</span>arg<span class="ot">}</span><span class="st">'&quot;</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="ot">@args</span>.freeze
+         mia = []
+         <span class="ot">@spec</span>.parms_list.each <span class="kw">do</span> |parm|
+            <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@parms_seen_set</span>.member? parm.short_key
+               <span class="kw">if</span> parm.howmany == <span class="st">:ONE</span> || parm.howmany == <span class="st">:ONE_OR_MORE</span>
+                  mia.push(parm.printname)
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> mia.length &gt; <span class="dv">0</span>
+            raise <span class="st">&quot;required parameters missing: &quot;</span>+mia.join(<span class="st">&quot;, &quot;</span>)+<span class="st">&quot;.&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">private</span>
+      <span class="kw">def</span> key? a_string 
+         <span class="co"># return true if a_string is a keyword plus (possibly) a value</span>
+         <span class="kw">if</span> a_string.length &lt; <span class="dv">2</span>
+            <span class="dv">false</span>
+         <span class="kw">else</span>
+            whole_key, dashes, key, value = parse_an_arg(a_string)
+            <span class="kw">if</span> dashes == whole_key <span class="co"># '--' is the &quot;end parse&quot; flag</span>
+               <span class="dv">true</span>
+            <span class="kw">else</span>
+               <span class="kw">begin</span>
+                  whole_key.to_num <span class="co"># raises ArgumentError on failure</span>
+                  <span class="dv">false</span>
+               <span class="kw">rescue</span>
+                  <span class="kw">not</span> (dashes.nil? || key.nil?)
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> check_parm_position(parm)
+         <span class="co"># the parameter's position must lie between the last and the next required positional</span>
+         <span class="co"># parameter.  Otherwise, that required parameter's value is missing!</span>
+         <span class="kw">if</span> parm.position &lt; <span class="ot">@last_positional</span>
+            last_name = <span class="ot">@spec</span>[<span class="ot">@last_positional</span>].short_key
+            raise <span class="st">&quot;</span><span class="ot">#{</span>parm.short_key<span class="ot">}</span><span class="st"> cannot occur after </span><span class="ot">#{</span>last_name<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">else</span>
+            <span class="kw">while</span> parm.position &gt; <span class="ot">@next_positional</span>
+               next_pparm = <span class="ot">@spec</span>[<span class="ot">@next_positional</span>]
+               <span class="kw">if</span> next_pparm.role == <span class="st">:ONE</span> <span class="kw">or</span> next_pparm.role == <span class="st">:ONE_OR_MORE</span>
+                  psn = parm.short_key
+                  npp = next_pparm.short_key
+                  raise <span class="st">&quot;missing value for required positional parameter </span><span class="ot">#{</span>mpp<span class="ot">}</span><span class="st">: </span><span class="ot">#{</span>psn<span class="ot">}</span><span class="st"> seen first&quot;</span>
+               <span class="kw">else</span>
+                  <span class="ot">@last_positional</span> = <span class="ot">@next_positional</span>
+                  <span class="ot">@positionals_seen</span> += <span class="dv">1</span>
+                  <span class="ot">@next_positional</span> = <span class="ot">@spec</span>.positionals[<span class="ot">@positionals_seen</span>]
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> handle_abbreviation(arg, argv)
+         whole_key, dashes, key, value = parse_an_arg arg
+         matches = <span class="dt">Set</span>.new
+         <span class="ot">@spec</span>.parms_list.each <span class="kw">do</span> |parm|
+            <span class="kw">if</span> parm.short_key.start_with?(whole_key) <span class="kw">then</span> matches.add(parm) <span class="kw">end</span>
+            <span class="kw">if</span> <span class="kw">not</span> parm.long_key.nil? <span class="kw">and</span> parm.long_key.start_with?(whole_key)
+               matches.add(parm)
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> matches.length != <span class="dv">1</span>
+            <span class="kw">return</span> <span class="dv">false</span>
+         <span class="kw">else</span>
+            parm = matches.delete()
+            wholearg = parm.short_key + <span class="kw">(if</span> value.nil? <span class="kw">then</span> <span class="st">&quot;&quot;</span> <span class="kw">else</span> <span class="st">&quot;=&quot;</span>+value <span class="kw">end</span>)
+            <span class="kw">return</span> handle_keyword(wholearg, argv)
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> handle_keyword(arg, argv)
+         whole_key, dashes, key, value = parse_an_arg arg
+         parm = <span class="ot">@spec</span>[whole_key]
+         <span class="kw">if</span> <span class="ot">@debug</span>.member? <span class="st">&quot;parser&quot;</span>
+            print <span class="st">&quot;whole key </span><span class="ot">#{</span>whole_key<span class="ot">}</span><span class="st"> and parm is\n  &quot;</span> 
+            ap parm
+         <span class="kw">end</span>
+         <span class="kw">if</span> parm.nil?
+            <span class="kw">return</span> <span class="dv">false</span>
+         <span class="kw">elsif</span> parm.role == <span class="st">:HELP</span>
+            print <span class="ot">@spec</span>.help_msg
+            exit <span class="dv">101</span>
+         <span class="kw">elsif</span> parm.role == <span class="st">:VERSION</span>
+            print(<span class="ot">@spec</span>.version_msg(parm), <span class="st">&quot;\n&quot;</span>)
+            <span class="kw">return</span> <span class="dv">true</span>
+         <span class="kw">elsif</span> parm.role == <span class="st">:END</span>
+            <span class="ot">@rest</span> = argv
+            <span class="ot">@done</span> = <span class="dv">true</span>
+            <span class="kw">return</span> <span class="dv">true</span>
+         <span class="kw">end</span>
+         check_parm_position(parm) <span class="co"># fails only by raising an error</span>
+
+         <span class="kw">case</span> parm.howmany
+         <span class="kw">when</span> <span class="st">:ONE</span>, <span class="st">:ZERO_OR_ONE</span>
+            <span class="kw">if</span> value.nil?
+               <span class="kw">if</span> <span class="kw">not</span> key? argv[<span class="dv">0</span>]
+                  value = parm._call_vet argv.shift
+               <span class="co">#elsif parm.howmany == :ZERO_OR_ONE</span>
+               <span class="co">#   value = parm.default</span>
+               <span class="kw">else</span>
+                  raise <span class="st">&quot;The parameter </span><span class="ot">#{</span>arg<span class="ot">}</span><span class="st"> requires a value, but none was supplied .&quot;</span>
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+            <span class="kw">if</span> parm.value_type == <span class="st">:CSV</span>
+               expanded <span class="kw">= if</span> value.kind_of? <span class="dt">String</span> <span class="kw">then</span> value.split <span class="st">','</span> <span class="kw">else</span> value <span class="kw">end</span>
+               <span class="kw">if</span> <span class="ot">@parms_seen_set</span>.find_index(key) == <span class="dv">nil</span> <span class="kw">then</span> value = expanded
+               <span class="kw">elsif</span> <span class="ot">@spec</span>.cat_on_dup <span class="kw">then</span> value = <span class="ot">@args</span>[parm.short_key] + expanded
+               <span class="kw">elsif</span> expanded != <span class="ot">@args</span>[parm.short_key]
+                  raise <span class="st">&quot;Duplicate key '</span><span class="ot">#{</span>key<span class="ot">}</span><span class="st"> for comma-separated values&quot;</span>
+               <span class="kw">end</span>
+            <span class="kw">elsif</span> <span class="ot">@parms_seen_set</span>.find_index(key) != <span class="dv">nil</span> <span class="kw">and</span> value != <span class="ot">@args</span>[parm.short_key]
+               raise <span class="st">&quot;Duplicate key '</span><span class="ot">#{</span>key<span class="ot">}</span><span class="st">&quot;</span>
+            <span class="kw">end</span>
+         <span class="kw">when</span> <span class="st">:ZERO_OR_MORE</span>, <span class="st">:ONE_OR_MORE</span>
+            <span class="kw">if</span> <span class="kw">not</span> value.nil? <span class="co"># saw key=stuff as the argument, so stuff is a CSV</span>
+               expanded <span class="kw">= if</span> value.kind_of <span class="dt">String</span> <span class="kw">then</span> value.split <span class="st">','</span> <span class="kw">else</span> value <span class="kw">end</span> 
+            <span class="kw">else</span> 
+               expanded = [] 
+               <span class="kw">while</span> argv.length &gt; <span class="dv">0</span> <span class="kw">and</span> <span class="kw">not</span> key? argv[<span class="dv">0</span>]
+                  expanded.push(argv.shift)
+               <span class="kw">end</span>
+               <span class="kw">if</span> expanded.length == <span class="dv">0</span> <span class="co"># if it appears in the command line, it must have a value</span>
+                  raise <span class="st">&quot;</span><span class="ot">#{</span>key<span class="ot">}</span><span class="st"> requires at least one value, but none were supplied.&quot;</span>
+               <span class="kw">end</span>
+            <span class="kw">end</span>
+            <span class="kw">if</span> <span class="ot">@debug</span>.member? <span class="st">&quot;parser&quot;</span>
+               ap <span class="ot">@parms_seen_set</span>
+               print <span class="st">&quot;</span><span class="ot">#{</span>key<span class="ot">}</span><span class="st"> is the next key? </span><span class="ot">#{@parms_seen_set</span>.member? key<span class="ot">}</span><span class="st">\n&quot;</span>
+            <span class="kw">end</span>
+            <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@parms_seen_set</span>.member? key <span class="kw">then</span> value = expanded
+            <span class="kw">elsif</span> <span class="ot">@spec</span>.cat_on_dup <span class="kw">then</span> value = <span class="ot">@args</span>[parm.short_key] + expanded
+            <span class="kw">elsif</span> expanded != <span class="ot">@args</span>[parm.short_key]
+               raise <span class="st">&quot;Duplicate key '</span><span class="ot">#{</span>key<span class="ot">}</span><span class="st">' with differing value lists&quot;</span>
+            <span class="kw">end</span>
+         <span class="kw">when</span> <span class="st">:NONE</span>
+            value = <span class="dv">true</span> <span class="co"># it must be a boolean</span>
+         <span class="kw">end</span>
+         value = parm._call_vet(value)
+         <span class="ot">@args</span>[parm.short_key] = value
+         <span class="kw">if</span> parm.long_key <span class="kw">then</span> <span class="ot">@args</span>[parm.long_key] = value <span class="kw">end</span>
+         parm.attrnames.each { |name|  <span class="ot">@args</span>[name] = value }
+         <span class="ot">@parms_seen_set</span>.add(parm.short_key)
+         <span class="kw">if</span> parm.long_key != <span class="dv">nil</span> <span class="kw">then</span> <span class="ot">@parms_seen_set</span>.add(parm.long_key) <span class="kw">end</span>
+         <span class="dv">true</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> handle_positional(arg, argv)
+         <span class="ot">@last_positional</span> = <span class="ot">@next_positional</span>
+         <span class="kw">if</span> <span class="ot">@next_positional</span> == <span class="ot">@spec</span>.parms_list.length
+            raise <span class="st">&quot;Unexpected value '</span><span class="ot">#{</span>arg<span class="ot">}</span><span class="st">' after the last positional parameter.&quot;</span>
+         <span class="kw">end</span>
+         <span class="ot">@positionals_seen</span> += <span class="dv">1</span>
+         <span class="ot">@next_positional</span> = <span class="ot">@spec</span>.positionals[<span class="ot">@positionals_seen</span>]
+         parm = <span class="ot">@spec</span>.parms_list[<span class="ot">@last_positional</span>]
+         <span class="kw">if</span> debug.member? <span class="st">&quot;parser&quot;</span>
+            print <span class="st">&quot;The current positional is &quot;</span>
+            ap(parm)
+            print <span class="st">&quot;and the next is </span><span class="ot">#{@next_positional}</span><span class="st">\n&quot;</span>
+         <span class="kw">end</span>
+         <span class="ot">@parms_seen_set</span>.add(parm.short_key)
+         <span class="ot">@parms_seen_set</span>.add(parm.long_key) <span class="kw">if</span> <span class="kw">not</span> parm.long_key.nil?
+         <span class="kw">if</span> parm.howmany == <span class="st">:ONE_OR_MORE</span> <span class="kw">or</span> parm.howmany == <span class="st">:ZERO_OR_MORE</span> 
+            value = [arg]
+            <span class="kw">while</span> argv.length &gt; <span class="dv">0</span> <span class="kw">and</span> <span class="kw">not</span> key? argv[<span class="dv">0</span>]
+               value.push(argv.shift)
+            <span class="kw">end</span>
+         <span class="kw">else</span>
+            value = arg
+         <span class="kw">end</span>
+         value = parm._call_vet(value)
+         <span class="kw">if</span> <span class="ot">@debug</span>.member? <span class="st">&quot;all&quot;</span>
+            print<span class="st">&quot;Assign </span><span class="ot">#{</span>value<span class="ot">}</span><span class="st"> to </span><span class="ot">#{</span>parm.attrnames<span class="ot">}</span><span class="st">\n&quot;</span>
+         <span class="kw">end</span>
+         <span class="ot">@args</span>[parm.attrnames[<span class="dv">0</span>]] = value
+         <span class="kw">if</span> parm.position == <span class="ot">@spec</span>.parms_list.length<span class="dv">-1</span>
+            <span class="ot">@done</span> = <span class="dv">true</span>
+         <span class="kw">end</span>
+         <span class="dv">true</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> handle_possible_flags(arg, argv)
+         whole_key, dashes, key, ignore = parse_an_arg arg
+         negator, ignore, flaglist = <span class="dt">LEADING_NO_REG_EXP</span>.match(key).captures
+         <span class="co"># no-v always means &quot;v is off&quot;, and &quot;-v&quot; always means &quot;v is on&quot;: defaults are irrelevant</span>
+         boolean_to_use = negator.nil?
+         flags = flaglist.split(<span class="st">''</span>)
+         flags.each <span class="kw">do</span> |flag|
+            <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@spec</span>.simple_flags.member?(flag) <span class="kw">then</span> <span class="kw">return</span> <span class="dv">false</span> <span class="kw">end</span>
+         <span class="kw">end</span>
+         flags.each <span class="kw">do</span> |flag|
+            parm = <span class="ot">@spec</span>.parms_hash[<span class="st">&quot;-&quot;</span>+flag]
+            <span class="ot">@args</span>[parm.short_key] = boolean_to_use
+            <span class="ot">@args</span>[parm.long_key]  = boolean_to_use <span class="kw">if</span> <span class="kw">not</span> parm.long_key.nil?
+            parm.attrnames.each {|name| <span class="ot">@args</span>[name] = boolean_to_use}
+            <span class="kw">if</span> <span class="ot">@debug</span>.member? <span class="st">&quot;all&quot;</span>
+               print<span class="st">&quot;Assign </span><span class="ot">#{</span>boolean_to_use<span class="ot">}</span><span class="st"> to </span><span class="ot">#{</span>parm.attrnames<span class="ot">}</span><span class="st">\n&quot;</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="dv">true</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> [](key_or_int)
+         <span class="kw">if</span> <span class="ot">@spec</span>.attributes.member? key_or_int
+            args[key_or_int]
+         <span class="kw">else</span>
+            parm = <span class="ot">@spec</span>[key_or_int]
+            <span class="kw">if</span> parm.nil? <span class="kw">then</span> nil? <span class="kw">else</span> args[parm.attrnames[<span class="dv">0</span>]] <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+<span class="kw">end</span>
+</code></pre>
+<h2 id="usage-example">Usage example</h2>
+<p>The whole job can be done in one shot:</p>
+<pre class="exampleCode">
+
+      require 'cmdline.rb'
+      require 'date'
+      args = CmdLine.parse(appname: 'do_it') do |spec|
+            spec.add_help(
+            before: &quot;do_it exercises the Achievement module.\n&quot;,
+            after: &quot;This source should serve as a guide for adding a command line reader to an app.&quot;)
+         spec.add_version(version: '1.0.1', date: Date.today.iso8601, appname: &quot;do_it&quot;)
+         spec.add_string_here('sh', help: 'a string')
+         spec.add_float_here('fh', help: 'a floating point number')
+         spec.add_integer_here('ih', default: 123, help: 'an (optional) integer')
+         spec.add_list_here('lh', help: 'a list of strings', optional: true)
+         spec.add_integer('-i', '--int', help: 'consumes an integer')
+         spec.add_string('-s', help: 'consumes the next argument', default: 'size')
+         spec.add_list('-l', help: 'consumes arguments up to the next key', optional: true)
+         spec.add_float('-f', default: 3.7, help: 'consumes a floating point number')
+         spec.add_flag(&quot;-x&quot;, help: 'crosses out everything')
+         spec.add_csv(&quot;--csv&quot;, help: 'commas everywhere', optional: true)
+         spec.add_list_here('end', optional: true, help: 'consumes everything up to the end mark')
+         spec.add_end_marker_here()
+      end
+
+</pre>
+
+<p>You can break out the building of the <code>Spec</code>, then parse at your leisure:</p>
+<pre class="exampleCode">
+
+      spec = Cmdline.specify('do_it') do |spec |
+         # same spec calls as above
+      end
+      args = CmdLine.parse(appname: 'do_it', spec: spec)  # parses ARGV
+
+</pre>
+
+<p>Once <code>spec</code> is in hand, you can use it to parse any array of arguments, not just <code>ARGV</code>:</p>
+<pre class="exampleCode">
+
+      args = CmdLine.parse(some_array_of_strings, appname: 'do_it', spec: spec) 
+
+</pre>
+</body>
+</html>

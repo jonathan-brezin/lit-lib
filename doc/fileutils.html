@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Some Addtions to File</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Some Addtions to “File”</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">October, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#split_a_path_liststring"><code>split_a_path_list(string)</code></a></li>
+<li><a href="#now4filenameextensionnil-show-both"><code>now4filename(extension=nil, show: :both)</code></a></li>
+<li><a href="#assuredirectorypath-permissions0740-allfalse"><code>assureDirectory(path, permissions=0740, all=false)</code></a></li>
+<li><a href="#normalized_pathparentdir.getwd-child-nil-alternate-nil"><code>normalized_path(parent=Dir.getwd, child: nil, alternate: nil)</code></a></li>
+<li><a href="#parent_directorypath"><code>parent_directory(path)</code></a></li>
+</ul>
+</nav>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+require <span class="st">'open3'</span>
+<span class="kw">class</span> <span class="dt">File</span> </code></pre>
+<h3 id="split_a_path_liststring"><code>split_a_path_list(string)</code></h3>
+<p>The argument <code>string</code> is a list of paths, like the <code>PATH</code> environment variable. The individual directories and/or files are assumed to be separated by the operating-system dependent separator character, <code>/</code> for *nix, <code>\\</code> for MS. The return value is an <code>Array</code> of the individual paths.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">def</span> <span class="dv">self</span>.split_a_path_list(string)
+      string.split(<span class="dt">PATH_SEPARATOR</span>)
+   <span class="kw">end</span>
+</code></pre>
+<h3 id="now4filenameextensionnil-show-both"><code>now4filename(extension=nil, show: :both)</code></h3>
+<p>Creates a file name whose base name is the current <em>local</em> time and whose extension is the argument given, if that value is non-nil. E.g. when this was written, the call <code>File.now4filename(&quot;log&quot;)</code> yielded <code>&quot;20161025_110457.log&quot;</code>–that is, roughly 11:05 on October 25, 2016</p>
+<p>The default is to include both the time and date. You can restrict the name to include just the date or the time by specifying <code>show:</code> <code>:date</code> or <code>show:</code> <code>:time</code> as the optional last argument.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">def</span> <span class="dv">self</span>.now4filename(extension=<span class="dv">nil</span>, show: <span class="st">:both</span>)
+      name = <span class="kw">case</span> show
+             <span class="kw">when</span> <span class="st">:both</span> <span class="kw">then</span> <span class="dt">Time</span>.now.strftime <span class="st">&quot;%y%m%d_%H%M%S&quot;</span>
+             <span class="kw">when</span> <span class="st">:date</span> <span class="kw">then</span> <span class="dt">Time</span>.now.strftime <span class="st">&quot;%y%m%d&quot;</span>
+             <span class="kw">when</span> <span class="st">:time</span> <span class="kw">then</span> <span class="dt">Time</span>.now.strftime <span class="st">&quot;%H%M%S&quot;</span>
+             <span class="kw">end</span>
+      <span class="kw">if</span> extension.nil?
+         name 
+      <span class="kw">elsif</span> extension[<span class="dv">0</span>]==<span class="st">'.'</span> 
+         name+extension
+      <span class="kw">else</span> 
+         name+<span class="st">'.'</span>+extension
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+</code></pre>
+<h3 id="assuredirectorypath-permissions0740-allfalse"><code>assureDirectory(path, permissions=0740, all=false)</code></h3>
+<p>makes sure that <code>path</code> exists and names a directory. If it does not exist, the directory will be created. If <code>all</code> is <code>true</code>, any intermediate directories needed will also be created. If <code>all</code> is <code>false</code>, the parent path must name an existing directory.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">def</span> <span class="dv">self</span>.assure_directory(path, permissions: <span class="st">'0740'</span>, all: <span class="dv">false</span>)
+      path = expand_path path  <span class="co"># make sure leading &quot;~&quot; is translated</span>
+      <span class="kw">if</span> exists? path
+         <span class="kw">if</span> <span class="kw">not</span> directory? path
+            raise <span class="dt">IOError</span>.new <span class="st">&quot;'</span><span class="ot">#{</span>path<span class="ot">}</span><span class="st">' exists, but is not a directory&quot;</span>
+         <span class="kw">end</span>
+         <span class="kw">return</span> <span class="dv">self</span>
+      <span class="kw">end</span>
+      <span class="kw">if</span> permissions.is_a? <span class="dt">Integer</span>
+         permissions = permissions.to_s <span class="dv">8</span>
+      <span class="kw">end</span>
+      recurse <span class="kw">= if</span> all <span class="kw">then</span> <span class="st">'-p '</span> <span class="kw">else</span> <span class="st">''</span> <span class="kw">end</span>
+      exit_status = <span class="st">'?'</span>
+      cmd = <span class="st">&quot;mkdir -m </span><span class="ot">#{</span>permissions<span class="ot">}</span><span class="st"> </span><span class="ot">#{</span>recurse<span class="ot">}</span><span class="st"> </span><span class="ot">#{</span>path<span class="ot">}</span><span class="st">&quot;</span>
+      stdin, stdout_stderr, wait_thr = <span class="dt">Open3</span>.popen2e(cmd) 
+      exit_status = wait_thr.value
+      puts exit_status
+      <span class="kw">if</span> exit_status != <span class="dv">0</span>
+         puts <span class="st">&quot;assure_directory failed </span><span class="ot">#{</span>exit_status<span class="ot">}</span><span class="st">: </span><span class="ot">#{</span>stdout_stderr.read<span class="ot">}</span><span class="st">&quot;</span>, file=<span class="dt">STDERR</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+<h3 id="normalized_pathparentdir.getwd-child-nil-alternate-nil"><code>normalized_path(parent=Dir.getwd, child: nil, alternate: nil)</code></h3>
+<p>returns the absolute path one gets by starting with a “parent” path, which defaults to the current working directory, and appending to it either (1) some conventional child base name, or (2) a particular path that is an alternative needed for some special reason.</p>
+<p>If <code>alternate</code> is given and is itself either absolute or has an implied parent (like <code>./</code>, <code>../</code>, or <code>~/</code>), its normalized absolute version is returned, and the other two arguments are simply ignored. If <code>alternate</code> is a relative path, its parent will be taken to be <code>parent</code>.</p>
+This call is designed for a situation where a conventional directory structure is being elaborated, for example, a root directory that has subdirectories <code>bin</code>, <code>src</code>, <code>lib</code> and <code>doc</code>. These subdirectory names are what the <code>child</code> parameter is intended for. It represents some part of a conventional configuration. The typical call looks like
+<pre class="exampleCode">
+
+      bin = File.normalized_path parent, child: 'bin'
+
+</pre>
+
+<p>It sets <code>bin</code> equal to the absolute path for <code>parent</code>’s <code>bin</code> subdirectory.</p>
+<p>The example is this sort of call that I want to look clean, but one has to allow overrides. Suppose we have an app that normally looks for Python source files in the <code>libpy</code> directory of the parent, but for debugging, the app wants to override that using a command line option. Let <code>options</code> be the parsed command line options. The call in this case would look like</p>
+<pre class="exampleCode">
+
+   libpy = File.normalized_path(parent, child: &quot;libpy&quot;, alternate: options.lib)
+
+</pre>
+
+<p>The effect is that if the invoker supplied an alternative to <code>&quot;libpy&quot;</code>as the value of the option <code>&quot;-lib&quot;</code>, prepend the parent, if need be, to get an absolute path; otherwise, prepend the parent to <code>&quot;libpy&quot;</code> to get the path.&quot;</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">def</span> <span class="dv">self</span>.normalized_path(parent=<span class="dt">Dir</span>.getwd, child: <span class="dv">nil</span>, alternate: <span class="dv">nil</span>)
+      <span class="kw">if</span> alternate.nil? <span class="kw">or</span> alternate.length == <span class="dv">0</span>
+         <span class="kw">if</span> child.nil? <span class="kw">or</span> child.length == <span class="dv">0</span>
+            raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;Either an alternate path or a child must be supplied&quot;</span>
+         <span class="kw">else</span>
+            expand_path child, parent
+         <span class="kw">end</span>
+      <span class="kw">else</span>
+         expand_path alternate, parent
+      <span class="kw">end</span>
+   <span class="kw">end</span></code></pre>
+<h3 id="parent_directorypath"><code>parent_directory(path)</code></h3>
+<p>returns the <em>absolute path</em> of the directory in which the file or directory named by <code>path</code> is to be found. No assertion is made as to whether the path actually names an existing directory. This is a very modest extension of <code>File.dirname</code> that handles some special cases, like ‘.’, where <code>dirname</code> yields some puzzling values. That puzzle is why I insist on absolute paths here.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">def</span> <span class="dv">self</span>.parent_directory path
+      dirname expand_path(path)
+   <span class="kw">end</span>
+<span class="kw">end</span>
+</code></pre>
+</body>
+</html>

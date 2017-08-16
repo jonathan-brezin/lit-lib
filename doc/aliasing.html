@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>aliasing: Support for Managing Aliases</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title"><code>aliasing</code>: Support for Managing Aliases</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">December, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#managing-what-is-aliased">Managing what is aliased</a><ul>
+<li><a href="#create_alias"><code>Object#create_an_alias(new_alias, original: original)</code></a></li>
+<li><a href="#create_instance_alias"><code>Class#create_an_instance_alias(new_alias, original: original)</code></a></li>
+</ul></li>
+<li><a href="#aliasing_methods">Discovering aliases</a><ul>
+<li><a href="#objectaliased_methods"><code>Object#aliased_methods()</code></a></li>
+<li><a href="#classaliased_instance_methods"><code>Class#aliased_instance_methods()</code></a></li>
+<li><a href="#objectaliases_forname"><code>Object#aliases_for(name)</code></a></li>
+<li><a href="#classinstance_method_aliases_forname"><code>Class#instance_method_aliases_for(name)</code></a></li>
+<li><a href="#classare_instance_aliasesthis-that"><code>Class#are_instance_aliases?(this, that)</code></a></li>
+<li><a href="#objectare_aliasesthis-that"><code>Object#are_aliases?(this, that)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+require <span class="st">&quot;sysutils&quot;</span>
+</code></pre>
+<h2 id="introduction">Introduction</h2>
+<p>If all you want to do is to create an alias <code>make_hay</code> for an instance method <code>do_it</code> of a class <code>C</code>, all you need to do is to execute</p>
+<pre class="exampleCode">
+         C.send :alias_method, :make_hay, :do_it
+</pre>
+
+<p>The “<code>:send</code>” is necessary because <code>:alias_method</code> is a private method of <code>Class</code>.</p>
+Similarly, if what you need is an alias for a <strong>class</strong> method of <code>C</code>, the drill is
+<pre class="exampleCode">
+      class C
+         class &lt;&lt; self
+            send :alias_method, :make_hay, :do_it
+         end
+      end
+</pre>
+<p>which is a little cryptic, but not totally unreadable. For an instance <code>c</code> of <code>C</code>, the analogous code</p>
+<pre class="exampleCode">
+   class &lt;&lt; c
+      send :alias_method, :make_hay, :do_it
+   end
+</pre>
+
+<p>creates the alias for <code>c</code> <em>and only <code>c</code>,</em> not for every instance of <code>C</code>.</p>
+<h2 id="managing-what-is-aliased">Managing what is aliased</h2>
+<p>These examples are simple enough that one might well be tempted to heed the argument that says “don’t add help where none is needed.” There are several issues, though, that can come up, among them:</p>
+<ol type="1">
+<li><p>What if <code>:make_hay</code> is already an instance method? Clobber it, or report an error?</p></li>
+<li><p>What if “<code>:do_it</code>” is not a recognized method name at the time of the call?</p></li>
+<li><p>How do you remember which symbol comes first: the existing method’s name or the new alias?</p></li>
+</ol>
+<p>The issues I raised above imply the need for a more robust way to create aliases than simply sending <code>:alias_method</code>.</p>
+<h4 id="create_alias"><code>Object#create_an_alias(new_alias, original: original)</code></h4>
+<p>allows one to alias a method name to which the caller responds. Both arguments may be either <code>String</code>s or <code>Symbol</code>s. If the caller is a class, these are the methods to which it, and not its instances, respond. If the caller is an instance of a class, the alias is applies only to that instance, <em>not to all instances of its class</em>.</p>
+<p>The normal return value for creating an alias is <code>true</code>. <code>false</code> is returned when the alias is already used to name a method, and in that case no alias for the original has been created, and <code>new_alias</code> retains whatever meaning it had before the call was made.</p>
+<p>If the caller does not respond to the original symbol, a <code>NameError</code> is raised.</p>
+<p>The point of having a keyword parameter is solve the memory problem:</p>
+<pre class="exampleCode">
+
+      create_an_alias &quot;x&quot;, original: &quot;y&quot;
+
+</pre>
+
+<p>leaves one in no doubt as to which is the alias, and which the existing name.</p>
+<h4 id="create_instance_alias"><code>Class#create_an_instance_alias(new_alias, original: original)</code></h4>
+<p>handles the creation of aliases that are visible to <em>all</em> instances of a class.</p>
+<h2 id="aliasing_methods">Discovering aliases</h2>
+<p>It is nice to have a clean way of getting the aliases for a given method, be it a class or instance method. Ruby’s use of an anonymous “singleton class” to capture information local to an object makes this code more complex than one might guess on the surface. One has to distinguish between the methods a class bestows on its instances, and the methods a particular instance responds to. <a href="examples/bad_alias.rb">The following code</a>, using the methods described below, illustrates the problem:</p>
+<pre class="exampleCode">
+
+require &quot;aliasing&quot;
+class C
+   def x; &quot;X!&quot; end
+ end
+C.create_an_instance_alias :ex, original: :x
+c = C.new
+c.create_an_alias :exe1, original: :ex
+c.create_an_alias :exe2, original: :x
+c.create_an_alias :exe3, original: :ex
+c.create_an_alias :exe4, original: :exe1
+puts &quot;calling all 6 methods: #{c.x}, #{c.ex}, #{c.exe1}, #{c.exe2}, #{c.exe3} and #{c.exe4}&quot;
+puts &quot;c.aliased_methods #{c.aliased_methods}&quot;
+puts &quot;c.are_aliases? :x, :ex == #{c.are_aliases? :x, :ex}&quot;
+puts &quot;c.are_aliases? :ex, :exe1 == #{c.are_aliases? :ex, :exe1}&quot;
+puts &quot;c.are_aliases? :exe1, :exe2 == #{c.are_aliases? :exe1, :exe2}&quot;
+puts &quot;c.are_aliases? :exe2, :exe3 == #{c.are_aliases? :exe3, :exe2}&quot;
+
+</pre>
+
+<p>yields</p>
+<pre class="exampleCode">
+
+calling all 6 methods: X!, X!, X!, X!, X! and X!
+c.aliased_methods [
+   [:exe1, :exe2, :exe3], [:x, :ex], [:kind_of?, :is_a?], [:to_enum, :enum_for], [:==, :equal?]
+]
+c.are_aliases? :x, :ex == true
+c.are_aliases? :ex, :exe1 == false
+c.are_aliases? :exe1, :exe2 == true
+c.are_aliases? :exe2, :exe3 == true
+
+</pre>
+
+<p>I do not know whether or not these answers should be a surprise. If there are several aliases for <code>:x</code> that are local to <code>c</code>, they show up as their own entry in the array that gets returned by <code>aliased_methods</code>, separate from <code>:x</code>’s own entry, should it have one. If, on the other hand, there is only one alias local to <code>c</code>, it will not be reported at all.</p>
+<p>In view of this example, it might be wise to avoid the methods here and, in situations where you really need to track aliases for individual instances, to do the bookkeeping yourself. For classes and instance methods, this code works correctly, insofar as I can tell.</p>
+<h4 id="objectaliased_methods"><code>Object#aliased_methods()</code></h4>
+<p>returns an array each of whose entries is an array of method name symbols aliased to one another. Each entry consists of <em>all</em> of the symbols aliased to a particular <code>Method</code> object.</p>
+<blockquote>
+<p>If the caller is a <code>Class</code>, the aliases are those created as shown in the code displayed above for class methods, which are tracked by the class’s <code>singleton_class</code>.</p>
+</blockquote>
+<blockquote>
+<p>If the caller is <em>not</em> a <code>Class</code>, the aliases are for the caller’s instance methods. One has to be careful here, as the example above shows.</p>
+</blockquote>
+<h4 id="classaliased_instance_methods"><code>Class#aliased_instance_methods()</code></h4>
+<p>returns an array whose entries are arrays of method symbols aliased to one another, one entry per set of mutual aliases. This is essentially the same as <code>alias_methods</code> does, but in this case, the results are the aliases shared by all instances of the class that is the caller.</p>
+<p>The code for these two methods is due to <a href="http://stackoverflow.com/users/8279/marc-andr%C3%A9-lafortune">Marc-André Lafortune</a>. They are the starting point for two more methods:</p>
+<h4 id="objectaliases_forname"><code>Object#aliases_for(name)</code></h4>
+<p>returns an array of the aliases, not including the argument, found for the method named by <code>name</code>. The argument may be either a string or a symbol. The methods checked against <code>name</code> are those to which the caller responds. The same problem that <code>alias_method</code> has with aliases local to a particular object (as opposed to aliases for all instances of the object’s class) occurs here.</p>
+<h4 id="classinstance_method_aliases_forname"><code>Class#instance_method_aliases_for(name)</code></h4>
+<p>does the same job as <code>aliases_for</code>, but takes <code>name</code> to refer to a method for all instances of the class.</p>
+<p>A related pair of methods compares two method names to see whether they are aliases of one another. For instance methods, this is done at the class level, rather the object level, because all of the identifiers belong to the class’s namespace. The usual caveats apply to requests to compare to identifiers that may refer to a single object that is not a <code>Class</code>.</p>
+<h4 id="classare_instance_aliasesthis-that"><code>Class#are_instance_aliases?(this, that)</code></h4>
+<h4 id="objectare_aliasesthis-that"><code>Object#are_aliases?(this, that)</code></h4>
+<p>Both, as their names suggest, return a boolean, <code>true</code> meaning that the two are indeed aliases of one another. Both arguments may be either strings or symbols.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+<span class="kw">class</span> <span class="dt">Class</span>
+   <span class="kw">def</span>  aliased_instance_methods
+      <span class="co"># see Marc-André Lafortune (http://stackoverflow.com/users/8279/marc-andr%C3%A9-lafortune)</span>
+      instance_methods.group_by{|m| instance_method(m)}.map(&amp;<span class="st">:last</span>).keep_if{|syms| syms.length &gt; <span class="dv">1</span>}
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> instance_method_aliases_for sym_or_str
+      symbol = sym_or_str.to_sym
+      as_array = aliased_instance_methods.keep_if { |symbols| symbols.include? symbol }
+      <span class="kw">if</span> as_array.length == <span class="dv">0</span> <span class="kw">then</span> []
+      <span class="kw">else</span>
+         answer = as_array[<span class="dv">0</span>]
+         answer.delete symbol
+         answer
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> are_instance_aliases?(this, that)
+      instance_method_aliases_for(this).include? that.to_sym
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> create_an_instance_alias(the_alias, original: <span class="st">&quot;&quot;</span>)
+      original_sym = original.to_sym
+      <span class="kw">unless</span> instance_methods.include? original_sym 
+         raise <span class="dt">NameError</span>.new <span class="st">&quot;instances of </span><span class="ot">#{</span><span class="dv">self</span><span class="ot">}</span><span class="st"> do not respond to </span><span class="ot">#{</span>original_sym<span class="ot">}</span><span class="st">&quot;</span>
+      <span class="kw">end</span>
+      alias_sym = the_alias.to_sym
+      <span class="kw">if</span> instance_methods.include? alias_sym
+         <span class="dv">false</span>
+      <span class="kw">else</span>
+         <span class="dv">self</span>.send <span class="st">:alias_method</span>, alias_sym, original_sym
+         <span class="dv">true</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+<span class="kw">end</span>
+
+<span class="kw">class</span> <span class="dt">Object</span>
+   <span class="kw">def</span> aliased_methods
+      <span class="co"># see Marc-André Lafortune (http://stackoverflow.com/users/8279/marc-andr%C3%A9-lafortune) </span>
+      methods.group_by{|m| method(m)}.map(&amp;<span class="st">:last</span>).keep_if{|syms| syms.length &gt; <span class="dv">1</span>}
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> aliases_for sym_or_str
+      symbol = sym_or_str.to_sym
+      as_array = aliased_methods.keep_if { |symbols| symbols.include? symbol }
+      <span class="kw">if</span> as_array.length == <span class="dv">0</span> <span class="kw">then</span> []
+      <span class="kw">else</span>
+         answer = as_array[<span class="dv">0</span>]
+         answer.delete symbol
+         answer
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> are_aliases?(this, that)
+      method(this.to_sym) == method(that.to_sym)
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> create_an_alias(the_alias, original: <span class="st">&quot;&quot;</span>)
+      original_sym = original.to_sym
+      <span class="kw">if</span> <span class="kw">not</span> respond_to? original_sym 
+         raise <span class="dt">NameError</span>.new <span class="st">&quot;</span><span class="ot">#{</span><span class="dv">self</span><span class="ot">}</span><span class="st"> does not respond to </span><span class="ot">#{</span>original_sym<span class="ot">}</span><span class="st">&quot;</span>
+      <span class="kw">end</span>
+      alias_sym = the_alias.to_sym
+      <span class="kw">if</span> respond_to?(alias_sym)
+         <span class="dv">false</span>
+      <span class="kw">else</span>
+         singleton_class.send <span class="st">:alias_method</span>, alias_sym, original_sym
+         <span class="dv">true</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+</body>
+</html>

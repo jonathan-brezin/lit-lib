@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Literate Python Support Via Markdown</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Literate Python Support Via Markdown</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">October, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#what-panpype-does">What <code>panpype</code> does</a></li>
+</ul>
+</nav>
+<pre class="sourceCode ruby"><code class="sourceCode ruby"><span class="kw">#!/usr/bin/env ruby</span></code></pre>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">require <span class="st">&quot;cmdline&quot;</span>
+require <span class="st">&quot;litsrc&quot;</span>
+</code></pre>
+<h2 id="what-panpype-does">What <code>panpype</code> does</h2>
+<p>The idea is to create a document format that is legal Python while permitting one to include <a href="http://pandoc.org">Pandoc</a> markdown that allows one to turn the file easily into a <a href="http://pandoc.org/MANUAL.html#pandocs-%20markdown">“pandoc” document</a>. This intermediate file has file type “<code>.md</code>” and is passed to the <code>pandoc</code> command for transformation into HTML. I extend the markdown conventions only by</p>
+<ul>
+<li><p>using <code>'''</code> multi-line comment strings that begin with an identifying tag, either “<code>&lt;head&gt;</code>” or “<code>&lt;md&gt;</code>”, to hold the markdown, and</p></li>
+<li><p>using <code>#==&gt; &lt;show code&gt;</code> and <code>#==&gt; &lt;hide code&gt;</code> lines to filter what source code gets written to the HTML output.</p></li>
+</ul>
+<p>Both the beginning and ending <code>'''</code> may be preceeded by some white space on their line, but by nothing else. The <code>'''</code> that ends a head or markdown section may be followed immediately by some white space and a comment of the form “<code># &lt;/head&gt;</code> or <code># &lt;/md&gt;</code>”. If the closing <code>&lt;/...&gt;</code> tag is provided, it must match the opening tag, as in HTML.</p>
+<p>For more details see <a href="litsrc.html"><code>LiterateSource</code>’s documentation</a>, which describes the command line parameters and the general philosophy behind this program.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+<span class="kw">class</span> <span class="dt">Panpype</span> &lt; <span class="dt">LiterateSource</span>
+   <span class="dt">VERSION</span>       = <span class="st">&quot;1.0.1&quot;</span>
+   <span class="dt">UPDATED</span>       = <span class="st">&quot;2017-07-11&quot;</span>
+   <span class="dt">LANG_SPEC</span>     = <span class="dt">LanguageSpec</span>.new(
+      <span class="st">&quot;python&quot;</span>, <span class="st">&quot;pype&quot;</span>, <span class="st">&quot;py&quot;</span>,
+      <span class="ot">/^[ \t]*('''|&quot;&quot;&quot;) +&lt;(md|head)&gt;[ \t]*\n?$/</span>, 
+      <span class="ot">/^[ \t]*('''|&quot;&quot;&quot;)([ \t]+#[ \t]*&lt;\/(md|head)&gt;)?[ \t]*\n?$/</span>,
+      <span class="ot">/^[ \t]*#=(=*)&gt;( *)&lt;(show|hide)( code)?&gt;[ \t]*\n?$/</span>,
+      <span class="dv">true</span>
+      )
+   <span class="kw">def</span> initialize(options)
+      <span class="dv">super</span> options, <span class="dt">LANG_SPEC</span>
+   <span class="kw">end</span>
+<span class="kw">end</span>
+
+<span class="co"># If this has been invoked directly from the command line...</span>
+cmd_names = <span class="dt">Set</span>.new [<span class="st">&quot;panpype.rb&quot;</span>, <span class="st">&quot;panpype&quot;</span>, <span class="st">&quot;pythonmd.rb&quot;</span>, <span class="st">&quot;pythonmd&quot;</span>]
+cmdname =  <span class="dt">File</span>.basename(<span class="dt">$PROGRAM_NAME</span>)
+<span class="kw">if</span> cmd_names.member? cmdname
+   <span class="kw">begin</span>
+      fromto = { from: <span class="st">&quot;pype&quot;</span>, to: <span class="st">&quot;py&quot;</span>}
+      args = <span class="dt">CmdLine</span>.parse(appname: cmdname, helpinfo: fromto) <span class="kw">do</span> |spec|
+         <span class="dt">LiterateSource</span>.addCmdlineParameters spec
+      <span class="kw">end</span>
+   <span class="kw">rescue</span> <span class="dt">RuntimeError</span> =&gt; re 
+      print(<span class="st">&quot;Could not parse the command line: &quot;</span>, re.message, <span class="st">&quot;\n&quot;</span>)
+      exit(<span class="dv">1001</span>)
+   <span class="kw">end</span>
+   <span class="dt">Panpype</span>.new(args).process_files
+   exit(<span class="dv">0</span>)
+<span class="kw">end</span></code></pre>
+</body>
+</html>

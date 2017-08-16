@@ -1,0 +1,1452 @@
+=begin <head>
+Title: <code>CmdLine</code>: Simplified Command Line Processing
+Author: Jonathan Brezin
+Date: November, 2015
+Show source: Yes
+Tab Size: 3
+=end 
+
+require 'awesome_print'
+require 'csv'
+require 'ostruct'
+require 'rbconfig'
+require 'set'
+require 'sysutils'
+
+
+=begin <md>
+
+## Introduction ## 
+
+The aim here is to simplify adding command line argument specifications to a "main" Ruby entry
+point.  One might try to extend the Ruby library's [`OptionParser`](https://docs.ruby-lang.org/en/2.1.0/OptionParser.html)
+class, but, for me at least, that code and its API are impenetrable.  For whatever reason, I
+cannot grok their underlying model.
+
+### Some vocabulary ###
+
+<b>_Parameters_</b> are values that the application is supplied from the command line as a
+sequence of key/value pairs.  Parameters are sometimes called <b>_options_</b>.
+
+<b>_Arguments_</b> are the entries in a list that is normally gotten by splitting a command
+line at whitespace, and that is available as the global `ARGV`.  Any list of strings will do,
+though.  Arguments will be parsed to yield the sequence of key/value pairs for the parameters.
+
+<b>_Keys_</b> or <b>_keywords_</b> identify a parameter. Entries the argument list
+are recognized as keys if they begin with a "`-`" or "`--`".  (Negative numbers look like
+this, but are--of course--not treated as keys.)  By convention, a single dash introduces a 
+short, and possibly only, version of a key, and a double dash introduces a longer, less
+cryptic version.  A parameter may have one of each.
+
+<b>_Values_</b> are those entries in the argument list that are not keywords.
+
+
+<b>_Positional Parameters_</b>  A key may be followed in the argument list by zero or more
+entries that make up its value.  Not all values need be associated with a key, though.  They may
+be "positional", in the sense that their meaning is derived from where they appear in the
+argument list, not from being paired with a keyword.  Typically these occur at the beginning and
+end of the argument list, an example being the file specification at the end of "`ls -l *.rb`"
+command for listing the Ruby files in the current directory.
+
+<b>_Names_</b>  In order to be able to give the application convenient access to positional as
+well as keyword parameters, one needs to be able to name the positional parameters in a way that
+works with the conventions for keywords.  To that end, the "name" of a keyword will be taken to
+mean the keyword, _stripped of its leading dashes._  Positional parameters will be given names
+_that do not begin with dashes._  Every parameter thus has a name, some have associated keys as
+well. The name must uniquely identify the parameter.  Keyword parameters may have two names,
+their short and long names.
+
+<b>_Flags_</b> are keywords that do not consume any arguments.  The parameter associated with
+the flag `-xxx` has the value `true` or `false` depending on whether `-xxx` appears in the
+argument list or not.
+
+For obvious reasons, a flag is normally given the default value `false`.  Occasionally, though,
+it makes the command line more readable for the parameter's default to be `true`.  If you do so,
+then in order to give it the value `false`, you need to preceed the name in the keyword  with
+either "`no`" or "`no-`", _e.g._ `-noxxx` or `-no-xxx`.  Regardless of what its default is, the
+appearance of a flag "`-xxx`" in a  command line _always_ means "make `xxx` `true`", and
+similarly, the appearance of "`-noxxx`" _always_ means "make `xxx` `false`".
+
+<b>_Attributes_</b> An attribute of an object "`obj`" is a string that may be used as the right
+hand operand for the "dot" operator to get some sort of value: "`obj.attr`".  
+
+<b>_Properties_</b> For our purposes here, a property of an object "`obj`" is a string "`str`"
+for which "`obj[str]`" has been assigned non-nil value.
+
+The result of parsing the command line is an object--an instance, as it happens, of the class
+`OpenStruct`--for which:
+
+> the  parameter names, as described above, are the attributes, and
+
+> both the keys and the names are properties.
+
+If "`-a`" is a key, and "`options`" is the result of parsing the command line, then
+`options["a"]`, `options["-a"]`, and `options.a` all yield `-a`'s value.  If "`--app`" is
+the long key of this parameter, then `options["app"]`, `options["--app"]`, and 
+`options.app` all work as well.
+
+
+### The syntax for a parameter ###
+
+#### Shorthands
+
+By default, for an argument to be recognized as a key, you need only supply enough of it to pin
+it down uniquely. Thus, if `--very-long-key` is the real key, and if `--very-l` is enough to
+distinguish it from all the remaining keys, `--very-l` is all that need appear in the command
+line.  You can turn this off by supplying the argument `may_abbreviate: false` to the 
+parser--see the description of [`CmdLine.parse`](#parse).
+
+As another convenient shorthand, you may group flags whose keys are single characters.  For
+example, if `-x`, `-y`, and `-z` are flags, the parser will interpret "`-xyz`" as a shorthand
+for "`-x` `-y` `-z`".  Again: this only works for single character names.  You can turn this off
+if you wish by supplying the argument `group_flags: false` to the [parser](#parse).
+
+These shorthands can lead to ambiguities.  If you allow grouping, and if "`-xyz`" turns out to
+be both an adequate  abbreviation for a key, or a key in its own right, and is also a group of
+three flags, the parser will interpret it as a key.  If `xyz` really is the whole key, there
+would be no way to set its value if we treated  `-xyz` as a group of three flags.
+
+#### Names are Ruby identifiers, keys are not
+
+Something to be careful of is that a key may contain characters that are not legal in Ruby
+identifiers, most particularly a dash: '-'.  Since there is a long history of using dashes in
+the middle of keys, I allow them and translate each to an underscore ("`_`") when I create the
+key's attribute name for the `OpenStruct` that is the final result of the parse.   _If a key
+contains other bad characters, I simply and silently don't create the corresponding attribute._
+You have to access it as a property.
+
+#### Keys consuming exactly one value
+
+There are really two cases here:
+
+> You provide a default value when you add the key to the command line spec. The key is then
+optional, and the default value will be made available to the command if the key is not present
+in the command line.
+
+> You do _not_ provide a default value.  In this case, if the key must appear.
+
+The command line can provide the value either as its next argument or, if  `-yyy` is the key, in
+the form "`-yyy=`_`value`_".  There must be no white space around the "`=`".  If the key appears
+in the command line,  a value must also appear in one of these two ways, whether or not the key
+has a default value. The default is intended only to used when the key is not present at all.
+
+#### Keys having a list as their value
+
+You may also specify a key that consumes more than one argument.  The key is optional if you
+provide a default, which is normally the empty list.
+
+Once the key is seen, there are again two possibilities.  Let "`-yyy`" be a list valued
+keyword parameter.
+
+> If the value is supplied as "`-yyy=`<i>`value`"</i> and a list is expected, `value` will
+be treated as a comma-separated list: _e.g._ "`--colors=blue,tan`", _and no further values will
+be checked._  All commas in the value will be treated as punctuation between list items, so do
+not use this form if there are commas in  individual list items.
+
+> Otherwise, all the arguments that follow "`-yyy`" will be added to the list until the next
+key is seen.  
+
+#### End markers 
+
+A long-standing convention is that if the key "`--`" consisting of the two dashes, _and nothing
+else_, is present, the remaining arguments are not parsed or even inspected in any way, but are
+held in reserve, normally to be passed on to a command invoked by the application whose command
+line we are processing.  In other words, "`--`" serves as an _end marker_.   You must tell me if
+you want an end marker, and at the point you may supply your own key for the end marker if, for
+some reason, "`--`" does not work for you.
+
+#### Help and version
+
+The keys `-?` and `--help` are provided automatically and if present in the command line, cause
+the help message to be written to `STDOUT` and the program to exit with a non-zero return code.
+You may supply your own help key or keys.  See [add_help](add_help).
+
+The keys "`-v`" and "`--version`" are the default keys for a version parameter.  If you add a
+version parameter, and if it appears in the command line, the effect is to write a line
+describing the version to `STDOUT`.  The output for command `do_it` that you have told me is
+now at version 1.0.2, dated 09/2014, is: "`do_it: version: 1.0.2 dated: 09/2014`".  See
+[add_version](add_version).
+
+#### The rest are positional
+
+It remains to deal with arguments that are not keys and not consumed by a key.  How the parser
+knows where and what these parameters are is dealt with in the API for specifying the parameter
+list, which we will get to in due time.  For the moment, suffice it to say that the parameter
+specification is indeed a list, and the ordering of the list counts.  _Postional parameters are
+recognized in that list by having their `Parm`'s' `short_key` attribute not begin with a dash._
+Keyword parameters that added to the list before or after a positional parameter must appear in
+the command line in the same position relative to it.
+
+### Some issues ###
+
+
+> <b>_Duplicate Flags_</b>:  How to handle repeated appearances of the same key in a command line is a
+vexed issue.  First wins? Last? Keep all the values as a list?  For flags, my policy is that so
+long as both `-x` and `-nox` are not specified on the same command line, I ignore duplicates.
+
+> <b>_Duplicated single argument parameters_</b>: So long as both appearances
+yield the same value, I ignore the duplicate.  Otherwise, duplicates raise an error.
+
+> <b>_Duplicated list valued parameters_</b>:  You may not like this, but what I do by default
+is just append the second list to the first.  There is something to be said for allowing the
+specifier to force an error to be raised.  The parameter `cat_on_dup` to the constructor takes
+care of this: if its value is `false`, more than one appearance of a key with differing value
+lists raises an error.   Also, don't forget that you may provide a function to vet the
+parameter's value.  If you do, it will be given the whole list to vet every time the key is
+seen.
+
+> <b>_Unregcognized keys_</b> At the risk of being accused of "piling on", I have to raise another
+issue, namely, what to do when there are unrecognized keys.  This code is designed to process
+command lines, so it is not unreasonable to assume that garbage keys will be recoverable only by
+re-entering the command line correctly.  Either there will be someone sitting at the keyboard
+and ready to deal with it, or not.  Not my problem: I will exit the command with a non-zero
+return code whenever an  unrecognized key is found, or arguments not consumed by the parameters
+remain.
+
+> <b>_Leftover arguments_</b> This last point is important.  I shift values off of `ARGV` to do
+the parse. You can use "`--`" as an end marker, or provide your own key for that purpose.  When
+the parse completes, `ARGV` will only contain the arguments that follow the end marker, and
+these the parser will not look at at all. Alternatively, if you expect a list at the end of the
+command, you can provide a list valued positional parameter as the final parameter. What is
+_not_ okay is not to provide  parameters so that all arguments are consumed.
+
+### The implementation of the parser ###
+
+The main module here is __`CmdLine`__, and within it, there are three classes, __`Parm`__,
+__`Spec`__  and __`Parser`__.  An instance of `Parm` describes everything we need to know about
+an individual parameter.  An instance of `Spec` manages the list of `Parm`s needed for a
+particular command, together with such other information that we need to do the parse.  Finally,
+an instance of `Parser` takes a tokenized  command line, like the global "`ARGV`", together with
+a `Spec`, and produces an `OpenStruct` instance that has all of the parameter names as
+attributes, all of both the keys and names as properties.
+
+The one-stop shopping call here is:
+
+#### <code>CmdLine.parse(argv=ARGV, ..., spec: nil, &spec_builder)</code> {#parse}
+
+The ellipsis here stands for some keyword arguments that will be explained shortly.
+
+The function parses a command line and returns the `OpenStruct` that is the result of the parse.
+The simplest call just requires a `Spec` instance for the keyword parameter `spec`:
+
+<pre class="exampleCode">
+
+      args = CmdLine.parse(spec: spec)
+
+</pre>
+
+Because `parse`'s first argument defaults to the runtime global `ARGV`, executing this will use
+the syntax prescribed by the `spec` to parse the incoming command line.  Any list of strings
+"`list`" with the correct syntax will do in place of `ARGV`:
+
+<pre class="exampleCode">
+
+      args = CmdLine.parse(list, spec: spec)
+
+</pre>
+
+You can also use `parse` to construct the `Spec` "on the fly."  The elided keyword parameters
+are those used by the [`Spec` constructor](#spec): `appname`, `debug`, `group_flags`,
+`may_abbreviate`, `cat_on_dup`, and `spec_builder`.  The keyword arguments are passed directly
+to the `Spec` constructor, and the block `spec_builder` is called to initialize the `Spec`.  The
+call for parsing `ARGV` looks like
+
+<pre class="exampleCode">
+
+      args = CmdLine.parse(appname: 'app', group_flags: false) do |spec|
+         # compute the Spec here--see an example at this doc's end
+      end
+
+</pre>
+
+=end
+
+module CmdLine
+
+   def self.parse(argv=ARGV, 
+                  appname: nil, 
+                  helpinfo: {},
+                  debug: '', 
+                  group_flags: true, 
+                  may_abbreviate: true, 
+                  cat_on_dup: true,
+                  spec: nil, 
+                  &spec_builder)
+      if spec.nil?
+         spec = CmdLine::Spec.new(
+               appname: appname, 
+               helpinfo: helpinfo,
+               debug: debug, 
+               group_flags: group_flags, 
+               may_abbreviate: may_abbreviate, 
+               cat_on_dup: cat_on_dup, 
+               &spec_builder)
+      end
+      if debug.length == 0
+         debug = spec.debug
+      end
+      CmdLine::Parser.new(spec, argv, debug: debug).args
+   end
+
+=begin <md>
+
+## The <code>Parm</code> class ##
+
+This class is one that users should be aware of, but rarely have to make direct use of.  The
+public API is really that of the [`Spec`](#spec) class, which has methods for adding parameters
+of every type, and methods for accessing whatever information is needed based on keys and
+their brethren, the corresponding attribute names.  
+
+`Parm` is really, as its name suggests, a generic class.  It has subclasses for each of the
+roles, each of which, not surprisingly, require slightly different treatment from the rest.
+
+A `Parm` has the following attributes:
+
+> __`short_key`__ and  __`long_key`__: the keywords used in the command line, or the name for a 
+positional parameter. 
+
+>> The short key begins with at most one or two dashes, the optional long key with two. By
+convention, short keys are shorter than their long counterpart and begin with a single dash.  If
+the short key has no dash, the option is positional.  Keywords  added before the positional argument
+must appear before it in the command line, and those  appearing after it must appear after.
+
+> __`attrnames`__: a list of names to use for the attributes of the `Parser` instance you want to
+use to get the value for the parameter.  You can access the list and modify it whenever
+convenient.
+
+>> Keyword arguments will have attribute names for both the long and short forms.  Positional
+parameters have a single name, which must be a valid Ruby identifier.  There is no need for an
+application to specify an attribute name (by pushing onto this list) unless the long or short
+key's name is not a valid Ruby attribute name, but you still really want to access the parameter
+as an attribute and not just as a property.
+
+>> The constructor allows you to provide a single attribute name, using the keyword argument
+`attrname`.  If you provide a name this way, it will wind up as the _only_ attribute name for
+the parameter.  The motivation for what might seem an unnecessarily strict policy is to give a
+simple way for dealing with situations where the short and long names may be lexically valid
+attribute names, but either are too cryptic for use by the application, or are misleading
+outside of the immediate context of the command line, and you have no need for them cluttering
+up the argument list's attribute set.
+
+> __`default`__:  the initial value to provide for the parameter if it is optional and does not
+appear in the argument list.  This is a writable attribute, so may be set whenever convenient.
+
+> __`howmany`__:  the number of arguments to consume: either 0, 1 or "as many as you like"..  
+
+>> I know of no convincing examples where 2, 3, or any other count is really needed.  So my cases
+are: `:NONE`, `:ONE`, `:ZERO_OR_ONE`, `:ZERO_OR_MORE`, and `:ONE_OR_MORE`.
+
+> __`position`__: a non-negative integer that normally is the index of the parameter in the `Spec`
+list.  Keywords with position `p` must appear in a command line after positional parameters with
+position `q < p`, and before positional parameters with position `q > p`.
+
+> __`role`__: one of a small set listed in `ROLE_TYPES` below.  Essentially this is the same as
+the class of the parameter, but not quite.  I could probably do without it. 
+
+>> A parameter's role answers the question: "What are we supposed to do when we see this
+parameter in the command line?"  For example, if the role is `:HELP` we put a usage message out
+to `STDOUT` and exit.
+
+> __`value_type`__: one of a small set of types to be found in `VALUE_TYPES` below.  
+
+>> The "value type" here just refers to what the command line parser needs to know about the
+parameter's value (if any) to be read from the command line, _not the application._  When the
+key has a string (or list of strings) value, it is the application that is responsible
+converting the value to whatever type it needs,  should a simple string or list of string not
+do.
+
+>> To see an example, look at the implementation of the methods in `Spec` for adding integer and
+floating point parameters.
+
+> __`vet`__:  a block of code that vets the values after they are read in from the command line and
+before they are assigned to the `Parser` instance.
+
+>> It should take a single argument, the value to be vetted, and should return the value in the form
+that the calling application would like to see it.  `vet()` is intended for two purposes.  One is
+simply to make sure that the  value is valid. The other is to perform any conversions, like from
+string to integer, that are convenient for the calling application.  This is a writable attribute,
+so may be set whenever convenient.
+
+>__`help`__: for the usage message, which will look like: "_`short_key[long_key]: help`_".  You
+can reset this value at any time: it is a writable attribute.
+
+=end
+
+   CMD_LINE_END = /^--$/
+   LEADING_NO_REG_EXP = /^((NO|no)-?)?(.+)$/
+   VALUE_TYPES  = [:NIL, :BOOL, :CSV, :END, :HELP, :LIST, :STRING, :VERSION]
+   COUNT_TYPES  = [:UNKNOWN, :NONE, :ONE, :ZERO_OR_ONE, :ZERO_OR_MORE, :ONE_OR_MORE]
+   ROLE_TYPES = [:UNKNOWN, :END, :HELP, :KEYWORD, :POSITION, :VERSION]
+   VALUE_SEPARATORS = Regexp.new("[,#{RbConfig::CONFIG['PATH_SEPARATOR']}]")
+
+
+   class Parm
+
+      attr_reader :role, :debug, :howmany, :long_key, :short_key, :value_type
+      attr_reader :attrnames, :position
+      attr_accessor :default, :help, :vet
+
+      SHORT_REG_EXP  = /^((-{1,2})?([^-=][^=]*)?)$/
+      LONG_REG_EXP   = /^--([^-=][^=]*)/
+
+      def initialize(short_key, long_key='', rest)
+         # set the debug keys early, so we can do filtered debugging prints from the start
+         # this is really for debugging...ordinary users should ignore this.  It is passed
+         # in by Spec's methods for registering parameters.
+         @debug = rest[:debug]
+         # the short (or only) name determines the role
+         short_match = SHORT_REG_EXP.match short_key
+         if short_match.nil?
+            raise ArgumentError.new "#{short_key} is not a valid short key"
+         end
+         ignore, short_dashes, short_name = short_match.captures
+         @short_key = short_key
+         role = rest[:role]
+         @role = if not role.nil?
+                     role.to_sym
+                  elsif short_key == '--' 
+                     :END
+                  elsif short_dashes.nil?
+                     :POSITION
+                  else 
+                     :KEYWORD
+                  end
+         if not ROLE_TYPES.member?(@role)
+            raise "role, #{@role} not recognized"
+         end
+         long_match = LONG_REG_EXP.match long_key
+         if long_match.nil? 
+            if long_key.length > 0
+               raise ArgumentError.new "#{long_key} is not a valid long key"
+            else
+               @long_key = nil
+            end
+         else
+            if @role == :POSITION
+               raise ArgumentError.new "#{@short_key} is positional: long key not permitted"
+            end
+            @long_key = long_key
+            long_name = long_match.captures[0] 
+            if @short_key.start_with? '--' 
+               if @long_key != @short_key
+                  raise "only one double-dashed key allowed, not #{short_key}/#{long_key}."
+               else
+                  @long_key = nil
+               end
+            end
+         end
+         # derive the attribute names from the short and long names.  A single name may be 
+         # provided in the arguments to this call as rest[:attrname].  If no such name is
+         # provided, the short and long names are both used.  They are stripped of the leading
+         # dashes, the remaining dashes are converted to underscores, and non-"word"
+         # characters are removed.    
+         @attrnames = []
+         attrname = rest[:attrname]
+         if attrname != nil && attrname.length > 0
+            if @debug.member? 'attrs' then print "attr from user\n" end
+            @attrnames.push attrname
+         else 
+            if short_name != nil
+               short_name = short_name.tr_s('-', '_')-/\W/
+               if short_name.length > 0 
+                  @attrnames.push short_name
+                  if @debug.member? 'attrs'
+                     print "attribute name '#{short_name}' pushed\n"
+                  end
+               end
+            end
+            if not @long_key.nil?
+               long_name = long_name.tr_s('-', '_')-/\W/
+               @attrnames.push long_name
+               if @debug.member? 'attrs' 
+                  print "attribute name '#{long_name}' pushed\n"
+               end
+            end
+         end
+         @default = rest[:default]
+         howmany = rest[:howmany]
+         if howmany == nil
+            @howmany = if default.nil? then :ONE # no default: cmd line must supply if key found
+                       else :ZERO_OR_ONE
+                       end
+         else
+            @howmany = howmany.to_sym
+            if not COUNT_TYPES.member?(@howmany)
+               raise "count type, #{@howmany} not recognized"
+            end
+         end
+
+         value_type = rest[:value_type]
+         if value_type.nil?
+            if @role == :KEYWORD and @howmany == :NONE then @value_type = :BOOL
+            else @value_type =:STRING
+            end
+         else
+            @value_type = value_type.to_sym
+            if VALUE_TYPES.index(@value_type) == nil
+               raise "value type, #{@value_type} not recognized"
+            end
+         end
+
+         @vet = rest[:vet]
+         if not (@vet.nil? or vet.respond_to?(:call))
+            raise "if non-nil, vet must respond to :call: #{@vet} does not!"
+         end
+         @help = rest[:help] || '???'
+      end
+
+      def arg_look
+         raise "subclass must implement"
+      end
+
+      def help_msg
+         if @default.nil?
+            "\t#{arg_look}:  #{@help}.\n"
+         else
+            "\t#{arg_look}:  #{@help}. Default: #{@default}\n"
+         end
+      end
+
+      def printname
+         if @long_key.nil?
+            @short_key
+         else
+            "#{@short_key}[#{@long_key}]"
+         end
+      end
+
+      # the following methods are not intended for public use, but rather by Spec and Parser
+      # instances in this module
+
+      def _call_vet(what_to_check)
+         if @vet.nil? then what_to_check
+         else @vet.call what_to_check
+         end
+      end
+
+      def _set_position(value); @position = value end       
+   end
+
+   class Flag < Parm
+      def initialize(short_key, long_key='', **rest)
+         rest[:howmany] = :NONE
+         rest[:value_type] = :BOOL
+         rest[:default] = if rest[:default].nil? then false else rest[:default] end
+         super(short_key, long_key, rest)
+         @add_negative = rest[:add_negative] || false
+      end
+      def arg_look
+         if @add_negative
+            negative_prefix = if @add_negative then "[NO|no][-]"; else "" end
+            dashes, short = /(--?)?(\w*)/.match(@short_key).captures
+            short = "#{dashes}#{negative_prefix}#{short}"
+            if not @long_key.nil?
+               dashes, long_key = /(--?)?(\w*)/.match(@long_key).captures
+               long_key = ", #{dashes}#{negative_prefix}#{long_key}"
+            else
+               long_key = ""
+            end
+         else
+            short = @short_key
+            long_key = if not @long_key.nil? then @long_key; else "" end
+         end
+         "#{short}#{long_key}"
+      end
+   end
+
+   class KeyValue < Parm
+      def initialize(short_key, long_key='', **rest)
+         super
+         if short_key[0] != '-'
+            raise "command line key, #{short_key}, does not start with '-' as required."
+         end
+      end
+      def arg_look
+         dashes, body = /(--?)?(\w*)/.match(@short_key).captures
+         body.upcase!
+         case @howmany
+         when :ZERO_OR_ONE then data = "#{body}?"
+         when :ONE then data = body
+         when :ZERO_OR_MORE then data =  "[#{body}1[,#{body}2[,...]]]}"
+         when :ONE_OR_MORE then data = "#{body}1[,#{body}2[,...]]}"
+         end
+         if @long_key.nil? then "#{@short_key} #{data}"
+         else "#{@short_key}[#{@long_key}] #{data}"
+         end
+      end
+   end
+
+   class End < KeyValue
+      def initialize(key, **rest)
+         rest[:value_type] = :END
+         rest[:role] = :END
+         super(key, '', rest)
+         @help = "end of argument list: remainder ignored"
+      end
+      def arg_look; "-- (ignored)" end
+   end
+
+   class Help < KeyValue
+      def initialize(short_key, long_key='', **rest)
+         super
+         @role = @value_type = :HELP
+         @help = "print this message to the console and exit." 
+      end
+   end
+
+   class Version < KeyValue
+      attr_reader :message
+      def initialize(short_key, long_key='', **rest)
+         rest[:value_type] = :VERSION
+         rest[:role] = :VERSION
+         super short_key, long_key, rest
+         @version = rest[:version]
+         @date = rest[:date] || nil
+         @appname = rest[:appname]
+         @help = "print version information to the console"
+         msg = ''
+         if not @appname.nil? then msg = "#{@appname}: " end
+         msg += if @version.nil? then "(no version provided)"
+                else  "Version #{@version}"
+                end
+         if not @date.nil? then msg += ", #{@date}" end
+         @message = msg
+      end
+   end
+
+   class Positional < Parm
+      def initialize(short_key, **rest)
+         super(short_key, '', rest)
+         if @role != :POSITION
+            raise "positional option name, #{short_key}, illegal: no leading dashes!" 
+         end
+         if @debug.member? "all"
+            print "leaving constructor for #{@short_key}, #{@attributes}\n"
+         end
+      end
+      def arg_look
+         data = @short_key.upcase
+         case @howmany
+         when :ZERO_OR_ONE then "#{data}?"
+         when :ONE then data
+         when :ZERO_OR_MORE then "[#{data}1 [,#{data}2[,...]]]"
+         when :ONE_OR_MORE then "#{data}1[,#{data}2[,...]]}"
+         end
+      end
+   end
+
+=begin <md>
+     
+## The `Spec` class {#spec}
+
+This class provides a simple API for specifying command line parameters.  The spec is then
+used by a `Parser` to interpret a command line.  The constructor is 
+
+#### <code>Spec.new(appname: nil, debug: nil, group_flags: true, may_abbreviate: true, cat_on_dup: true)</code> 
+
+The parameters are all keyword parameters.
+
+> `appname` is the name of the application, for use in constructing the usage and version
+messages.
+
+> `debug` allows one to turn on various sorts of debugging output by providing keys that name
+what output you want.  The value may be a single string, which will be interpreted as a comma-
+separated list of keys, or any collection that responds to "each", in which case iterating over
+the entries should yield the set of keys.  The default is "no output".  You really should not
+need this service.
+
+> `group_flags` is a boolean and true by default: if true, allow keys like `-xy`... as
+shorthand for "`-x -y`..." whenever `-x` and `-y` are one character long flags.
+
+> `may_abbreviate` is a boolean and true by default.  If true, a long key may be
+abbreviated to any shorter initial segment that still identifies it uniquely.
+
+> `cat_on_dup` is a boolean and is `true` by default.  If true, keyword parameters that appear
+more than once, and whose values are lists, have their lists concatenated in the order seen.  If
+false, keywords may not appear more than once, unless with identical values at each appearance.
+Every time a parameter's value is updated, its `vet` method is called, so there is always an
+opportunity to clean up the concatenated lists.
+
+### Adding keyword parameters to a <code>Spec</code>
+
+The two most basic methods for adding keyword parameters are `add_string` and `add_flag`.
+
+#### <code>add_string(short_key, long_key = '', default: nil, help: '???')</code>
+
+adds a parameter with "short name" (or only name) and optional "long name".  The parameter
+consumes the next argument as its value, if that argument is itself not a key, or the value may
+follow the key immediately after an `=`, as in "`err=erm.log`".  If the key is present, a value
+must be provided.  If no default is supplied,  and the key is not present in the command line,
+an error is raised.
+
+#### <code>add_flag(short_key, long_key = '', default=false, help: '???')</code>{#add_flag}
+
+The arguments have the same meanings as they have for `add_string`.   If the default is supplied
+to be `true`, and the flag is `-x`, then either `-nox` or `-nox` must appear in the command line
+to get the value `false`.
+
+There are also four methods for keyword parameters of various non-string types:
+
+#### <code>add_integer(short_key, long_key = '', default: 0, help: '???')</code> 
+
+#### <code>add_float(short_key, long_key = '', default: 0.0, help: '???')</code> 
+
+`add_integer` and `add_float` provide values for the `vet` attribute of the `Parm` which
+assure the value saved for a parameter is a number of the appropriate type. 
+
+#### <code>add_csv(short_key, long_key = '', optional=False, help: '???')</code>
+
+#### <code>add_list(short_key, long_key = '', optional=False, help: '???')</code>
+
+These two methods create values that are `Array`s.  `add_csv` creates a parameter that takes
+at most a single argument, a comma-separated list of strings.  `add_list`'s parameter consumes all the 
+arguments that follow it, up to the next keyword or the end of the argument list.
+
+The first keyword parameter in both is named "`optional`" rather than "`default`" because the
+only question here is whether there must be at least one value in the list.  The default, false,
+says "yes, at least one value must assignable to this parameter."
+
+#### <code>add_path(short_key, long_key = '', default: nil, must_exist: false, must_be_dir: false, help: '???')</code> 
+
+#### <code>add_path_list(short_key, long_key = '', optional: false must_exist: false, must_be_dir: false, help: '???')</code>
+
+These two methods create a parameter that consumes either one, or all arguments up to the next
+keyword or the list end.  If `must_exist` is `true`, the vetting function provided here will
+check that that all of the files named by the the paths actually exist already, and if
+`must_be_dir` is `true`, it will check that all of the paths that exist already name
+directories.
+
+### Adding positional parameters to a <code>Spec</code>
+
+There are corresponding positional methods for each of the keyword methods.  They have "here"
+appended to remind you that the attributes's data is expected to  appear, relative to other options,
+in the relative position it is being added.  There is also one positional parameter that is not
+keyword-related: the end marker.
+
+#### <code>add_string_here(attrname, default: nil, help: '???')</code>
+
+#### <code>add_flag_here(attrname, help: '???')</code> 
+
+#### <code>add_integer_here(attrname, default: 0, help: '???')</code> 
+
+#### <code>add_float_here(attrname, default: 0.0, help: '???')</code>
+
+#### <code>add_csv_here(attrname, optional: False, help: '???')</code>
+
+#### <code>add_list_here(attrname, optional=False, help: '???')</code>
+
+#### <code>add_path_here(attrname, default: ".", must_exist: false, must_be_dir: false, help: '???')</code> 
+
+#### <code>add_path_list_here(attrname, default: ".", must_exist: false, must_be_dir: false, help: '???')</code> 
+
+#### add_end_marker_here(marker='--')
+
+The default, namely "`--`" may not be one you can use (rare though that may be).  You can
+substitute any other key by supplying your own value for `marker`.
+
+
+### Adding help and version parameters
+
+#### <code>add_help(short_key="-?", long_key="--help", before: '', after: '')</code> {#add_help}
+
+You get a minimal usage message for free, with the keys the defaults shown here.  This default
+lists the parameters and the help messages, if any, that you provided for them.  The two
+parameters `before` and `after` allow you to add text before and after the parameter display.
+The "usage message" for this parameter is "print this message and exit".  That is what happens
+if a help message key is seen in the argument list.
+
+#### <code>add_version(short_key="-v", long_key="--version", appname: nil, version: nil, date: nil)</code> {#add_version}
+
+The version parameter is meant send a version message to `STDOUT`.  The default short and long
+cars are as shown.  If you provided an app name to the `Spec` instance, you won't need it here,
+unless for some reason you want to use a different string here from that in the help/usage
+message.  There is no default for the version itself: you have to supply a string.  The same
+holds for the date.
+
+
+### The core method
+
+If you want complete control over the various aspects of a parameter, the low level call that
+all of the above calls are wrappers for is:
+
+#### <code>register_a_parm(short_key, long_key=nil, &ast;&ast;rest)</code>
+
+in which "`rest`" gathers up all of the various keyword parameters for the call. I would like to
+hear from you if you really need it, as I have tried to make the API at the higher level
+complete.  Before calling it, remember that once you've used the "`add_`" calls to create a
+`Parm`, you can set individual attributes of that `Parm`, like `vet`, by an ordinary assignment.
+Even that should be rare, the two most common problems being getting the attribute names you
+want and the vetting function.
+
+As an example, the sequence of calls
+
+<pre class="exampleCode">
+
+       spec = CmdLine::Spec.new may_abbreviate: true
+       spec.add_string_here("first", help: "name for what we do")
+       spec.add_flag("-a", help: "should we give it an 'a'?")
+       spec.add_string("-b", default: "BBB", help: "bureau name")
+       spec.add_integer_here("middle", help: "where it is caught")
+       spec.add_string("-c", "--cod", help: "what is caught")
+       spec.add_list_here("final", help: "the rest", optional: true)
+       spec.add_end_marker_here
+    end
+
+</pre>
+
+is designed to handle a command line that looks like
+
+<pre class="exampleCode">
+
+    do_it FIRST -a -b BBB MIDDLE --c=FISH FINAL1 ... -- IGNORE --this
+
+</pre>
+
+with the upper-case arguments being the data values.  The position parameters, `first`,
+`middle` and `final` pick up values `FIRST`, `MIDDLE`, and the list starting with `FINAL1` and
+including any arguments that follow.
+
+The two keyword arguments, `-a` and `-b`, must follow `first`, if they appear at all.  They must
+also preceed the positional argument `middle`.  When both `-a` and `-b` are needed, they may
+appear in either order.  The positional argument `middle` may be followed by the keyword
+argument `--c`, which is an abbreviation for the actual keyword, `--cod`.  It picks up `FISH`,
+and the remaining arguments are combined into a list and assigned to `final`.
+
+I put `MIDDLE` in the real middle of the example just to make the example "complete".  More
+realistically, the positional arguments come at the beginning and (as here) once again at
+the end.
+
+=end
+
+
+   class Spec 
+
+      attr_accessor :appname, :help_prefix, :help_suffix, :help_info
+      attr_reader   :cat_on_dup, :debug, :defaults, :may_group_flags, :may_abbreviate
+      attr_reader   :parms_list, :parms_hash, :positionals, :simple_flags, :attributes
+
+      def self.vet_a_path(path, must_exist, must_be_dir)
+         exists = File.exists? path
+         if must_exist and not exists
+            raise ArgumentError.new "'#{path}' does not exist"
+         else
+            if exists and must_be_dir and not File.directory? path
+               raise ArgumentError.new "'#{path}' exists, but does not name a directory"
+            end
+         end
+         path
+      end
+      def self.vet_a_path_list(paths, must_exist, must_be_dir)
+         missing = paths.find_all  { |path| not File.exists? path }
+         if must_exist and missing.length > 0
+            raise ArgumentError.new "Paths #{missing} do not exist."
+         end
+         if must_be_dir
+            non_dirs = paths.find_all { |path| not File.directory? path }
+            if non_dirs.length > 0
+               raise ArgumentError.new "#{non_dirs} all exist, but do not name directories"
+            end
+         end
+         paths
+      end
+
+      def initialize(appname: nil,
+                     helpinfo: {},
+                     group_flags: true, 
+                     may_abbreviate: true, 
+                     cat_on_dup: true, 
+                     debug: Set.new,
+                     &builder)
+         @appname       = appname
+         @help_info     = helpinfo
+         @parms_list    = [] # position to CmdLineOption map
+         @parms_hash    = Hash.new # key to CmdLineOption map
+         @simple_flags  = Set.new # to make finding grouped flags easy to unravel
+         @attributes    = [] # for use in constructing the OpenStruct
+         @defaults      = OpenStruct.new # maps attributes to default values
+         @positionals   = []
+         @help_prefix   = "USAGE:\n"
+         @help_suffix   = '--------'
+         # flags limiting what may appear
+         @may_group_flags = group_flags
+         @may_abbreviate  = may_abbreviate
+         @cat_on_dup      = cat_on_dup
+         @needs_help      = true
+         @ready_to_go     = false
+         @version_parm    = nil
+         @debug           = Set.new
+         if debug.kind_of? String 
+            debug.strip!
+            if debug.length > 0 # it had better be a string that is a comma-separated list of debug keys
+               debug.split('.').each {|dk| @debug.add dk}
+            end
+         elsif debug.respond_to? :each
+            debug.each {|dk| @debug.add dk}
+         end
+         if not builder.nil?
+            builder.call self
+         end
+      end
+
+      def register_a_parm(parm, **rest)
+         if @parms_hash[parm.short_key] != nil
+            raise "Duplicate (short) parameter name, '#{parm.short_key}' rejected." 
+         elsif parm.long_key != nil && @parms_hash[parm.long_key] != nil
+            raise "Duplicate long parameter name, '#{parm.long_key}' rejected."
+         end
+         parm._set_position @parms_list.length
+         @parms_list.push(parm)
+         if parm.short_key.length == 2 and parm.value_type == :BOOL
+            @simple_flags.add(parm.short_key[1])
+         end
+         @parms_hash[parm.short_key] = parm
+         if not parm.long_key.nil?
+            @parms_hash[parm.long_key] = parm 
+         end
+         if @debug.member? "attrs" 
+            puts "Register #{parm.short_key}[#{parm.long_key}]}"
+            ap parm.attrnames
+            print "\n"
+         end
+         parm.attrnames.each do |name|  
+            @attributes.push name
+            @defaults[name] = parm.default
+         end
+         if parm.role == :POSITION
+            @positionals.push parm.position
+         end
+         parm
+      end
+
+      #################### Adding keyword parameters ####################
+
+      def add_csv(short_key, long_key = '', help: '???', optional: false)
+         howmany = if optional then :ZERO_OR_ONE else :ONE end
+         vetter = ->x {
+            if x.kind_of? String then x.split(',') 
+            elsif x.kind_of? Array then x
+            else raise TypeError.new "Illegal type, #{x.class} for #{short_key}"
+            end
+            }
+         register_a_parm KeyValue.new(short_key, long_key, howmany: howmany,
+               default: "", help: help, value_type: :CSV, vet: vetter, debug: @debug)
+      end
+
+      def add_flag(short_key, long_key = '', default: true, help: '???', add_negative: true)
+         register_a_parm Flag.new(short_key, long_key,
+            default: default,  help: help, add_negative: true, debug: @debug
+            )
+      end
+
+      def add_float(short_key, long_key = '', default: nil, help: '???')
+         howmany = if default.nil? then :ONE else :ZERO_OR_ONE end
+         register_a_parm KeyValue.new(short_key, long_key, howmany: howmany,
+               default: default, help: help, vet: ->(x) {Float(x)}, debug: @debug)
+      end
+
+      def add_integer(short_key, long_key = '', default: nil, help: '???')
+         howmany = if default.nil? then :ONE else :ZERO_OR_ONE end
+         register_a_parm KeyValue.new(short_key, long_key, howmany: howmany,
+               default: default, help: help, vet: ->(x) {Integer(x)}, debug: @debug)
+      end
+
+      def add_list(short_key, long_key = '', help: '???', optional: false)
+         howmany = if optional then :ZERO_OR_MORE else :ONE_OR_MORE end
+         register_a_parm KeyValue.new(short_key, long_key, howmany: howmany,
+               default: [], help: help, value_type: :LIST, debug: @debug)
+      end
+
+      def add_path(short_key, long_key = '', 
+                   default: nil, help: '???', 
+                   must_exist: false, must_be_dir: false)
+         howmany = if default.nil? then :ONE else :ZERO_OR_ONE end
+         vet =  ->(x) {Spec.vet_a_path(x, must_exist, must_be_dir)}
+         register_a_parm KeyValue.new(short_key, long_key, howmany: howmany,
+               default: default, help: help, vet: vet, debug: @debug)
+      end
+
+      def add_path_list(short_key, long_key = '', 
+                   optional: false, help: '???', 
+                   must_exist: false, must_be_dir: false)
+         howmany = if optional then :ZERO_OR_MORE else :ONE_OR_MORE end
+         vet =  ->(x) {Spec.vet_a_path_list(x, must_exist, must_be_dir)}
+         register_a_parm KeyValue.new(short_key, long_key, howmany: howmany,
+               default: [], help: help, vet: vet, value_type: :LIST, debug: @debug)
+      end
+
+      def add_string(short_key, long_key = '', default: nil, help: '???')
+         howmany = if default.nil? then :ONE else :ZERO_OR_ONE end
+         register_a_parm KeyValue.new(short_key, long_key, howmany: howmany,
+               default: default, help: help, debug: @debug)
+      end
+
+      #################### Adding positional parameters ####################
+      
+      def add_csv_here(key, help: '???', optional: false)
+         howmany = if optional then :ZERO_OR_ONE else :ONE end
+         vetter = ->(x) {CSV.parse(x)[0]}
+         register_a_parm Positional.new(key, howmany: howmany,
+               default: "", help: help, value_type: :CSV, vet: vetter)
+      end
+
+      def add_float_here(key, default: nil, help:'???')
+         howmany = if default.nil? then :ONE else :ZERO_OR_ONE end
+         register_a_parm Positional.new(key, howmany: howmany,
+               default: default, help: help, vet: ->(x) {Float(x)}, debug: @debug)
+      end
+
+      def add_integer_here(key, default: nil, help:'???')
+         howmany = if default.nil? then :ONE else :ZERO_OR_ONE end
+         register_a_parm Positional.new(key,
+               default: default, howmany: howmany, help: help,
+               vet: ->(x) {Integer(x)}, debug: @debug)
+      end
+
+      def add_list_here(attrname, help:'???', optional: false)
+         howmany = if optional then :ZERO_OR_MORE else :ONE_OR_MORE end
+         register_a_parm Positional.new(attrname, howmany: howmany,
+               default: [], help: help, value_type: :LIST, debug: @debug)
+      end
+
+      def add_path_here(attrname, 
+                   default: nil, help: '???', 
+                   must_exist: false, must_be_dir: false)
+         howmany = if default.nil? then :ONE else :ZERO_OR_ONE end
+         vet =  ->(x) {Spec.vet_a_path(x, must_exist, must_be_dir)}
+         register_a_parm Positional.new(attrname, howmany: howmany,
+               default: default, help: help, vet: vet, debug: @debug)
+      end
+
+      def add_path_list_here(attrname, 
+                   optional: false, help: '???', 
+                   must_exist: false, must_be_dir: false)
+         howmany = if optional then :ZERO_OR_MORE else :ONE_OR_MORE end
+         vet =  ->(x) {Spec.vet_a_path_list(x, must_exist, must_be_dir)}
+         register_a_parm Positional.new(attrname, howmany: howmany,
+               default: [], help: help, vet: vet, value_type: :LIST, debug: @debug)
+      end
+
+      def add_string_here(key, default:nil, help:'???')
+         howmany = if default.nil? then :ONE else :ZERO_OR_ONE end
+         register_a_parm Positional.new(key,
+            howmany: howmany, default: default, help: help, debug: @debug)
+      end
+
+      ############ Adding end markers, help, and version info #############
+      
+      def add_end_marker_here(marker='--')
+         register_a_parm End.new(marker, howmany: :NONE, debug: @debug)
+      end
+
+      def add_help(short_key="-?", long_key="--help", before: "USAGE:\n", after: '--------')
+         register_a_parm Help.new(short_key, long_key,
+            howmany: :NONE, help: "Display this message", debug: @debug)
+         @help_prefix = before
+         @help_suffix = after
+         @needs_help = false
+      end
+
+      def add_version(short_key="-v", long_key="--version", appname: nil, version: "0.0.0", date: nil)
+         if appname.nil? then appname = @appname end
+         version_parm = register_a_parm Version.new(short_key, long_key, 
+            appname: (appname||@appname), version: version, date: date, howmany: :NONE,
+            help: "print version to stdout", debug: @debug)
+         @version_parm = version_parm
+      end
+
+      ################### Methods required by the parser ####################
+
+      def finalize()
+         if @ready_to_go
+            return
+         end
+         if @needs_help
+            add_help 
+         end
+         @attributes.sort!
+         dups = []
+         previous = nil
+         @attributes.each do |an_attr|
+            if an_attr ==  previous
+               dups.push(an_attr)
+            else
+               previous = an_attr
+            end
+         end
+         if dups.length > 0
+            raise "Duplicate attribute names, #{dups}, for command line options."
+         end
+         @positionals.push(@parms_list.length)
+         @attributes.freeze
+         @defaults.freeze
+         @parms_list.freeze
+         @parms_hash.freeze
+         @positionals.freeze
+         @ready_to_go = true
+      end
+
+      def [](key_or_int)
+         if key_or_int.is_a? Fixnum then @parms_list[key_or_int] else @parms_hash[key_or_int] end
+      end
+
+      def help_msg
+         as_list = @parms_list.map { |parm| "#{parm.arg_look}" }
+         parameters = as_list.join(" ")
+         cmdline = "  #{@appname} #{parameters}\n\n"
+         help_list =  @parms_list.map { |parm| "\n#{parm.help_msg}" }.join('')
+         prefix = if @version_parm.nil?  then @help_prefix
+                  else "#{@version_parm.message}\n\n#{@help_prefix}"
+                  end
+         "#{prefix}\n#{cmdline}PARAMETERS:\n#{help_list}\n#{@help_suffix}\n\n"
+      end
+
+      def version_msg(parm); parm.version_msg end
+
+      def determines_key(arg)
+         arg = arg.split("=")[0] # trim off any trailing value
+         arglength = arg.length
+         if arglength == 0
+            return nil
+         end
+         if arglength == 0 or arg[0] != '-'
+            return nil
+         end
+         first = if arg[1] == '-' then 2 else 1 end
+         last = arglength - 1
+         if first == 2 and last == 2
+            return @parms_hash['--']
+         end
+         candidates = []
+         @parms_hash.each do |key, parm|
+            if key.start_with? arg
+               if key.length == arglength then return key
+               else candidates.push parm
+               end
+            end
+         end
+         if candidates.length == 1 then candidates[0] else nil end
+      end
+   end
+=begin <md>
+
+## The <code>Parser</code> class: <code>Parser.new(spec,argv=ARGV,debug:nil)</code>
+
+The constructor does all of the work here.  Once a `Spec` has been initialized, you call the
+constructor with the `Spec` and an `Array`, normally the command line argument array `ARGV`.
+When the constructor returns, the attribute `args` of the instance is a read-only `OpenStruct`
+with the parameter key-value pairs both as attributes and as properties accessible via the `[]`
+operator.
+
+=end
+   class Parser 
+      attr_reader :args, :debug
+      KEY_ARG_REG_EXP  = /^((-{1,2})?([^-=0-9][^=]*)?)(=(.*))?$/
+      def parse_an_arg(arg)
+         matched = KEY_ARG_REG_EXP.match(arg)
+         if not matched
+            [nil, nil, nil, nil]
+         else
+            whole_key, dashes, key, ignore, value = matched.captures
+            [whole_key, dashes, key, value]
+         end
+      end
+
+      def initialize(spec, argv = ARGV, debug: nil)
+         @spec = spec
+         @spec.finalize
+         @debug = Set.new
+         if not debug.nil?
+            if debug.is_a? Array or debug.is_a? Set 
+               debug.each {|dk| @debug.add dk}
+            else # it had better be a string that is a comma-separated list of debug keys
+               CSV.parse(debug)[0].each do|dk| 
+                  @debug.add dk
+               end
+            end
+            if @debug.length > 0
+               print("Final debug flags: ")
+               ap(@debug)
+            end
+         end
+         if @debug.member? "final"
+            print "Final parms list:\n-------\n"
+            ap @spec.parms_list
+            print "\n------\n"
+         end
+         @args = OpenStruct.new(@spec.defaults)
+         @positionals_seen = 0
+         @last_positional = -1
+         @next_positional = @spec.positionals[0]
+         @done = false
+         @parms_seen_set = Set.new() # so we can quickly find duplicate keys
+         while argv.length > 0 and not @done
+            arg = argv.shift
+            if @debug.member? "parser"
+               print "next arg is '#{arg}' and key? arg is #{key? arg}\n"
+            end
+            if not key? arg # it is a value, not a key
+               handle_positional(arg, argv)
+            elsif not (
+               handle_keyword(arg, argv) || handle_possible_flags(arg, argv)|| handle_abbreviation(arg, argv)
+               )
+               raise "Unexpected command line key, '#{arg}'"
+            end
+         end
+         @args.freeze
+         mia = []
+         @spec.parms_list.each do |parm|
+            if not @parms_seen_set.member? parm.short_key
+               if parm.howmany == :ONE || parm.howmany == :ONE_OR_MORE
+                  mia.push(parm.printname)
+               end
+            end
+         end
+         if mia.length > 0
+            raise "required parameters missing: "+mia.join(", ")+"."
+         end
+      end
+
+      private
+      def key? a_string 
+         # return true if a_string is a keyword plus (possibly) a value
+         if a_string.length < 2
+            false
+         else # parse to avoid having to check for a negative integer using begin/rescue
+            whole_key, dashes, key, value = parse_an_arg(a_string)
+            dashes == '-' || dashes == '--'
+         end
+      end
+
+      def check_parm_position(parm)
+         # the parameter's position must lie between the last and the next required positional
+         # parameter.  Otherwise, that required parameter's value is missing!
+         if parm.position < @last_positional
+            last_name = @spec[@last_positional].short_key
+            raise "#{parm.short_key} cannot occur after #{last_name}"
+         else
+            while parm.position > @next_positional
+               next_pparm = @spec[@next_positional]
+               if next_pparm.role == :ONE or next_pparm.role == :ONE_OR_MORE
+                  psn = parm.short_key
+                  npp = next_pparm.short_key
+                  raise "missing value for required positional parameter #{mpp}: #{psn} seen first"
+               else
+                  @last_positional = @next_positional
+                  @positionals_seen += 1
+                  @next_positional = @spec.positionals[@positionals_seen]
+               end
+            end
+         end
+      end
+
+      def handle_abbreviation(arg, argv)
+         whole_key, dashes, key, value = parse_an_arg arg
+         matches = Set.new
+         @spec.parms_list.each do |parm|
+            if parm.short_key.start_with?(whole_key) then matches.add(parm) end
+            if not parm.long_key.nil? and parm.long_key.start_with?(whole_key)
+               matches.add(parm)
+            end
+         end
+         if matches.length != 1
+            return false
+         else
+            parm = matches.delete()
+            wholearg = parm.short_key + (if value.nil? then "" else "="+value end)
+            return handle_keyword(wholearg, argv)
+         end
+      end
+
+      def handle_keyword(arg, argv)
+         whole_key, dashes, key, value = parse_an_arg arg
+         parm = @spec[whole_key]
+         if @debug.member? "parser"
+            print "whole key #{whole_key} and parm is\n  " 
+            ap parm
+         end
+         if parm.nil?
+            return false
+         elsif parm.role == :HELP
+            print @spec.help_msg
+            exit 101
+         elsif parm.role == :VERSION
+            print(@spec.version_msg(parm), "\n")
+            return true
+         elsif parm.role == :END
+            @rest = argv
+            @done = true
+            return true
+         end
+         check_parm_position(parm) # fails only by raising an error
+
+         case parm.howmany
+         when :ONE, :ZERO_OR_ONE
+            if value.nil?
+               if not key? argv[0]
+                  value = argv.shift
+               elsif parm.howmany == :ZERO_OR_ONE
+                  value = parm.default
+               else
+                  raise "The parameter #{arg} requires a value, but none was supplied ."
+               end
+            end
+            if parm.value_type == :CSV
+               expanded = if value.kind_of? String then value.split ',' else value end
+               if @parms_seen_set.find_index(key) == nil then value = expanded
+               elsif @spec.cat_on_dup then value = @args[parm.short_key] + expanded
+               elsif expanded != @args[parm.short_key]
+                  raise "Duplicate key '#{key} for comma-separated values"
+               end
+            elsif @parms_seen_set.find_index(key) != nil and value != @args[parm.short_key]
+               raise "Duplicate key '#{key}"
+            end
+         when :ZERO_OR_MORE, :ONE_OR_MORE
+            if not value.nil? # saw key=stuff as the argument, so stuff is a CSV
+               expanded = if value.kind_of String then value.split ',' else value end 
+            else 
+               expanded = [] 
+               while argv.length > 0 and not key? argv[0]
+                  expanded.push(argv.shift)
+               end
+               if expanded.length == 0 # if it appears in the command line, it must have a value
+                  raise "#{key} requires at least one value, but none were supplied."
+               end
+            end
+            if @debug.member? "parser"
+               ap @parms_seen_set
+               print "#{key} is the next key? #{@parms_seen_set.member? key}\n"
+            end
+            if not @parms_seen_set.member? key then value = expanded
+            elsif @spec.cat_on_dup then value = @args[parm.short_key] + expanded
+            elsif expanded != @args[parm.short_key]
+               raise "Duplicate key '#{key}' with differing value lists"
+            end
+         when :NONE
+            value = true # it must be a boolean
+         end
+         value = parm._call_vet(value)
+         @args[parm.short_key] = value
+         if parm.long_key then @args[parm.long_key] = value end
+         parm.attrnames.each { |name|  @args[name] = value }
+         @parms_seen_set.add(parm.short_key)
+         if parm.long_key != nil then @parms_seen_set.add(parm.long_key) end
+         true
+      end
+
+      def handle_positional(arg, argv)
+         @last_positional = @next_positional
+         if @next_positional == @spec.parms_list.length
+            raise "Unexpected value '#{arg}' after the last positional parameter."
+         end
+         @positionals_seen += 1
+         @next_positional = @spec.positionals[@positionals_seen]
+         parm = @spec.parms_list[@last_positional]
+         if debug.member? "parser"
+            print "The current positional is "
+            ap(parm)
+            print "and the next is #{@next_positional}\n"
+         end
+         @parms_seen_set.add(parm.short_key)
+         @parms_seen_set.add(parm.long_key) if not parm.long_key.nil?
+         if parm.howmany == :ONE_OR_MORE or parm.howmany == :ZERO_OR_MORE 
+            value = [arg]
+            while argv.length > 0 and not key? argv[0]
+               value.push(argv.shift)
+            end
+         else
+            value = arg
+         end
+         value = parm._call_vet(value)
+         if @debug.member? "all"
+            print"Assign #{value} to #{parm.attrnames}\n"
+         end
+         @args[parm.attrnames[0]] = value
+         if parm.position == @spec.parms_list.length-1
+            @done = true
+         end
+         true
+      end
+
+      def handle_possible_flags(arg, argv)
+         whole_key, dashes, key, ignore = parse_an_arg arg
+         negator, ignore, flaglist = LEADING_NO_REG_EXP.match(key).captures
+         # no-v always means "v is off", and "-v" always means "v is on": defaults are irrelevant
+         boolean_to_use = negator.nil?
+         flags = flaglist.split('')
+         flags.each do |flag|
+            if not @spec.simple_flags.member?(flag) then return false end
+         end
+         flags.each do |flag|
+            parm = @spec.parms_hash["-"+flag]
+            @args[parm.short_key] = boolean_to_use
+            @args[parm.long_key]  = boolean_to_use if not parm.long_key.nil?
+            parm.attrnames.each {|name| @args[name] = boolean_to_use}
+            if @debug.member? "all"
+               print"Assign #{boolean_to_use} to #{parm.attrnames}\n"
+            end
+         end
+         true
+      end
+
+      def [](key_or_int)
+         if @spec.attributes.member? key_or_int
+            args[key_or_int]
+         else
+            parm = @spec[key_or_int]
+            if parm.nil? then nil? else args[parm.attrnames[0]] end
+         end
+      end
+   end
+end
+
+=begin <md>
+
+## Usage example
+
+The whole job can be done in one shot:
+
+<pre class="exampleCode">
+
+      require 'cmdline.rb'
+      require 'date'
+      args = CmdLine.parse(appname: 'do_it') do |spec|
+            spec.add_help(
+            before: "do_it exercises the Achievement module.\n",
+            after: "This source should serve as a guide for adding a command line reader to an app.")
+         spec.add_version(version: '1.0.1', date: Date.today.iso8601, appname: "do_it")
+         spec.add_string_here('sh', help: 'a string')
+         spec.add_float_here('fh', help: 'a floating point number')
+         spec.add_integer_here('ih', default: 123, help: 'an (optional) integer')
+         spec.add_list_here('lh', help: 'a list of strings', optional: true)
+         spec.add_integer('-i', '--int', help: 'consumes an integer')
+         spec.add_string('-s', help: 'consumes the next argument', default: 'size')
+         spec.add_list('-l', help: 'consumes arguments up to the next key', optional: true)
+         spec.add_float('-f', default: 3.7, help: 'consumes a floating point number')
+         spec.add_flag("-x", help: 'crosses out everything')
+         spec.add_csv("--csv", help: 'commas everywhere', optional: true)
+         spec.add_list_here('end', optional: true, help: 'consumes everything up to the end mark')
+         spec.add_end_marker_here()
+      end
+
+</pre>
+
+You can break out the building of the `Spec`, then parse at your leisure:
+
+<pre class="exampleCode">
+
+      spec = Cmdline.specify('do_it') do |spec |
+         # same spec calls as above
+      end
+      args = CmdLine.parse(appname: 'do_it', spec: spec)  # parses ARGV
+
+</pre>
+
+Once `spec` is in hand, you can use it to parse any array of arguments, not just `ARGV`:
+
+<pre class="exampleCode">
+
+      args = CmdLine.parse(some_array_of_strings, appname: 'do_it', spec: spec) 
+
+</pre>
+
+=end

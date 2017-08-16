@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Getting The Name For A Method and Its Caller</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Getting The Name For A Method and Its Caller</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">May, 2017</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#the-callerid-module">The <code>CallerId</code> Module</a></li>
+</ul>
+</nav>
+<pre class="sourceCode ruby"><code class="sourceCode ruby"></code></pre>
+<h2 id="the-callerid-module">The <code>CallerId</code> Module</h2>
+<p>There seem to be several ways to get the name of the currently executing method. Here is a short <a href="examples/callerid_test.rb">code fragment</a> that illustrates what comes “out of the box” and “<code>my_caller</code>”:</p>
+<pre class="exampleCode">
+
+require &quot;aliasing&quot;
+require &quot;callerid&quot;
+
+class C
+   def do_it
+      puts &quot;Caller used #{__callee__}\n&quot;
+      puts &quot;But my real name is #{__method__}\n&quot;
+      matched = /`([^']*)'/.match caller[0]
+      puts &quot;#{matched.captures[0]} called me&quot;
+      puts &quot;CallerId.my_caller is #{CallerId.my_caller}&quot;
+   end
+   def call_do_it
+      self.do_it
+   end
+end
+if not C.create_an_instance_alias :do_not, original: :do_it
+   puts(&quot;Alias do_not was not created&quot;)
+end
+c = C.new
+c.do_it
+puts &quot;--------&quot;
+c.do_not
+puts &quot;--------&quot;
+c.call_do_it
+
+</pre>
+
+<p>yields output</p>
+<pre class="exampleCode"> 
+
+Caller used do_it
+But my real name is do_it
+&lt;main&gt; called me
+CallerId.my_caller is &lt;main&gt;
+--------
+Caller used do_not
+But my real name is do_it
+&lt;main&gt; called me
+CallerId.my_caller is &lt;main&gt;
+--------
+Caller used do_it
+But my real name is do_it
+call_do_it called me
+CallerId.my_caller is call_do_it
+
+</pre>
+
+<p>Notice the difference between <code>__callee__</code> and <code>__method__</code>: the former returns the name used to make this call, whereas the latter returns the original name given the function.</p>
+<p>Also, as you look at the code for “who_am_i” and “my_caller”, remember that “I” am calling <code>CallerId.who_am_i</code>, so in the stack trace you get from the <code>Object</code> method “<code>caller</code>”, the 0-th entry is “me”, and my caller is the 1-th entry.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+<span class="kw">module</span> <span class="dt">CallerId</span>
+   <span class="kw">def</span> <span class="dv">self</span>.who_am_i
+      name_from_caller_entry <span class="dv">caller</span>[<span class="dv">0</span>]
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.my_caller
+      name_from_caller_entry <span class="dv">caller</span>[<span class="dv">1</span>]
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.name_from_caller_entry caller_entry
+      matched = <span class="ot">/`([^']*)'/</span>.match caller_entry
+      matched.captures[<span class="dv">0</span>]
+   <span class="kw">end</span>
+<span class="kw">end</span>
+</code></pre>
+</body>
+</html>

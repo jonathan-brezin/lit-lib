@@ -1,0 +1,390 @@
+=begin <head> 
+Title: <span class="titleCode">WildCardLookup</span> simple wild-card matching
+Author: Jonathan Brezin
+Date: April, 2016
+Show source: Yes
+Tab Size: 3
+=end #head
+
+require "set"
+
+=begin <md>
+
+## Overview ##
+
+A common coding problem is to maintain a set of strings, normally patterns of some kind, in which
+the lookup is just a little looser than string equality.  I'll talk about the strings in my set as
+"patterns", and the strings that I'm looking to match against these patterns as "keys".
+
+What I mean by "looser" is the simplest sort of wildcard match:
+
+> If "*" is one of the patterns in my set `wcl`, then `wcl.matched? x` will be `true` whatever
+value `x` may have, except the empty string.
+
+> Patterns whose syntax is &ldquo;`*`_`xxx`_&rdquo; match all keys ending with "_`xxx`_" that
+are at least one character longer--e.g. `*_in` matches `x_in`, but not `_in`.
+
+> Patterns whose syntax is &ldquo;_`xxx`_`*`&rdquo; match all keys that start with "_`xxx`_" and
+(again) are at least one character longer.
+
+> Patterns whose syntax is &ldquo;_`xxx`_`*`_`yyy`_&rdquo; match all keys that start with
+"_`xxx`_", end with "_`yyy`_", and are at least one character longer.  If you really need 
+"_`xxxyyy`_" and "_`xxx`_*`_yyy_" to be matched, just add the exact match "_`xxxyyy`_" to the
+active list, as well as adding the wildcard pattern.
+
+The typical use cases have patterns like
+
+> `user_*`, `cart_*`, `prefs_*`, etc. 
+
+> `*.txt`, `*.py`, etc.
+
+As might be clear from these examples, the flexibility permitted with the "*" is what I felt is
+convenient for a couple of common tasks filtering debugging code, as in [`dbg.py`](dbg.html), and
+tracking sets of file paths with common directories or file-types.  In both these examples, the
+pattern set is modest in size, and there is rarely any reason to have any more flexible pattern
+matching facility.
+
+Of course, some minimal care in choosing the patterns is required to get sensible behavior.
+Having, for instance, both`"user"` and `"user*"` as a pattern is a recipe for confusion--why not
+use `"user_*"` for the longer keys? Having both `"*_in"` and `"file_*"` as patterns and
+`"file_in"` as a key is also a good way to get confused.
+
+## The structure of the store ##
+
+The wild-card free patterns are kept in their own `Set`.  Since I only permit one
+&lsquo;*&rsquo; per pattern, wild-card patterns split into head-tail pairs.  I keep them in a
+hash keyed by the head, the values being the set of "tail" strings for the given head.  I also
+keep a hash that is a cache of the (key, boolean) pairs for the keys for which a wild-card match
+was attempted. A `true` value for the pair means that the key was matched.
+
+The cache is a modest efficiency hack.  I want to avoid redoing wild-card checks repeatedly on
+the same key, particularly for keys that will not be matched. So, once a key is looked for, I
+cache it together whether its status, matched or not. When patterns are removed, I clear the
+positive entries of the cache that are affected.  When keys are added, I update the failed part
+of the cache. Once a key is in the cache, its lookup cost is `O(1)`.
+
+## Details of the API ##
+
+### The class, <code>WildCardLookup</code> ###
+
+The constructor `WildCardLookup(arg1, arg2,...)` takes 0 or more strings as arguments.  Each
+argument must be a `String`.  The arguments are added to the set of patterns.  If no arguments are
+provide the pattern set is initially empty.
+
+The relational operators `==` and `!=` are implemented in the obvious way: same exact, pair, and
+star matches, or not.
+
+=end
+
+class WildCardLookup
+   include Enumerable
+
+   attr_reader :all, :exact, :pairs # these constitute the state of the pattern catalogue
+
+   def self.from_csv(a_csv)
+      self.new a_csv.split(',')
+   end
+
+   def initialize(*patterns)
+      @all = false     # optimization only '*' is a pattern, so all keys match
+      @cache = Hash.new false # the results of previous match attempts
+      @exact = Set.new # patterns with no wild cards
+      @pairs = Hash.new {|hash,head| hash[head] = Set.new} # maps head of match to a set of tails
+      add_patterns(patterns)
+   end
+
+   def ==(other)
+      @exact == other.exact and @pairs == other.pairs and @all == other.all
+   end
+
+   def !=(other)
+      @exact != other.exact or @pairs != other.pairs or @all != other.all
+   end
+
+=begin <md>
+
+### <code>clone()</code> ###
+
+allows you to create of clone of this `WildCardLookup` instance.
+
+### <code>lengths</code> ###
+
+returns a list of the lengths of the exact match set, the head-tail pairs set, and the cache, in
+that order.
+
+### <code>add_pattern(pattern)</code> and <code>add_patterns(patterns)</code> ###
+
+`add_pattern` adds its argument to the pattern set.  The argument must be a `String` and can
+have at most one `'*'` in it.  There is no escape mechanism for inserting stars into the matched
+text. `add_patterns` is just a convenient wrapper around `add_pattern` so that you don't have to
+write the obvious "each do" loop.  On exit, the cache's integrity will have been restored.
+
+### <code>remove_pattern(pattern)</code> and remove_patterns(patterns)</code> ###
+
+`remove_pattern` removes its argument from the pattern set if it is present, and restores the
+integrity of the cache.  It is not an error to remove a pattern that is not present.  The 
+return value is `true`, if the pattern was present, `false` otherwise.  `remove_patterns` is the
+obvious wrapper around `remove_pattern`.  It returns the number of patterns it actually removed.
+
+=end
+
+   def clone()
+      WildCardLookup.new @pattern_list
+   end
+
+   def lengths
+      [@exact.length, @pairs.length, @cache.length]
+   end
+
+   def add_pattern(pattern)
+      star_index = pattern.index("*")
+      if star_index.nil?
+         @exact.add(pattern)
+      elsif pattern == "*"
+         @all = true
+         @cache = Hash.new false
+      else
+         head = pattern[0 ... star_index]
+         tail = pattern[star_index+1 .. -1]
+         if tail.index('*')
+            raise "Pattern '#{pattern}' has too many *'s"
+         end
+         @pairs[head].add(tail)
+         @cache.each do |cached, found|
+            if not found and head_tail_match?(cached, head, tail)
+               @cache[cached] = true
+            end
+         end
+      end
+   end
+
+   def add_patterns(patterns)
+      patterns.each do | pattern |
+         add_pattern(pattern)
+      end
+   end
+
+   def remove_pattern(pattern)
+      if pattern == '*'
+         @all = false
+         true
+      elsif @exact.member? pattern
+         @exact.delete pattern
+         true
+      else
+         head_index = pattern.index '*'
+         if not head_index.nil? 
+            head = pattern[0 ... head_index]
+         end
+         if @pairs.member? head
+            tail = pattern[head_index+1 .. -1]
+            tail_set = @pairs[head]
+            if tail_set.member? tail
+               tail_set.delete tail
+               if tail_set.length == 0
+                  @pairs.delete head
+               end
+               if @cache.length > 0 then @cache = Hash.new false end
+               # print("#{pattern} deleted\n")
+               return true
+            end
+         end
+         false
+      end
+   end
+
+   def remove_patterns(dead_patterns)
+      removed = 0
+      dead_patterns.each do | dead_pattern |
+         #print("#{removed}: remove #{dead_pattern}\n")
+         if remove_pattern dead_pattern
+            #print("Succeeded!\n")
+            removed += 1
+         end
+      end
+      removed
+   end
+
+=begin <md>
+
+The next three methods are the public methods that implement the pattern matching.
+
+### <code>matched?(key)</code> ###
+
+is the call one normally makes: it returns `true` precisely when its argument is matched by at
+least one pattern.
+
+### <code>all_matched?( &ast;args )</code> ###
+
+Each argument may be a list of strings or a single string.  Each string will be checked against
+the active patterns and if all are matched,  `true` will be returned; otherwise, `false` will be
+returned.
+
+### <code>any_matched?( &ast;args )</code> ###
+
+Each argument may be a list of strings or a single string.  Each string will be checked against
+the active patterns and if at least one is matched, `true` will be returned; otherwise, `false`
+will be returned.
+
+At a slightly lower level, the two methods that follow do the real work of finding a wildcard
+pattern that matches a given string
+
+### <code>head_tail_match?(key, head, tail)</code> ###
+
+is the wild-card match of `key` against `head*tail`.  
+
+### <code>pattern_match?(key)</code> ###
+
+is the wild-card match of key against all of the pairs in the instance.  The return value is
+`true` precisely when one pattern matches.
+
+=end
+
+   def matched?(key)
+      if @all or @exact.member?(key) or @cache[key]
+         true
+      elsif key.length < 2
+         false
+      else
+         @cache[key] = pattern_match?(key)
+      end
+   end
+
+   def all_matched?( *args )
+      args.each do |arg|
+         if arg.kind_of? String 
+            if not matched?(arg) then return false end
+         elsif arg.kind_of? Array 
+            if not all_matched *arg then return false end
+         else raise ArgumentError.new "Unexpected argument type, #{args.class}"
+         end
+      end
+      true
+   end
+
+   def any_matched?( *args )
+      args.each do |arg|
+         if arg.kind_of? String 
+            if matched?(arg) then return true end
+         elsif arg.kind_of? Array
+            if any_matched? *arg then return true end
+         else
+            raise ArgumentError.new "Unexpected argument type, #{arg.class}"
+         end
+      end
+      false
+   end
+
+   def head_tail_match?(key, head, tail)
+      #puts %Q[ #{key.length>head.length+tail.length}, #{key.start_with?(head)}, #{key[head.length() .. -1].end_with?(tail)}]
+      (key.length > head.length + tail.length) &&
+         key.start_with?(head) && 
+         key[head.length() .. -1].end_with?(tail)
+   end
+
+   def pattern_match?(key)
+      key_length = key.length
+      @pairs.each do |head, tails|
+         tails.each do |tail|
+            #puts("#{key} matches #{head}*#{tail}?  key tail is #{key[head.length() .. -1]}\n")
+            if head_tail_match? key, head, tail
+               return true
+            end
+         end
+      end
+      false
+   end
+
+   def pattern_list()
+      list =  @exact.clone.to_a
+      if @all then list.push '*' end
+      @pairs.each do |head, tails|
+         list += tails.collect { |tail| "#{head}*#{tail}" }
+      end
+      list.sort!
+   end
+
+   def strictest_pattern(key)
+      # the exact match is definitely the strictest look no further 
+      if @exact.member? key then key
+      else
+         allmatches = patterns_matching key
+         if allmatches.length == 0
+            if @all then '*' else nil end
+         else
+            sizes = allmatches.collect {|x| x.length }
+            allmatches[sizes.index sizes.max]
+         end
+      end
+   end
+
+   def weakest_pattern(key)
+      allmatches = patterns_matching(key)
+      case allmatches.length
+      when 0 then nil
+      when 1 then allmatches[0] 
+      else 
+         # there are multiple matches, but if there is an exact match it will sort
+         # lexicographically after any '*' pattern, even if its length happens to
+         # be the same as the pattern length: 'abcd' matches 'a*cd'.  Given a choice
+         # between 'a*d' and 'ab*d', we want the weaker pattern, 'a*d', which again
+         # sorts earlier.  'a*cd' sorts before 'a*d', so to get the weakest, we 
+         # really want the shortest.  If 'a*d' is not a pattern, but 'ab*d' and
+         # 'a*cd' both are, we arbitrarily choose 'ab*d', the one that is earlier
+         # lexicographically.
+         allmatches.sort!{|x, y| x.length <=> y.length }
+         min = allmatches[0].length 
+         shortest = allmatches.find_all {|x| x.length == min}
+         shortest.sort!
+         shortest[0] # I'm the first in lexicographic order among the shortest patterns
+      end
+   end
+
+   def patterns_matching(key)
+      list = []
+      if @exact.member? key
+         list.push key
+      end
+      if @all 
+         list.push '*'
+      end
+      if key.length >= 2
+         @pairs.each do | head, tails |
+            if key.start_with?(head) && key.length > head.length
+               rest = key[head.length()+1 .. -1]
+               tails.each do | tail |
+                  if rest.end_with? tail
+                     list.push "#{head}*#{tail}"
+                  end
+               end
+            end
+         end
+      end
+      list.sort!
+   end
+       
+   def all_matched(*keys)
+      if keys.length > 0 and not @all
+         keys.each do | entry |
+            entry.split(',').each do | key |
+               if not matched? key
+                  return false
+               end
+            end
+         end
+      end
+      true
+   end
+
+   def each
+      @exact.each do | pattern |
+         yield pattern
+      end
+      @pairs.each do | head, tails |
+         tails.each do |tail|
+            yield "#{head}*#{tail}"
+         end
+      end
+      nil
+   end
+end

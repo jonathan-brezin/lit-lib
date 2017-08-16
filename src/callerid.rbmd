@@ -1,0 +1,90 @@
+=begin <head> 
+Title: Getting The Name For A Method and Its Caller
+Author: Jonathan Brezin
+Date: May, 2017
+Show source: Yes
+Tab Size: 3
+=end 
+
+=begin <md>
+
+## The <code>CallerId</code> Module
+
+There seem to be several ways to get the name of the currently executing method.  Here is a short
+[code fragment](examples/callerid_test.rb) that illustrates what comes "out of the box" and
+"`my_caller`":
+
+<pre class="exampleCode">
+
+require "aliasing"
+require "callerid"
+
+class C
+   def do_it
+      puts "Caller used #{__callee__}\n"
+      puts "But my real name is #{__method__}\n"
+      matched = /`([^']*)'/.match caller[0]
+      puts "#{matched.captures[0]} called me"
+      puts "CallerId.my_caller is #{CallerId.my_caller}"
+   end
+   def call_do_it
+      self.do_it
+   end
+end
+if not C.create_an_instance_alias :do_not, original: :do_it
+   puts("Alias do_not was not created")
+end
+c = C.new
+c.do_it
+puts "--------"
+c.do_not
+puts "--------"
+c.call_do_it
+
+</pre>
+
+yields output
+
+<pre class="exampleCode"> 
+
+Caller used do_it
+But my real name is do_it
+&lt;main> called me
+CallerId.my_caller is &lt;main>
+--------
+Caller used do_not
+But my real name is do_it
+&lt;main> called me
+CallerId.my_caller is &lt;main>
+--------
+Caller used do_it
+But my real name is do_it
+call_do_it called me
+CallerId.my_caller is call_do_it
+
+</pre>
+
+Notice the difference between `__callee__` and `__method__`:  the former returns the name used to
+make this call, whereas the latter returns the original name given the function.
+
+Also, as you look at the code for "who_am_i" and "my_caller", remember that "I" am calling
+`CallerId.who_am_i`, so in the stack trace you get from the `Object` method "`caller`", the 0-th
+entry is "me", and my caller is the 1-th entry.
+
+=end
+
+module CallerId
+   def self.who_am_i
+      name_from_caller_entry caller[0]
+   end
+
+   def self.my_caller
+      name_from_caller_entry caller[1]
+   end
+
+   def self.name_from_caller_entry caller_entry
+      matched = /`([^']*)'/.match caller_entry
+      matched.captures[0]
+   end
+end
+

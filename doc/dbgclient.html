@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>DbgClient: mixin module for using DbgMgr</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title"><code>DbgClient</code>: mixin module for using <code>DbgMgr</code></h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">December, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#dbg_client">The client mixin module “<code>DbgClient</code>”</a><ul>
+<li><a href="#module-methods-maintaining-the-configuration-of-client-classes">Module methods: maintaining the configuration of client classes</a><ul>
+<li><a href="#dbgclientkeyklass"><code>DbgClient::key(klass)</code></a></li>
+<li><a href="#dbgclientset_keyklass-key"><code>DbgClient::set_key(klass, key)</code></a></li>
+<li><a href="#dbgclientpatternklass"><code>DbgClient::pattern(klass)</code></a></li>
+<li><a href="#dbgclientset_patternklass-pattern"><code>DbgClient::set_pattern(klass, pattern)</code></a></li>
+<li><a href="#dbgclientactiveklass"><code>DbgClient::active?(klass)</code></a></li>
+<li><a href="#dbgclientset_activeklass-boolean"><code>DbgClient::set_active(klass, boolean)</code></a></li>
+<li><a href="#dbgclientclass_activeklass"><code>DbgClient::class_active?(klass)</code></a></li>
+<li><a href="#dbgclientset_class_activeklass-boolean"><code>DbgClient::set_class_active(klass, boolean)</code></a></li>
+</ul></li>
+<li><a href="#module-methods-initialization">Module methods: initialization</a><ul>
+<li><a href="#configure"><code>DbgClient::configure(klass, key, pattern: nil)</code></a></li>
+</ul></li>
+<li><a href="#class-methods-turning-streaming-on-and-off">Class methods: turning streaming on and off</a><ul>
+<li><a href="#start_debuggingpatterns"><code>start_debugging(*patterns)</code></a></li>
+<li><a href="#pause_debuggingdead_patterns"><code>pause_debugging(*dead_patterns)</code></a></li>
+<li><a href="#stop_debuggingmsg-nil"><code>stop_debugging(msg: nil)</code></a></li>
+</ul></li>
+<li><a href="#class-methods-writing-output">Class methods: writing output</a><ul>
+<li><a href="#write_dbg_msgmsg-parameters"><code>write_dbg_msg(msg, <i>parameters</i>)</code></a></li>
+<li><a href="#issue_a_warningthe_warning-parameters"><code>issue_a_warning(the_warning, <i>parameters</i>)</code></a></li>
+<li><a href="#raise_an_errorthe_error-parameters"><code>raise_an_error(the_error, <i>parameters</i>)</code></a></li>
+</ul></li>
+<li><a href="#instance-methods-turning-streaming-on-and-off">Instance methods: turning streaming on and off</a><ul>
+<li><a href="#debugging_on"><code>debugging_on?()</code></a></li>
+<li><a href="#debugging_onboolean"><code>debugging_on=(boolean)</code></a></li>
+<li><a href="#debugging_key_onkey"><code>debugging_key_on?(key)</code></a></li>
+</ul></li>
+<li><a href="#instance-methods-writing-output">Instance methods: writing output</a><ul>
+<li><a href="#write_dbg_streammsg-parameters"><code>write_dbg_stream(msg, <i>parameters</i>)</code></a></li>
+<li><a href="#issue_warningthe_warning-parameters"><code>issue_warning(the_warning, <i>parameters</i>)</code></a></li>
+<li><a href="#raise_errorthe_error-parameters"><code>raise_error(the_error, <i>parameters</i>)</code></a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+require <span class="st">&quot;dbg&quot;</span>
+require <span class="st">&quot;sysutils&quot;</span>
+
+<span class="kw">module</span> <span class="dt">DbgClient</span>
+</code></pre>
+<hr><hr>
+
+<h2 id="dbg_client">The client mixin module “<code>DbgClient</code>”</h2>
+<p>This interface is really intended for modules and classes that use the debugging manager’s buffered output. If all you need is a dictionary of active patterns to guard debugging code, just use the <a href="dbg.html#active-args">“<code>DbgMgr.active?</code>” test</a>, if only because it has less overhead. You could even just use your own <a href="wildcardlookup.html">wild-card dictionary</a>, although I do not think that it is a good idea if there is any chance that you will want to coordinate your output with that from other classes and modules down the road that may want to share guard keys.</p>
+<p>A class <code>C</code> that wants to use the <code>DbgMgr</code> simply to stream debugging output can do so cleanly by including this module. That first part of the source code for <code>C</code> will look like</p>
+<pre class="exampleCode">
+require &quot;dbgclient&quot;
+#... good stuff here maybe?
+class C
+   # ...
+   include &quot;DbgClient&quot;
+   DbgClient::configure self, &quot;c_dbg&quot;, &quot;c_*&quot;
+   # ...
+end
+</pre>
+
+<p>The effect is to use <code>&quot;c_dbg&quot;</code> as the default key for sending output, and to use <code>&quot;c_*&quot;</code> as the default pattern for <code>DbgMgr</code> to match against. No patterns are registered with <code>DbgMgr</code> yet. I do not automatically register the default pattern as part of this call. All this does is establish some defaults–some conventions, if you prefer. Turning on debugging is a very different thing! For most classes, every invocation has the same debugging conventions, but (one hopes) debugging actually has to be turned on only rarely. For the (again rare) case where you need to change these defaults at run-time, there are get and set methods you can use.</p>
+<p>There are two different ways to activate <code>C</code>’s output.</p>
+<ol type="1">
+<li><p>The main entry point for the application, or whoever else is responsible for managing the app’s IO, can register <code>C</code>’s patterns directly with <code>DbgMgr</code>. This would probably be the usual way things happen: the patterns appear in the command line that gets the app going, and the main just registers it, not knowing or caring which classes care about which patterns.</p></li>
+<li><p>One need not know the default pattern to register it. If you care, you <em>can</em> get it: the call “<code>DbgClient::pattern(self)</code> does the trick in the body of a class method<code>.  You don't really need it though.  You can simply call the class method &quot;</code>start_debugging`”, which will do the job of registering it.</p></li>
+</ol>
+<p>In the body of <code>C</code>’s instance methods, a call like “<code>write_dbg_msg msg</code>” or “<code>debugging_pre msg</code>” will ask <code>DbgMgr</code> to buffer the message “<code>msg</code>” if the default key, “<code>c_dbg</code>”, in this case, matches a registered pattern. You can supply your own key, of course, if the default won’t do. There are also methods for raising errors while capturing the error information in the debugging stream, and issuing warnings that, again, go to the debugging stream and may, or may not, be errors that have to be raised.</p>
+<h3 id="module-methods-maintaining-the-configuration-of-client-classes">Module methods: maintaining the configuration of client classes</h3>
+<h4 id="dbgclientkeyklass"><code>DbgClient::key(klass)</code></h4>
+<h4 id="dbgclientset_keyklass-key"><code>DbgClient::set_key(klass, key)</code></h4>
+<p>gets and sets the default key to provide when putting a pre-formatted or ordinary message. The <code>klass</code> parameter (in the next four methods as well) is the class that has included this module.</p>
+<h4 id="dbgclientpatternklass"><code>DbgClient::pattern(klass)</code></h4>
+<h4 id="dbgclientset_patternklass-pattern"><code>DbgClient::set_pattern(klass, pattern)</code></h4>
+<p>gets and sets the default pattern to provide when turning debugging output on for the class <code>klass</code>.</p>
+<h4 id="dbgclientactiveklass"><code>DbgClient::active?(klass)</code></h4>
+<p>returns <code>true</code> if debugging output is allowed by default for instances of <code>klass</code>; otherwise it returns <code>false</code>.</p>
+<h4 id="dbgclientset_activeklass-boolean"><code>DbgClient::set_active(klass, boolean)</code></h4>
+<p>turns the class-wide default permission to stream on and off. The boolean may be any value that responds to the method <a href="sysutils.html#boolean_conversions"><code>to_b</code></a> without raising an error.</p>
+<h4 id="dbgclientclass_activeklass"><code>DbgClient::class_active?(klass)</code></h4>
+<p>returns <code>true</code> if debugging output is allowed for <code>klass</code> itself; otherwise it returns <code>false</code>.</p>
+<h4 id="dbgclientset_class_activeklass-boolean"><code>DbgClient::set_class_active(klass, boolean)</code></h4>
+<p>turns the class permission to stream on and off. The boolean may be any value that responds to the method <a href="sysutils.html#boolean_conversions"><code>to_b</code></a> without raising an error.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> <span class="dv">self</span>.key(klass)
+      <span class="ot">@@debug_configuration</span>[klass][<span class="st">:key</span>]
+   <span class="kw">end</span>
+   <span class="kw">def</span> <span class="dv">self</span>.set_key(klass, a_string)
+      <span class="ot">@@debug_configuration</span>[klass][<span class="st">:key</span>] = a_string
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.pattern(klass)
+      <span class="ot">@@debug_configuration</span>[klass][<span class="st">:pattern</span>]
+   <span class="kw">end</span>
+   <span class="kw">def</span> <span class="dv">self</span>.set_pattern(klass, a_string)
+      <span class="ot">@@debug_configuration</span>[klass][<span class="st">:pattern</span>] = a_string
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.active?(klass)
+      <span class="ot">@@debug_configuration</span>[klass][<span class="st">:active</span>]
+   <span class="kw">end</span>
+   <span class="kw">def</span> <span class="dv">self</span>.set_active(klass, boolean)
+      <span class="ot">@@debug_configuration</span>[klass][<span class="st">:active</span>] = boolean.to_b
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.class_active?(klass)
+      <span class="ot">@@debug_configuration</span>[klass][<span class="st">:class_active</span>]
+   <span class="kw">end</span>
+   <span class="kw">def</span> <span class="dv">self</span>.set_class_active(klass, boolean)
+      <span class="ot">@@debug_configuration</span>[klass][<span class="st">:class_active</span>] = boolean.to_b
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.show_classes()
+      all = []
+      <span class="ot">@@debug_configuration</span>.each <span class="kw">do</span> |key, value|
+         all.push  <span class="st">&quot;</span><span class="ot">#{</span>key.name<span class="ot">}</span><span class="st">(</span><span class="ot">#{</span>value[<span class="st">:key</span>]<span class="ot">}</span><span class="st">, </span><span class="ot">#{</span>value[<span class="st">:pattern</span>]<span class="ot">}</span><span class="st">, </span><span class="ot">#{</span>value[<span class="st">:active</span>]<span class="ot">}</span><span class="st">)&quot;</span>
+      <span class="kw">end</span>
+      all.join(<span class="st">&quot;\n&quot;</span>)
+   <span class="kw">end</span>
+</code></pre>
+<h3 id="module-methods-initialization">Module methods: initialization</h3>
+<h4 id="configure"><code>DbgClient::configure(klass, key, pattern: nil)</code></h4>
+<p>serves two purposes: it sets some defaults and it defines some class methods for the class “<code>klass</code>” that is its first argument. The intention is that a class <code>C</code> that extends <code>DbgClient</code> should call this method with <code>C</code> itself as the value of <code>klass</code>.</p>
+<p>The defaults being set are:</p>
+<blockquote>
+<p>the default key to use for guarding ordinary debugging output,<br />the default pattern to be registered with the <code>DbgMgr</code> against which to match keys,<br />the activity status of <code>klass</code> itself, and<br />the default activity status for instances of <code>klass</code>.</p>
+</blockquote>
+<p>The second argument, <code>key</code> is the default key, and the optional third argument, <code>pattern</code> is the default pattern. If <code>pattern</code> is <code>nil</code>, <code>key</code> will be used. Finally the default activity status for both <code>klass</code> and its instances is “inactive”.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> <span class="dv">self</span>.configure(klass, key, pattern=key)
+      <span class="ot">@@debug_configuration</span> ||= {}
+      <span class="ot">@@debug_configuration</span>[klass] = {
+         <span class="st">:class</span> =&gt; klass, <span class="st">:key</span> =&gt; key, <span class="st">:pattern</span> =&gt; pattern,
+         <span class="st">:active</span> =&gt; <span class="dv">false</span>, <span class="st">:class_active</span> =&gt; <span class="dv">false</span>
+      }
+      <span class="co"># to be continued below with class method definitions...</span>
+</code></pre>
+<h3 id="class-methods-turning-streaming-on-and-off">Class methods: turning streaming on and off</h3>
+<h4 id="start_debuggingpatterns"><code>start_debugging(*patterns)</code></h4>
+<p>if called with no arguments, makes sure that the default pattern, as provided by the call to <code>configure()</code>, is registered; otherwise, the entries in the argument “<code>patterns</code>” are passed on to <code>DbgMgr</code> to be registered. It marks both the class and its instances “active” for streaming.</p>
+<p>Important: if you do provide arguments, it is <em>exactly</em> those patterns that will be brought to life: the default pattern will not be treated specially.</p>
+<h4 id="pause_debuggingdead_patterns"><code>pause_debugging(*dead_patterns)</code></h4>
+<p>asks <code>DbgMgr</code> to remove the unwanted patterns and marks the class as not active. Calls to <code>write_dbg_msg</code> and <code>debugging_pre</code> will produce no output, regardless of the key.</p>
+<p>The ability to de-register the patterns is just a way for the class making the call to clean up if some patterns are shared across multiple classes, and this class knows that output for these patterns is no longer wanted for any of the others as well.</p>
+<h4 id="stop_debuggingmsg-nil"><code>stop_debugging(msg: nil)</code></h4>
+<p>is a desperation call, not to be used except in very, very unusual circumstances. It flushes the debugging stream with its argument, <code>msg</code>, as the “after” text, and then closes the stream. Attempts to reopen the stream will cause a new log file to be opened. Closing the stream is almost always the responsibility of the object that initially requested buffered output, and not some <code>DbgClient</code>.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">      <span class="kw">def</span> klass.start_debugging(*patterns)
+         <span class="dt">DbgClient</span>::set_active <span class="dv">self</span>, <span class="dv">true</span>
+         <span class="dt">DbgClient</span>::set_class_active <span class="dv">self</span>, <span class="dv">true</span>
+         <span class="kw">if</span> patterns.length == <span class="dv">0</span>
+            <span class="dt">DbgMgr</span>.add_patterns <span class="dt">DbgClient</span>::pattern(<span class="dv">self</span>)
+         <span class="kw">else</span>
+            <span class="dt">DbgMgr</span>.add_patterns patterns
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      
+      <span class="kw">def</span> klass.pause_debugging(*dead_patterns)
+         <span class="dt">DbgClient</span>::set_active <span class="dv">self</span>, <span class="dv">false</span>
+         <span class="dt">DbgMgr</span>.remove_patterns *dead_patterns
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> klass.stop_debugging(msg: <span class="dv">nil</span>)
+         <span class="kw">if</span> msg 
+            <span class="kw">if</span> msg.is_a? <span class="dt">String</span> <span class="kw">then</span> <span class="dt">DbgMgr</span>.flush after: msg <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="dt">DbgClient</span>::set_active <span class="dv">self</span>, <span class="dv">false</span>
+         <span class="dt">DbgMgr</span>.close
+      <span class="kw">end</span>
+   </code></pre>
+<h3 id="class-methods-writing-output">Class methods: writing output</h3>
+<h4 id="write_dbg_msgmsg-parameters"><code>write_dbg_msg(msg, <i>parameters</i>)</code></h4>
+<p>writes <code>msg</code> out to the debugging stream if <code>key</code> matches a registered pattern.</p>
+<p>The remaining parameters are all keyword:value parameters:</p>
+<blockquote><table>
+<tr><td>
+<code>key: nil</code>
+</td><td>
+the guard key–if nil, use the default key
+</td></tr>
+<tr><td>
+<code>pre: false</code>
+</td><td>
+if “true”, enclose the message in an HTML “pre”
+</td></tr>
+<tr><td>
+<code>now: false</code>
+</td><td>
+if “true”, flush the stream <em>now!</em>
+</td></tr>
+<tr><td>
+<code>src: CallerId.my_caller</code>
+</td><td>
+the name of the sender of the output
+</td></tr>
+<tr><td>
+<code>style: nil</code>
+</td><td>
+the name of a CSS style class that overrides the default
+</td></tr>
+<tr><td>
+<code>esc: false</code>
+</td><td>
+if true, HTML-encode the output text
+</td></tr>
+</table></blockquote>
+
+<p>If the value of <code>now</code> is a non-empty string, that string will be used as the “after” message for the flush.</p>
+<h4 id="issue_a_warningthe_warning-parameters"><code>issue_a_warning(the_warning, <i>parameters</i>)</code></h4>
+<p>streams <code>the_warning</code> out in a message whose CSS style is unique to warnings. The warning may be either a string or an <code>Exception</code>. The remaining parameters are all keyword:value parameters:</p>
+<blockquote><table>
+<tr><td>
+<code>now: false</code>
+</td><td>
+if “true”, flush the stream <em>now!</em>
+</td></tr>
+<tr><td>
+<code>src: CallerId.my_caller</code>
+</td><td>
+the name of the sender of the output
+</td></tr>
+<tr><td>
+<code>esc: false</code>
+</td><td>
+if true, HTML-encode the output text
+</td></tr>
+<tr><td>
+<code>bail_out: false</code>
+</td><td>
+if true, and if the warning is an Exception, raise it
+</td></tr>
+</table></blockquote>
+
+<p>There is no guard key: warnings are serious business and get streamed <em>somewhere</em>, regardless. As with <code>write_dbg_msg</code>, if the value of <code>now</code> is a non-empty string, that string will be used as the “after” message for the flush.</p>
+<h4 id="raise_an_errorthe_error-parameters"><code>raise_an_error(the_error, <i>parameters</i>)</code></h4>
+<p>expects either a string or an <code>Exception</code> for <code>the_error</code>, publishes the text of the error (and a backtrace, if available) to the debugging stream, and then if <code>bail_out</code> is <code>true</code> does one of two things: if <code>the_error</code> is a string, a <code>RuntimeError</code> is raised with <code>the_error</code> as the message; otherwise, <code>the_error</code> itself is raised.</p>
+<p>The parameters are the same as those for <code>issue_a_warning</code>, except that the default for <code>bail_out</code> is <code>true</code> for errors (and <code>false</code> for warnings).</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">      <span class="kw">def</span> klass.write_dbg_msg(msg, key: <span class="dv">nil</span>, pre: <span class="dv">false</span>,
+            now: <span class="dv">false</span>, src: <span class="dt">CallerId</span>.my_caller, style: <span class="dv">nil</span>, esc: <span class="dv">nil</span>
+         )
+         key ||= <span class="dt">DbgClient</span>::key <span class="dv">self</span>
+         <span class="kw">if</span> <span class="kw">not</span> ((<span class="dt">DbgClient</span>.active? <span class="dv">self</span>) <span class="kw">and</span> (<span class="dt">DbgMgr</span>.active? key))
+            <span class="kw">return</span> <span class="dv">false</span>
+         <span class="kw">end</span>
+         esc ||= <span class="dt">DbgMgr</span>.esc
+         <span class="kw">if</span> pre
+            <span class="dt">DbgMgr</span>.pre key, msg, my_caller: src, style: style, esc: esc
+         <span class="kw">else</span>
+            <span class="dt">DbgMgr</span>.put key, msg, my_caller: src, style: style, esc: esc
+         <span class="kw">end</span>
+         <span class="kw">if</span> now 
+            <span class="kw">if</span> now.is_a? <span class="dt">String</span> <span class="kw">then</span> <span class="dt">DbgMgr</span>.flush after: now
+            <span class="kw">else</span> <span class="dt">DbgMgr</span>.flush
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+         <span class="dv">true</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> klass.issue_a_warning(the_warning, src: <span class="dt">CallerId</span>.my_caller, now: <span class="dv">false</span>,
+            esc: <span class="dv">nil</span>, bail_out: <span class="dv">false</span>
+         )
+         esc ||= <span class="dt">DbgMgr</span>.esc
+         <span class="dt">DbgMgr</span>.warn the_warning.to_s, my_caller: src, esc: esc, now: now
+         <span class="kw">if</span> the_warning.is_a? <span class="dt">Exception</span> <span class="kw">and</span> bail_out
+            raise the_warning
+         <span class="kw">else</span>
+            the_warning
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+
+      <span class="kw">def</span> klass.raise_an_error(the_error, src: <span class="dt">CallerId</span>.my_caller, now: <span class="dv">false</span>, 
+            esc: <span class="dv">nil</span>, bail_out: <span class="dv">true</span>
+         )
+         esc ||= <span class="dt">DbgMgr</span>.esc
+         <span class="dt">DbgMgr</span>.err the_error, my_caller: src, esc: esc, now: now
+         <span class="kw">if</span> bail_out
+            <span class="kw">if</span> the_error.is_a? <span class="dt">Exception</span>
+               raise the_error
+            <span class="kw">else</span>
+               raise <span class="dt">RuntimeError</span> the_error
+            <span class="kw">end</span>
+         <span class="kw">else</span> <span class="co"># return the error, whatever it is</span>
+            the_error
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span> <span class="co"># self.configure()</span>
+</code></pre>
+<p>We’re now done the <code>DbgClient</code>’s class methods. It has two sets of instance methods that are analogous to the corresponding sets of class methods the <a href="#configure"><code>configure</code></a> defines for <code>klass</code>.</p>
+<h3 id="instance-methods-turning-streaming-on-and-off">Instance methods: turning streaming on and off</h3>
+<p>There is really one essential feature that I’ve added to <code>DbgMgr</code>’s repertoire: the ability to turn debugging on and off for individual instances of the class. Suppose, for example, that you have a very large array and only want to collect output for every thousandth item so that you have a chance of getting a overview. Or you only want debugging for items whose price changed in the last hour? The next few methods implement this.</p>
+<p>There is one subtle point here. I don’t create an instance variable <code>@debugging_on</code> unless you call the method <code>debugging_on=</code> to assign a value explicitly. Call this only if you really want to override the class’s active status. If you have a large collection of objects, you probably don’t want to add an unnecessary instance variable to each.</p>
+<h4 id="debugging_on"><code>debugging_on?()</code></h4>
+<p>returns <code>true</code> if either you’ve explicitly said you want it on for this instance, or the class-wide default is <code>true</code>.</p>
+<h4 id="debugging_onboolean"><code>debugging_on=(boolean)</code></h4>
+<p>turns debugging on or off for this instance variable. This is not without cost: as I pointed out above, I don’t create an instance variable to hold the state unless you call this method. As usual, the argument may be any value for which the method <a href="sysutils.html#boolean_conversions"><code>to_b</code></a> does not raise an error–<em>e.g.</em> the string <code>&quot;no&quot;</code> is a perfectly good false value.</p>
+<h4 id="debugging_key_onkey"><code>debugging_key_on?(key)</code></h4>
+<p>returns <code>true</code> if the instance variable allows any debugging output, and <code>key</code> is currently active.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> debugging_on?()
+      <span class="kw">if</span> instance_variable_defined?(<span class="st">:@debugging_on</span>) <span class="co"># instance attribute overrides the default</span>
+         <span class="ot">@debugging_on</span>
+      <span class="kw">else</span>
+         <span class="dt">DbgClient</span>::active? <span class="dv">self</span>.class
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> debugging_on=(boolean)
+      <span class="ot">@debugging_on</span> = boolean.to_b
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> debugging_key_on?(key)
+      (<span class="dt">DbgMgr</span>.active? key) <span class="kw">and</span> debugging_on?
+   <span class="kw">end</span>
+</code></pre>
+<h3 id="instance-methods-writing-output">Instance methods: writing output</h3>
+<p>These methods are analogous to the class methods described above. The names are <em>not</em> exactly the same, even though in principle, they could be. The reason is just to provide a visual clue about who’s calling. The parameters are the same as for the analogous class methods, but I’ve reproduced their descriptions here for convenience’s sake.</p>
+<h4 id="write_dbg_streammsg-parameters"><code>write_dbg_stream(msg, <i>parameters</i>)</code></h4>
+<p>write <code>msg</code> out to the debugging stream if its guard key is active. The remaining parameters are all keyword:value parameters:</p>
+<blockquote><table>
+<tr><td>
+<code>key: nil</code>
+</td><td>
+the guard key–if nil, use the default key
+</td></tr>
+<tr><td>
+<code>pre: false</code>
+</td><td>
+if true, enclose the message in an HTML “pre”
+</td></tr>
+<tr><td>
+<code>now: false</code>
+</td><td>
+if “true”, flush the stream <em>now!</em>
+</td></tr>
+<tr><td>
+<code>src: CallerId.my_caller</code>
+</td><td>
+the name of the sender of the output
+</td></tr>
+<tr><td>
+<code>style: nil</code>
+</td><td>
+the name of a CSS style class that overrides the default
+</td></tr>
+<tr><td>
+<code>esc: false</code>
+</td><td>
+if true, HTML-encode the output text
+</td></tr>
+</table></blockquote>
+
+<p>If the value of <code>now</code> is a non-empty string, that string will be used as the “after” message for the flush.</p>
+<h4 id="issue_warningthe_warning-parameters"><code>issue_warning(the_warning, <i>parameters</i>)</code></h4>
+<p>streams <code>the_warning</code> out in a message whose CSS style is unique to warnings. The warning may be either a string or an <code>Exception</code>. The remaining parameters are all keyword:value paramters, essentially the same as for <code>write_dbg_stream</code>:</p>
+<blockquote><table>
+<tr><td>
+<code>now: false</code>
+</td><td>
+if “true”, flush the stream <em>now!</em>
+</td></tr>
+<tr><td>
+<code>src: CallerId.my_caller</code>
+</td><td>
+the name of the sender of the output
+</td></tr>
+<tr><td>
+<code>bail_out: false</code>
+</td><td>
+if true and if the warning is an Exception, raise it
+</td></tr>
+<tr><td>
+<code>esc: false</code>
+</td><td>
+if true, HTML-encode the output text
+</td></tr>
+</table></blockquote>
+
+<p>There is no guard key: warnings are serious business and get streamed <em>somewhere</em>, regardless.</p>
+<h4 id="raise_errorthe_error-parameters"><code>raise_error(the_error, <i>parameters</i>)</code></h4>
+<p>expects either a string or an <code>Exception</code> for <code>the_error</code>, publishes the text of the error (and a backtrace, if available) to the debugging stream, and then if <code>bail_out</code> is <code>true</code> does one of two things: if <code>the_error</code> is a string, a <code>RuntimeError</code> is raised with <code>the_error</code> as the message; otherwise, <code>the_error</code> itself is raised.</p>
+<p>The parameters for <code>raise_error</code> are the same as those for <code>issue_warning</code>, except that the default for <code>bail_out</code> is <code>true</code> for errors (and <code>false</code> for warnings).</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> write_dbg_stream(msg, key: <span class="dv">nil</span>, pre: <span class="dv">false</span>,
+         now: <span class="dv">false</span>, src: <span class="dt">CallerId</span>.my_caller, style: <span class="dv">nil</span>, esc: <span class="dv">nil</span>
+      )
+      key ||= <span class="dt">DbgClient</span>::key <span class="dv">self</span>.class 
+      <span class="kw">if</span> <span class="kw">not</span> debugging_key_on? key <span class="kw">then</span> <span class="kw">return</span> <span class="dv">false</span> <span class="kw">end</span>
+      esc ||= <span class="dt">DbgMgr</span>.esc
+      <span class="kw">if</span> pre
+         <span class="dt">DbgMgr</span>.pre key, msg, my_caller: src, style: style, esc: esc
+      <span class="kw">else</span>
+         <span class="dt">DbgMgr</span>.put key, msg, my_caller: src, style: style, esc: esc
+      <span class="kw">end</span>
+      <span class="kw">if</span> now 
+         <span class="kw">if</span> now.is_a? <span class="dt">String</span> <span class="kw">then</span> <span class="dt">DbgMgr</span>.flush after: now
+         <span class="kw">else</span> <span class="dt">DbgMgr</span>.flush
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="dv">true</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> issue_warning(the_warning, src: <span class="dt">CallerId</span>.my_caller, now: <span class="dv">false</span>,
+         esc: <span class="dv">nil</span>, bail_out: <span class="dv">false</span>
+      )
+      esc ||= <span class="dt">DbgMgr</span>.esc
+      <span class="dt">DbgMgr</span>.warn the_warning.to_s, my_caller: src, esc: esc, now: now
+      <span class="kw">if</span> the_warning.is_a? <span class="dt">Exception</span> <span class="kw">and</span> bail_out
+         raise the_warning
+      <span class="kw">else</span>
+         the_warning
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> raise_error(the_error, src: <span class="dt">CallerId</span>.my_caller, now: <span class="dv">false</span>, 
+         esc: <span class="dv">nil</span>, bail_out: <span class="dv">true</span>
+      )
+      esc ||= <span class="dt">DbgMgr</span>.esc
+      <span class="dt">DbgMgr</span>.err the_error, my_caller: src, esc: esc, now: now
+      <span class="kw">if</span> bail_out
+         <span class="kw">if</span> the_error.is_a? <span class="dt">Exception</span>
+            raise the_error
+         <span class="kw">else</span>
+            raise <span class="dt">RuntimeError</span> the_error
+         <span class="kw">end</span>
+      <span class="kw">else</span> <span class="co"># return the error, whatever it is</span>
+         the_error
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+</body>
+</html>

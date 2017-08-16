@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>DbgMgr: filtered debugging output management</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title"><code>DbgMgr</code>: filtered debugging output management</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">December, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#DbgMgr_class">The <code>DbgMgr</code> class</a></li>
+<li><a href="#a-naive-first-step-using-patterns-as-guards">A Naive First Step: Using Patterns as Guards</a></li>
+<li><a href="#managing-the-active-pattern-set">Managing the active pattern set</a><ul>
+<li><a href="#add_patterns-args"><code>add_patterns( *args )</code></a></li>
+<li><a href="#remove_patterns-args"><code>remove_patterns( *args )</code></a></li>
+</ul></li>
+<li><a href="#the-active-key-tests">The active key tests</a><ul>
+<li><a href="#active-args"><code>active?( *args )</code></a></li>
+<li><a href="#all_active-args"><code>all_active?( *args )</code></a></li>
+</ul></li>
+<li><a href="#buffering-the-output">Buffering the Output</a><ul>
+<li><a href="#openpath.-asis-false-esc-false"><code>open(path=‘.’, asis: false, esc: false)</code></a></li>
+</ul></li>
+<li><a href="#important-output">Important output</a><ul>
+<li><a href="#add_important"><code>add_important_patterns(*args)</code></a></li>
+<li><a href="#not_important"><code>not_important(*args)</code></a></li>
+</ul></li>
+<li><a href="#writing-output">Writing output</a><ul>
+<li><a href="#dbgmgr_esc"><code>DbgMgr.esc [= yes_or_no]</code></a></li>
+<li><a href="#putkey-text-esc-dbgmgr.esc-my_caller-caller_name"><code>put(key, text, esc: DbgMgr.esc, my_caller: <i>caller_name</i>)</code></a></li>
+<li><a href="#prekey-text-esc-dbgmgr.esc-my_caller-caller_name"><code>pre(key, text, esc: DbgMgr.esc, my_caller: <i>caller_name</i>)</code></a></li>
+<li><a href="#errerror-esc-dbgmgr.esc-my_caller-caller_name-now-false-bail_out-true"><code>err(error, esc: DbgMgr.esc, my_caller: <i>caller_name</i>, now: false, bail_out: true)</code></a></li>
+<li><a href="#warntext-esc-dbgmgr.esc-my_caller-caller_name-now-false-bail_out-true"><code>warn(text, esc: DbgMgr.esc, my_caller: <i>caller_name</i>, now: false, bail_out: true)</code></a></li>
+</ul></li>
+<li><a href="#html_output">HTML output for the buffered messages</a><ul>
+<li><a href="#group_by"><code>group_by [= field] </code></a></li>
+<li><a href="#add_stylecss_defns"><code>add_style(css_defns)</code></a></li>
+<li><a href="#flushbefore-after-asis-false"><code> flush(before: “”, after: “”, asis: false)</code></a></li>
+<li><a href="#close"><code>close()</code></a></li>
+<li><a href="#finalizeexception"><code>finalize(exception)</code></a></li>
+</ul></li>
+<li><a href="#dbgmessage">The <code>DbgMessage</code> class</a><ul>
+<li><a href="#message_creation">Static message creation methods</a><ul>
+<li><a href="#ordinarykey-nil-index-nil-key-nil-caller-nil-text-nil-style-nil"><code>ordinary(key: nil, index: nil, key: nil, caller: nil, text: nil, style: nil)</code></a></li>
+<li><a href="#prioritykey-nil-index-nil-key-nil-caller-nil-text-nil-style-nil"><code>priority(key: nil, index: nil, key: nil, caller: nil, text: nil, style: nil)</code></a></li>
+<li><a href="#errindex-nil-caller-nil-error-nil-style-nil"><code>err(index: nil, caller: nil, error: nil, style: nil)</code></a></li>
+<li><a href="#warnindex-nil-caller-nil-text-nil-style-nil"><code>warn(index: nil, caller: nil, text: nil, style: nil)</code></a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode ruby"><code class="sourceCode ruby"></code></pre>
+<h2 id="DbgMgr_class">The <code>DbgMgr</code> class</h2>
+<p>The <code>DbgMgr</code> class plays the role that would be played in other languages by a class with a globally visible singleton instance. The singleton’s job is to be a central clearing house for managing debugging output. (See <a href="examples/naive_singleton.rb">naive_singleton.rb</a> for some thoughts on singletons in Ruby.) The goal is to make it easy to leave extensive debugging code in place while still being easily selective as to what actually gets written out without having to modify the source code–<em>e.g.</em> using command-line arguments to turn output on (or off!).</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">require <span class="st">&quot;callerid&quot;</span>
+require <span class="st">&quot;fileutils&quot;</span>
+require <span class="st">&quot;htmlentities&quot;</span>
+require <span class="st">'sysutils'</span>
+require <span class="st">&quot;wildcardlookup&quot;</span>
+
+<span class="kw">class</span> <span class="dt">DbgMgr</span>
+   prohibit_subclassing!
+
+<span class="kw">private</span>
+   <span class="kw">def</span> <span class="dv">self</span>.raise_NoCopyError(method_name)
+      msg = <span class="st">&quot;DbgMgr is intended for use as a singleton: '</span><span class="ot">#{</span>method_name<span class="ot">}</span><span class="st">' is not allowed!&quot;</span>
+      raise <span class="dt">NotImplementedError</span>, msg
+   <span class="kw">end</span>
+<span class="kw">public</span>
+</code></pre>
+<h2 id="a-naive-first-step-using-patterns-as-guards">A Naive First Step: Using Patterns as Guards</h2>
+<p>One of the standard problems of adding enough debugging output to a program, almost no matter how modest the program, is that it is hard not to be too verbose–so verbose that becomes hard to see the trees for the forest. There are probably more sophisticated ways to filter the output than I am implementing here, but these two work for me well enough almost all of the time.</p>
+<p>The simplest approach just uses a <a href="WildCardLookup.html"><code>WildCardLookup</code></a> to maintain a list of patterns for keywords that name sets of debug print statements or other code needed only for debugging. You bootstrap the process with initial key patterns to honor, as in:</p>
+<pre class="exampleCode">
+
+      DbgMgr.add_patterns(&quot;pattern1,pattern2,...&quot;) # comma-separated list is okay
+      # or if you prefer, an array
+      DbgMgr.add_patterns([&quot;pattern1&quot;, &quot;pattern2&quot;, ...])
+      # or if you prefer, you can just pass each pattern as its own argument
+      DbgMgr.add_patterns(&quot;pattern1&quot;, &quot;pattern2&quot;, ...)
+
+</pre>
+
+<p>The idiom for writing debugging code is then</p>
+<pre class="exampleCode">
+
+      # these two calls do something only if &quot;io&quot; matches a pattern we are honoring now
+      DbgMgr.put &quot;io&quot;, &quot;IO, IO, it's off to work I go!&quot; # puts the message out to STDOUT
+      if DbgMgr.active? &quot;io&quot;  
+         # whatever other sort of work your debugging requires goes here
+      end
+
+</pre>
+
+<p>Only those statements guarded by keywords that match patterns which you have asked the <code>DbgMgr</code> to add are executed. You can imagine programs with keys <code>&quot;io&quot;</code>, <code>&quot;user&quot;</code>, <code>&quot;cart&quot;</code>, <code>&quot;history&quot;</code>, and the like, that partition the debugging output into semantically sensible groups, only one of which is likely to be of interest at any one time.</p>
+<p>The example of <code>&quot;io&quot;</code>, <code>&quot;user&quot;</code>, <em>etc.</em> is a little misleading in that it might tempt you to think that one could use a plain vanilla <code>Set</code> to track the keys. That turns out to be too restrictive in practice. It is useful, particularly in the early going of the debugging game, to be able to turn on a number of related keys, like <code>&quot;user_name&quot;</code>, <code>&quot;user_email&quot;</code>, etc. The wild-card pattern <code>&quot;user_*&quot;</code> does what you need. Once the code is a little more stable, though, even<code>&quot;user_*&quot;</code> may spit out far too much for whatever problem you are chasing down, so you can enter just the one or two individual <code>&quot;user_...&quot;</code> keys that you need.</p>
+<p>At most one “<code>*</code>” can appear in a pattern. It may appear anywhere in the pattern. <em>If you add “<code>*</code>” itself as a pattern, every key will be honored.</em></p>
+<blockquote>
+<p><strong>A Word About Words</strong>: As in <code>WildCardLookup.rb</code>, I will always talk about “patterns” being held to be matched later by “keys”. “keys” appear as guards, “patterns” are used to check those “keys”. Not every pattern need have a wild-card, of course, and while it would not be unreasonable to call such a wild-card free pattern a “key”, I will still call it a “pattern”.</p>
+</blockquote>
+<h2 id="managing-the-active-pattern-set">Managing the active pattern set</h2>
+<p>You can add patterns at any time by calling <code>add_patterns</code>, and you can remove patterns by calling <code>remove_patterns</code>. It is okay to try to add a pattern that is already present, or to try to remove a pattern that is not present: both are just treated as a “no-ops”. Here are the signatures for these calls:</p>
+<h4 id="add_patterns-args"><code>add_patterns( *args )</code></h4>
+<h4 id="remove_patterns-args"><code>remove_patterns( *args )</code></h4>
+<p>In both of these calls, there are one or more arguments, each of which may be either an <code>Array</code> of keys or a <code>String</code> that is a single key or a comma-separated list of keys. The typical calls are with a single argument, either a genuine list (<em>i.e.</em> an <code>Array</code>) or a string.</p>
+<p>As will be seen below, if you ask to have your output buffered, I provide two sorts of output: “ordinary” and “important” . Important output will be shown before ordinary output if you ask for the buffered messages to be grouped by priority. The different priorities each have their own look in the HTML output.</p>
+<blockquote>
+<p>One way to say “the keys that match this pattern are important” is for the pattern to begin with a “<code>+</code>”–for example, “<code>+io</code>”. The “<code>+</code>” will be stripped and “<code>io</code>” will be added to both the active and important pattern sets. The reason for this almost too cute syntax is that I want it to be as easy as possible to tune the debugging output from the command line. My own convention is to use <code>-dbg</code> as the command line option whose value is the list of patterns to honor. Thus <code>-dbg</code> <code>'db_*,+in_*'</code> registers a pair of patterns with <code>DbgMgr</code>. The first pattern, <code>db_*</code>, will be treated as naming ordinary output, but, thanks to the leading “<code>+</code>”, the second, <code>in_*</code>, will name important output. See also the method <a href="#add_important"><code>add_important_patterns</code></a>.</p>
+</blockquote>
+<blockquote>
+<p><em>Notice the single quotes around <code>-dbg</code>’s value <code>'db_*,+in_*'</code>. You need them to keep the command-line shell from expanding the stars.</em></p>
+</blockquote>
+<p>Removing a pattern does just that: removes it–from both the ordinary and important sets. If what you want to do is to keep a pattern <code>'p'</code> active, but remove it from the “important” set, use the call <a href="#not_important"><code>not_important 'p'</code></a>.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> <span class="dv">self</span>.new(*args) 
+      raise <span class="dt">NotImplementedError</span>, <span class="st">'DbgMgr has no instances!'</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.clone(freeze: <span class="dv">true</span>)
+      raise_NoCopyError(<span class="st">&quot;clone&quot;</span>)
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.dup()
+      raise_NoCopyError(<span class="st">&quot;dup&quot;</span>)
+   <span class="kw">end</span>
+
+   <span class="kw">class</span> &lt;&lt; <span class="dv">self</span>
+      <span class="ot">attr_reader</span> <span class="st">:esc</span>, <span class="co"># if true, escape HTML entities in the output (esc is false by default)</span>
+         <span class="st">:path</span>,      <span class="co"># if non-nil, the file to which to write the buffer</span>
+         <span class="st">:styles</span>,    <span class="co"># user-added CSS definitions</span>
+         <span class="st">:count</span>,     <span class="co"># a cumulative count of messages written--not the buffer.length</span>
+         <span class="st">:group_by</span>   <span class="co"># how to group the messages before sorting by time of arrival.</span>
+      <span class="kw">private</span>
+      <span class="ot">attr_accessor</span> <span class="st">:active</span>,  <span class="co"># the &quot;set&quot; of live keys</span>
+         <span class="st">:important</span>, <span class="co"># a subset of the active flags that deserved to be seen first</span>
+         <span class="st">:buffer</span>     <span class="co"># when buffered debugging is done, the list of messages</span>
+      <span class="ot">attr_writer</span> <span class="st">:path</span>, <span class="co"># if non-nil, the file to which to write the buffer</span>
+         <span class="st">:styles</span>,    
+         <span class="st">:count</span>      
+   <span class="kw">end</span>
+   <span class="ot">@active</span> = <span class="dt">WildCardLookup</span>.new
+   <span class="ot">@important</span> = <span class="dt">WildCardLookup</span>.new
+
+   <span class="ot">@buffer</span> = []
+   <span class="ot">@count</span> = <span class="dv">0</span>
+   <span class="ot">@group_by</span> = <span class="st">:time</span>
+
+   <span class="ot">@path</span> = <span class="dv">nil</span>
+   <span class="ot">@styles</span> = <span class="st">''</span>
+   <span class="ot">@esc</span> = <span class="dv">false</span>
+   <span class="dt">MESSAGE_GROUPS</span> = <span class="dt">Set</span>.new <span class="ot">%</span>i<span class="ot">[</span><span class="st">caller key match priority time</span><span class="ot">]</span> <span class="co"># for grouping buffered message sets</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.add_patterns(*args)
+      args.each <span class="kw">do</span> |arg|
+         <span class="kw">if</span> arg.kind_of? <span class="dt">String</span>
+            raw_patterns = arg.split <span class="st">','</span>
+            raw_patterns.each <span class="kw">do</span> |pattern|
+               <span class="kw">if</span> pattern[<span class="dv">0</span>] == <span class="st">'+'</span>
+                  real_pattern = pattern[<span class="dv">1</span> .. -<span class="dv">1</span>]
+                  <span class="ot">@active</span>.add_pattern real_pattern
+                  <span class="ot">@important</span>.add_pattern real_pattern
+               <span class="kw">elsif</span> pattern[<span class="dv">0</span>] == <span class="st">'@'</span>
+                  group = pattern[<span class="dv">1</span> .. -<span class="dv">1</span>]
+                  found = <span class="dt">MESSAGE_GROUPS</span>.find { |name| name.to_s.begin_with? group}
+                  <span class="kw">if</span> found.nil?
+                     <span class="dv">self</span>.warn(<span class="st">&quot;DbgMgr.add_patterns&quot;</span>, <span class="st">&quot;unknown message group: '</span><span class="ot">#{</span>group<span class="ot">}</span><span class="st">'&quot;</span>)
+                     <span class="ot">@active</span>.add_pattern pattern
+                  <span class="kw">else</span>
+                     <span class="ot">@group_by</span> = found
+                  <span class="kw">end</span>
+               <span class="kw">else</span>
+                  <span class="ot">@active</span>.add_pattern pattern
+               <span class="kw">end</span>
+            <span class="kw">end</span> <span class="co"># do |pattern|</span>
+         <span class="kw">elsif</span> arg.kind_of? <span class="dt">Array</span>
+            add_patterns *arg
+         <span class="kw">else</span> 
+            raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;Unexpected argument type, </span><span class="ot">#{</span>arg<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="dv">nil</span> 
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.remove_patterns(*args)
+      args.each <span class="kw">do</span> |arg|
+         <span class="kw">if</span> arg.is_a? <span class="dt">String</span>
+            patterns = arg.split(<span class="st">','</span>)
+            <span class="ot">@active</span>.remove_patterns patterns
+            <span class="ot">@important</span>.remove_patterns patterns
+         <span class="kw">elsif</span> arg.is_a? <span class="dt">Array</span> 
+            remove_patterns *arg
+         <span class="kw">else</span>
+            raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;Unexpected argument type, </span><span class="ot">#{</span>arg<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+</code></pre>
+<h2 id="the-active-key-tests">The active key tests</h2>
+<p>The guard calls for check whether keys are active come in two flavors:</p>
+<h4 id="active-args"><code>active?( *args )</code></h4>
+<p>has one or more arguments, each of which may be a single key, a comma-separated list of keys, or an <code>Array</code> of keys. The call returns <code>true</code> if any of the keys matches a pattern in the active list.</p>
+<h4 id="all_active-args"><code>all_active?( *args )</code></h4>
+<p>has the same arguments as <code>active?</code>, but the test is that <em>all</em> its keys must match some active pattern.</p>
+<p><strong>PROGRAMMING NOTE:</strong> Why the comma-separated lists? Or to put it less kindly, why is “<code>active?</code> <code>'a','b'</code>” any better or worse than “<code>active?</code> <code>'a,b'</code>”? The original motivation was making life easy for a command-line handler to turn on debugging. My vision was that the command-line would have a single parameter <code>-dbg a,b,c,...</code> that named the patterns to turn on, and the comma-separated value is more convenient in the context, if for no other reason than it being easier to parse the command-line knowing that only the next argument in the command-ine is being consumed. So why not let the handler pass <code>&quot;a,b,c,...&quot;</code> directly to <code>DbgMgr</code>?</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> <span class="dv">self</span>.active?(*args)
+      args.each <span class="kw">do</span> |arg|
+         <span class="kw">if</span> arg.is_a? <span class="dt">String</span> 
+            all = arg.split(<span class="st">','</span>)
+            <span class="kw">return</span> <span class="ot">@active</span>.any_matched? *all
+         <span class="kw">elsif</span> arg.is_a? <span class="dt">Array</span> <span class="kw">and</span> active? *arg <span class="kw">then</span> <span class="kw">return</span> <span class="dv">true</span>
+         <span class="kw">else</span> raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;Unexpected argument type, </span><span class="ot">#{</span>arg<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="dv">false</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.all_active?(*args)
+      args.each <span class="kw">do</span> |arg|
+         <span class="kw">if</span> arg.is_a? <span class="dt">String</span> <span class="kw">and</span> <span class="kw">not</span> <span class="ot">@active</span>.all_matched? arg.split(<span class="st">','</span>) <span class="kw">then</span> <span class="kw">return</span> <span class="dv">false</span>
+         <span class="kw">elsif</span> arg.is_a? <span class="dt">Array</span> <span class="kw">and</span> <span class="kw">not</span> all_active? *arg <span class="kw">then</span> <span class="kw">return</span> <span class="dv">false</span>
+         <span class="kw">else</span> raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;Unexpected argument type, </span><span class="ot">#{</span>arg<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="dv">true</span>
+   <span class="kw">end</span>
+</code></pre>
+<h2 id="buffering-the-output">Buffering the Output</h2>
+<p>The approach of just using guarded debugging code shown above is adequate for a lot of projects, but once things get more complicated, one often needs something more flexible, not to say more robust. Among the things you might want:</p>
+<ol type="1">
+<li><p><em>Sorting on some basis other than when a message was generated:</em> The patterns and the actual keys used for filtering can be also used to sort the messages into groups that are displayed contiguously in the final output. This implies buffering the debugging output. Temporal order is not the only interesting one.</p></li>
+<li><p><em>Streaming somewhere other than <code>STDOUT</code>:</em> One may not want to clutter the standard output or error stream with kilobytes or worse of debugging output, if only in order to avoid hiding genuine output or error messages that you know will be sent to the console’s display. Creating a log file with its own output stream solves this problem.</p></li>
+<li><p><em>HTML output for better readability:</em> Once you decide to create a log file, you might as well make it an HTML file and use distinct styles for real error messages, warnings, and (last, but not least) plain-old debugging output.</p></li>
+<li><p><em>Signaling “important” debugging output:</em> Similarly, you might wish to signal some of the debugging output as “high priority”. Once we are in HTML-land, some simple CSS will carry the day here. One can create as many message types as is convenient by assigning each type its own CSS class.</p></li>
+</ol>
+<p>At the heart of implementing all of these desiderata is buffering the output and streaming it to a file, rather than streaming it immediately to the standard output. Calling the method <code>DbgMgr.open</code> signals that this is what you wish:</p>
+<h4 id="openpath.-asis-false-esc-false"><code>open(path=‘.’, asis: false, esc: false)</code></h4>
+<p>The first argument, <code>path</code>, names a directory. If no path is provided, the current working directory will be used. If the keyword second argument, <code>asis</code>, is true, <code>path</code> will be used as the directory path “as is”. Otherwise, if <code>path</code> does not end in <code>/log</code>, <code>/log</code> will be appended and used as the directory path. The default is to append <code>/log</code>. The final argument, <code>esc</code>, sets the default for whether to replace characters that affect HTML syntax with the corresponding named HTML entities–e.g. whether or not to replace <code>&lt;</code> with <code>&amp;lt;</code>. The default is to reproduce the output as is: no escapes, the caller must have done that job. The reason for this default is to allow (not to say encourage) HTML markup to be put in the output easily.</p>
+<p>The principal effect of the call is to create an HTML file, either in the directory that <code>path</code> names or in <code>path</code>’s <code>log</code> subdirectory. The name of the file will have the format <code>dbg</code><em><code>date_time</code></em><code>.html</code></code>, <em>e.g.</em> <code>dbg161030_174246.html</code> for a file created at 17:42:46 local time on October 30-th, 2016.</p>
+<p>The return value is the class <code>DbgMgr</code>.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">def</span> <span class="dv">self</span>.open(path=<span class="st">'.'</span>, asis: <span class="dv">false</span>, esc: <span class="dv">false</span>)
+      abspath = <span class="dt">File</span>.join <span class="dt">File</span>.expand_path path
+      <span class="kw">if</span> <span class="kw">not</span> asis <span class="kw">and</span> <span class="kw">not</span> abspath.end_with? <span class="st">&quot;</span><span class="ot">#{</span><span class="dt">File</span>::<span class="dt">SEPARATOR</span><span class="ot">}</span><span class="st">log&quot;</span>
+         abspath = <span class="dt">File</span>.join abspath, <span class="st">&quot;</span><span class="ot">#{</span><span class="dt">File</span>::<span class="dt">SEPARATOR</span><span class="ot">}</span><span class="st">log&quot;</span>
+      <span class="kw">end</span>
+      <span class="kw">if</span> <span class="ot">@path</span> == abspath <span class="kw">then</span> <span class="kw">return</span> <span class="dv">self</span> <span class="co"># caller knows last file is the only one! </span>
+      <span class="kw">elsif</span> <span class="kw">not</span> <span class="ot">@path</span>.nil?
+         msg = <span class="st">&quot;Already logging to </span><span class="ot">#{@path}</span><span class="st">, cannot use </span><span class="ot">#{</span>abspath<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="dt">STDERR</span>.puts msg
+         warn msg
+         <span class="dv">self</span>
+      <span class="kw">end</span>
+      <span class="dt">File</span>.assure_directory(abspath)
+      <span class="ot">@path</span> = <span class="dt">File</span>.join abspath, <span class="st">&quot;dbg</span><span class="ot">#{</span><span class="dt">Time</span>.now.strftime <span class="st">'%y%m%d_%H%M%S'</span><span class="ot">}</span><span class="st">.html&quot;</span>
+      <span class="dt">File</span>.open(<span class="ot">@path</span>, mode: <span class="st">'w'</span>) <span class="kw">do</span> |stream|
+         stream.puts <span class="st">&quot;&lt;!DOCTYPE html&gt;\n&lt;html&gt;\n&lt;head&gt;&quot;</span>
+         stream.puts <span class="st">&quot;   &lt;meta charset=\&quot;utf-8\&quot;&gt;&quot;</span>
+         stream.puts <span class="st">&quot;   &lt;meta name=\&quot;generator\&quot; content=\&quot;rubymd\&quot;&gt;&quot;</span>
+         stream.puts <span class="st">&quot;   &lt;style type=\&quot;text/css\&quot;&gt;&quot;</span>
+         stream.puts <span class="dt">DbgMessage</span>::<span class="dt">STYLES</span>
+         stream.puts <span class="dt">ADMIN_STYLES</span>
+         stream.puts <span class="st">&quot; </span><span class="ot">#{@styles}</span><span class="st">\n    &lt;/style&gt;\n&lt;/head&gt;\n&lt;body&gt;\n&lt;code&gt;&quot;</span> 
+      <span class="kw">end</span>
+      <span class="ot">@esc</span> = esc
+      <span class="ot">@styles</span> = <span class="st">''</span>
+      <span class="dv">self</span>
+   <span class="kw">end</span></code></pre>
+<h2 id="important-output">Important output</h2>
+<p>The process for managing the active filtering patterns is the same, whether you are buffering or not. Once we are buffering output, though, we can mark some of it as more important–“higher priority”– than the rest.</p>
+<h4 id="add_important"><code>add_important_patterns(*args)</code></h4>
+<p>both registers its arguments as active patterns and marks them as “important”. Each argument, as usual, may either be a list of patterns or a <code>String</code> that is a single pattern or a comma-separated list of patterns.</p>
+<h4 id="not_important"><code>not_important(*args)</code></h4>
+<p>leaves its arguments as active keys, but demotes them to “ordinary” status. The arguments are the same as those for <code>add_important_patterns</code>.</p>
+<p>If you want to remove an important pattern, you need not demote it first: calling <code>remove_pattern</code> will remove it from both the active and the important lists.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">def</span> <span class="dv">self</span>.add_important_patterns(*args)
+      args.each <span class="kw">do</span> |arg|
+         <span class="kw">if</span> arg.is_a? <span class="dt">String</span>
+            add_patterns arg
+            <span class="ot">@important</span>.add_patterns arg.split(<span class="st">','</span>)
+         <span class="kw">elsif</span> arg.is_a? <span class="dt">Array</span> 
+            add_important_patterns *arg
+         <span class="kw">else</span>
+            raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;Unexpected argument type: </span><span class="ot">#{</span>arg.class<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.not_important(*args)
+      args.each <span class="kw">do</span> |arg|
+         <span class="kw">if</span> arg.is_a? <span class="dt">String</span>
+            <span class="ot">@important</span>.remove_patterns arg.split(<span class="st">','</span>)
+         <span class="kw">elsif</span> arg.is_a? <span class="dt">Array</span> 
+            not_important *arg
+         <span class="kw">else</span>
+            raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;Unexpected argument type: </span><span class="ot">#{</span>arg.class<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span></code></pre>
+<h2 id="writing-output">Writing output</h2>
+<h4 id="dbgmgr_esc"><code>DbgMgr.esc [= yes_or_no]</code></h4>
+<p><code>DbgMgr.esc</code> is the default for whether text is escaped (or as it is sometimes called “HTML encoded”) before being written to the HTML file. The right hand side of the assignment is a boolean, or any value that the method <a href="sysutils.html#boolean_conversions">to_b</a> is willing to convert to a boolean. Initially the default is that text is <em>not</em> escaped. Each of the methods that actually write a message allow you to specify for that message whether or not to escape it.</p>
+<p>There are four methods you can call to write a message, depending on the kind of message and how you want it to appear. All four have three keyword parameters</p>
+<blockquote>
+<p><em><code>esc</code></em> is a boolean that, if true and if we are buffering the output, causes characters in the text for which there are named HTML entities, like “<code>&lt;</code>”, to be escaped. <code>DbgMgr.esc</code> is the default value for this boolean.</p>
+</blockquote>
+<blockquote>
+<p><em><code>my_caller</code></em> is a string that identifies the method name you want as the sender of the message. You do not have to provide this, unless you do <em>not</em> want the actual caller’s name to appear, but some other name. I’ll compute your caller’s name for you if you do not supply this.</p>
+</blockquote>
+<blockquote>
+<p><em><code>style</code></em> is a string that names a style class for the message. Each of the four calls supplies its own default, but there is no reason for you not to supply your own.</p>
+</blockquote>
+<p>Two of the methods, <code>err</code> and <code>warn</code>, deal with errors or potential problems. Both take a string as their first parameter, the message to be buffered. <code>err</code> also allows you to pass an exception as its first argument, rather than the message. If messages are <em>not</em> being buffered, the output for both these calls is sent directly to <code>STDERR</code>.</p>
+<p>For debugging output, there are also two calls, <code>put</code> and <code>pre</code>. Both take as their first argument the key whose active status determines whether the message is to be written. The second argument is the message. If output is <em>not</em> being buffered, the output is sent directly to <code>STDOUT</code>.</p>
+<h4 id="putkey-text-esc-dbgmgr.esc-my_caller-caller_name"><code>put(key, text, esc: DbgMgr.esc, my_caller: <i>caller_name</i>)</code></h4>
+<p>If the key is active, the text is added to the buffer to appear, eventually, as the content of an HTML <em><code>table</code></em> cell in the output document. If the key is ordinary–that is, it is not “important”–the appearance of this output is governed by the CSS style for the HTML element class “<code>.lp</code>” (“low priority”). You can include any HTML markup in the message that would be allowed for a <code>td</code> element. This includes refining the CSS style for <code>.lp</code> if that is what you would like, although it probably would be wiser to introduce a new style class.</p>
+<p>If the key is “important”, it uses the CSS style class “<code>.hp</code>” (high priority) and will sort earlier when the final output order is by priority.</p>
+<h4 id="prekey-text-esc-dbgmgr.esc-my_caller-caller_name"><code>pre(key, text, esc: DbgMgr.esc, my_caller: <i>caller_name</i>)</code></h4>
+<p>If the key is active, the text is added to the buffer, as with the call to <code>put</code>. The only difference is that, when html output is being generated, the text is made the content of a <code>pre</code> element (in order to preserve line breaks) before using it as the <code>td</code> element’s content. The CSS styles depend on the key in the same as those for <code>put</code>.</p>
+<blockquote>
+<p><em>Be careful here!</em> Just because you are inside a “<code>&lt;pre&gt;</code>” does not mean that characters like “<code>&lt;</code>” that are meaningful to HTML are not recognized as such and acted on. A good way to have your output vanish is to have an errant “<code>&lt;</code>”, since HTML simply ignores an unrecognized tag and its body, which in this case is the rest of your output. So either encode the stuff yourself, or pass in <code>true</code> for <code>esc</code> if there is any chance you might have trouble.</p>
+</blockquote>
+<h4 id="errerror-esc-dbgmgr.esc-my_caller-caller_name-now-false-bail_out-true"><code>err(error, esc: DbgMgr.esc, my_caller: <i>caller_name</i>, now: false, bail_out: true)</code></h4>
+<p>The intention here was to allow you to leave error messages raised by exceptions in sequence with the debugging output, but using an different CSS style, “<code>.er</code>”, so that they are clearly visible. The second argument, <code>error</code>, is either a <code>String</code> or an <code>Exception</code>. If it is an <code>Exception</code>, its traceback (“backtrace” in Ruby talk), will be included (in a separate HTML <code>&lt;pre&gt;</code> element, if we are buffering) that immediately follows its error message in the output.</p>
+<p>If <code>now</code> is <code>true</code> or a string of non-zero length, the manager’s buffer will be flushed after the message is added, and the <code>now</code> string will be used as the flush’s “after” argument. The default is not to flush, but to wait…</p>
+<p>If ‘bail_out’ is <code>true</code>, which is the default, raise the exception once it is buffered; otherwise, just return return the error. If <code>error</code> is a <code>String</code>, and you want to bail out, a <code>RuntimeError</code> with that string as its message will be raised.</p>
+<p><strong>WARNING</strong>: bailing out does <em>not</em> imply flushing the buffer. I see no reason to believe that you want a line drawn here in the debugging stream, because you may not be sorting the output by time generated. So: if you want it flushed, say so: “<code>now:</code> <code>True</code>”</p>
+<h4 id="warntext-esc-dbgmgr.esc-my_caller-caller_name-now-false-bail_out-true"><code>warn(text, esc: DbgMgr.esc, my_caller: <i>caller_name</i>, now: false, bail_out: true)</code></h4>
+<p>This is like <code>err</code>, except that it uses yet another CSS style, “<code>.wn</code>”, so that you can readily see that while something may be wrong, it is not as much a disaster as an <code>err</code> usually is. The default for <code>bail_out</code> is also different: it is <code>false</code>: no need to bail, unless the caller explicitly requests it.</p>
+<pre class="exampleCode">
+
+# if 'util' is a key, the next call's message gets written out
+DbgMgr.put &quot;util&quot;, &quot;This is useful&quot; 
+
+# The next call wants to show some output on two lines and clean up the &lt;
+DbgMgr.pre &quot;weird&quot;, &quot;Should #{x} &lt; #{y} hold?\n   #{x&lt;y}&quot;, esc: true 
+
+# Warnings always gets written: you need to know what they have to say!
+DbgMgr.warn &quot;Nothing serious here!&quot;
+
+# Exceptions also always get written.  In the following code, we never assigned 
+# to &quot;xyz&quot;, so we should have a NameError raised.  DbgMgr.err will take that
+# exception and produce output from there.
+begin
+   puts xyz 
+rescue Exception =&gt; ex
+   DbgMgr.err ex 
+end
+
+</pre>
+
+<p>The above, then, are the four styles of message that come “out of the box”. If you cannot live with this taxonomy, your own types can be added by extending <code>DbgMgr</code> with analogous class methods.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">def</span> <span class="dv">self</span>.esc= yes_or_no
+      <span class="ot">@esc</span> = yes_or_no.to_b
+   <span class="kw">end</span>
+ 
+   <span class="ot">@encoder</span> = <span class="dt">HTMLEntities</span>.new 
+   <span class="kw">def</span> <span class="dv">self</span>.html_encode text
+      <span class="ot">@encoder</span>.encode text, <span class="st">:named</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.put(key, text, 
+      esc: <span class="ot">@esc</span>, my_caller: <span class="dt">CallerId</span>.my_caller, style: <span class="dv">nil</span>
+   )
+      <span class="kw">if</span> key != <span class="st">&quot;dbgmgr&quot;</span> <span class="kw">and</span> <span class="ot">@active</span>.matched?(<span class="st">&quot;dbgmgr&quot;</span>)
+         tgt <span class="kw">= if</span> <span class="ot">@path</span>.nil? <span class="kw">then</span> <span class="st">&quot;STDOUT&quot;</span> <span class="kw">else</span> <span class="ot">@path</span> <span class="kw">end</span>
+         <span class="dv">self</span>.put <span class="st">&quot;dbgmgr&quot;</span>, <span class="st">&quot;put </span><span class="ot">#{</span>key<span class="ot">}</span><span class="st">? </span><span class="ot">#{@active</span>.matched? key<span class="ot">}</span><span class="st">, target </span><span class="ot">#{</span>tgt<span class="ot">}</span><span class="st">&quot;</span>
+      <span class="kw">end</span>
+      <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@active</span>.matched? key
+         <span class="dv">nil</span>
+      <span class="kw">elsif</span> <span class="ot">@path</span>.nil?
+         puts text
+         text
+      <span class="kw">else</span>
+         matcher = <span class="ot">@active</span>.weakest_pattern key
+         <span class="kw">if</span> esc <span class="kw">then</span> text = html_encode text <span class="kw">end</span>
+         <span class="ot">@count</span> += <span class="dv">1</span>
+         msg <span class="kw">= if</span> <span class="ot">@important</span>.matched? key
+                  <span class="dt">DbgMessage</span>.priority(
+                     key: key, match: matcher, index: <span class="ot">@count</span>, 
+                     <span class="dv">caller</span>: my_caller, body: text, style: style
+                  )
+               <span class="kw">else</span>
+                  <span class="dt">DbgMessage</span>.ordinary(
+                     key: key, match: matcher, index: <span class="ot">@count</span>,
+                     <span class="dv">caller</span>: my_caller, body: text, style: style
+                  )
+               <span class="kw">end</span>
+         <span class="ot">@buffer</span>.push msg
+         msg
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+   <span class="kw">def</span> <span class="dv">self</span>.err(error, esc: <span class="ot">@esc</span>, my_caller: <span class="dt">CallerId</span>.my_caller, now: <span class="dv">false</span>, bail_out: <span class="dv">true</span>)
+      <span class="kw">if</span> error.respond_to? <span class="st">:backtrace</span>
+         backtrace  = (error.backtrace <span class="kw">or</span> []).join(<span class="ch">'\n'</span>)
+      <span class="kw">else</span>
+         backtrace = <span class="st">''</span>
+      <span class="kw">end</span>
+      class_name <span class="kw">= if</span> error.kind_of? <span class="dt">Exception</span> <span class="kw">then</span> <span class="st">&quot;</span><span class="ot">#{</span>error.class<span class="ot">}</span><span class="st">: &quot;</span> <span class="kw">else</span> <span class="st">&quot;&quot;</span> <span class="kw">end</span>
+      <span class="kw">if</span> <span class="ot">@path</span>.nil?
+         <span class="dt">STDERR</span>.puts <span class="st">&quot;</span><span class="ot">#{</span>class_name<span class="ot">}#{</span>error<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">if</span> backtrace.length &gt; <span class="dv">0</span>
+            <span class="dt">STDERR</span>.puts backtrace
+         <span class="kw">end</span>
+      <span class="kw">else</span>
+         <span class="ot">@count</span> += <span class="dv">1</span>
+         text = class_name + error.to_s
+         <span class="kw">if</span> esc <span class="kw">then</span> text = html_encode text <span class="kw">end</span>
+         <span class="kw">if</span> backtrace.length &gt; <span class="dv">0</span>
+            text += <span class="st">&quot;\nTraceback:\n</span><span class="ot">#{</span>html_encode backtrace<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">end</span>
+         final_text = <span class="st">&quot;&lt;pre&gt;</span><span class="ot">#{</span>text<span class="ot">}</span><span class="st">&lt;/pre&gt;&quot;</span>
+         msg = <span class="dt">DbgMessage</span>.err index: <span class="ot">@count</span>, <span class="dv">caller</span>: my_caller, body: final_text
+         <span class="ot">@buffer</span>.push msg
+         <span class="kw">if</span> now 
+            <span class="kw">if</span> now.is_a? <span class="dt">String</span> <span class="kw">then</span> flush after: now
+            <span class="kw">else</span> <span class="dt">DbgMgr</span>.flush
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="kw">if</span> bail_out
+         <span class="kw">if</span> class_name.length &gt; <span class="dv">0</span>
+            raise error
+         <span class="kw">else</span>
+            raise <span class="dt">RuntimeError</span>(error.to_s)
+         <span class="kw">end</span>
+      <span class="kw">else</span>
+         msg
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+   <span class="kw">def</span> <span class="dv">self</span>.pre(key, text, esc: <span class="ot">@esc</span>, my_caller: <span class="dt">CallerId</span>.my_caller, style: <span class="dv">nil</span>)
+      <span class="co"># If the caller wants us to escape, we have to do it here so that our &quot;&lt;pre&gt;&quot;  and</span>
+      <span class="co"># &quot;&lt;/pre&gt;&quot; do not get escaped later.</span>
+      <span class="kw">if</span> active? key
+         <span class="kw">if</span> (<span class="ot">@path</span> != <span class="dv">nil</span>) <span class="kw">and</span> esc <span class="kw">then</span> text = html_encode text <span class="kw">end</span>
+         put key, <span class="st">&quot;&lt;pre&gt;</span><span class="ot">#{</span>text<span class="ot">}</span><span class="st">&lt;/pre&gt;&quot;</span>, esc: <span class="dv">false</span>, my_caller: my_caller
+      <span class="kw">end</span>
+   <span class="kw">end</span>  
+   <span class="kw">def</span> <span class="dv">self</span>.warn(warning, esc: <span class="dv">nil</span>, my_caller: <span class="dt">CallerId</span>.my_caller, now: <span class="dv">false</span>, bail_out: <span class="dv">false</span>)
+      <span class="kw">if</span> warning.respond_to? <span class="st">:backtrace</span>
+         backtrace  = (warning.backtrace <span class="kw">or</span> []).join(<span class="ch">'\n'</span>)
+      <span class="kw">else</span>
+         backtrace = <span class="st">''</span>
+      <span class="kw">end</span>
+      <span class="kw">if</span> <span class="ot">@path</span>.nil?
+         <span class="dt">STDERR</span>.puts warning
+         <span class="kw">if</span> backtrace.length &gt; <span class="dv">0</span>
+            <span class="dt">STDERR</span>.puts backtrace
+         <span class="kw">end</span>
+         warning
+      <span class="kw">else</span>
+         <span class="ot">@count</span> += <span class="dv">1</span>
+         warning <span class="kw">= if</span> esc <span class="kw">then</span> html_encode warning.to_s <span class="kw">else</span> warning.to_s <span class="kw">end</span>
+         <span class="kw">if</span> backtrace.length &gt; <span class="dv">0</span>
+            warning += <span class="st">&quot;\nTraceback:\n</span><span class="ot">#{</span>html_encode backtrace<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">end</span>
+         msg = <span class="dt">DbgMessage</span>.warn index: <span class="ot">@count</span>, <span class="dv">caller</span>: my_caller, body: warning
+         <span class="ot">@buffer</span>.push msg
+         <span class="kw">if</span> now
+            <span class="kw">if</span> now.is_a? <span class="dt">String</span> <span class="kw">then</span> flush after: now
+            <span class="kw">else</span> now <span class="dt">DbgMgr</span>.flush
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="kw">if</span> bail_out
+         <span class="kw">if</span> class_name.length &gt; <span class="dv">0</span>
+            raise error
+         <span class="kw">else</span>
+            raise <span class="dt">RuntimeError</span>(error.to_s)
+         <span class="kw">end</span>
+      <span class="kw">else</span>
+         msg
+      <span class="kw">end</span>
+   <span class="kw">end</span></code></pre>
+<h2 id="html_output">HTML output for the buffered messages</h2>
+<p>By default, messages are sorted in ascending order by their postion in the buffer list. They may also be grouped by caller, key, priority, or weakest pattern matching the key. The resulting groups are then sorted by their position in the buffer list before being displayed.</p>
+<h4 id="group_by"><code>group_by [= field] </code></h4>
+<p>Fetch or assign a value for how to group the messages before sorting by order generated. The parameter “<code>field</code>” must have one of four values: <code>:caller</code> <code>:key</code> <code>:match</code> <code>:time</code>. For errors and warnings only the caller and time of arrival are relevant. <code>:key</code> refers to the key that appeared in the guard, and <code>:match</code> refers to the weakest active pattern that matches the key. The value for <code>field</code> may be either a <code>String</code> or a <code>Symbol</code>.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">def</span> <span class="dv">self</span>.group_by=(field)
+      as_symbol = field.to_sym
+      <span class="kw">if</span> <span class="dt">MESSAGE_GROUPS</span>.member? as_symbol
+         <span class="ot">@group_by</span> = as_symbol
+      <span class="kw">else</span>
+         raise <span class="dt">ArgumentError</span>.new <span class="st">&quot;Unrecognized message group, '</span><span class="ot">#{</span>field<span class="ot">}</span><span class="st">'&quot;</span> 
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+</code></pre>
+<h4 id="add_stylecss_defns"><code>add_style(css_defns)</code></h4>
+<p>adds CSS definitions <code>css_defns</code> to the .html document. No vetting of <code>css_defns</code> is done. It is simply buffered as is.</p>
+<p>If this method is called before opening the actual file for the first time (by calling <a href="open"><code>open</code></a>), the style will appear in the head of the HTML document. Otherwise, it will be put in a “&lt;style&gt; … &lt;/style&gt;” pair and will appear at the beginning of the next group of messages that are flushed.</p>
+<p>The CSS styles provided here initially are classes for the four message types, the text before and after a flush, and the index/caller reference that begins a display. These class names are</p>
+<blockquote><pre> 'er', 'wn', 'lp', 'hp', 'fl' and 'ref'</pre></blockquote>
+
+
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="dt">ADMIN_STYLES</span> =<span class="ot"> %[</span>
+<span class="st">   .fl { color: #000000; }</span>
+<span class="st">   .ref { color: #000000; font-style: oblique}</span>
+<span class="st">   </span><span class="ot">]</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.add_style(css_defns)
+      <span class="kw">if</span> css_defns[-<span class="dv">1</span>] != <span class="st">&quot;\n&quot;</span> <span class="kw">then</span> css_defns += <span class="st">&quot;\n&quot;</span> <span class="kw">end</span>
+      <span class="ot">@styles</span> += css_defns
+   <span class="kw">end</span>
+</code></pre>
+<h4 id="flushbefore-after-asis-false"><code> flush(before: “”, after: “”, asis: false)</code></h4>
+<p>flushes any new CSS styles and buffered messages to the HTML file. The <code>before</code> text is written before the messages are flushed, and the <code>after</code> text is written at the end. If <code>asis</code> is <code>true</code>, no processing of any kind is done on <code>before</code> or <code>after</code>. If it is <code>false</code>, both are wrapped in <code>&lt;p&gt;</code> element with a distinct style (CSS class <code>fl</code> mentioned above). An <code>&lt;hr&gt;</code> element is appended at the very end.</p>
+<p>The message and styles buffers are both emptied.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> <span class="dv">self</span>.flush(before: <span class="st">&quot;&quot;</span>, after: <span class="st">&quot;&quot;</span>, asis: <span class="dv">false</span>)
+      <span class="kw">if</span> <span class="ot">@buffer</span>.length + <span class="ot">@styles</span>.length + before.length + after.length == <span class="dv">0</span>
+         <span class="kw">return</span> <span class="dv">nil</span>  <span class="co"># if there is nothing to do, do NOT open the file at all</span>
+      <span class="kw">end</span>
+      <span class="dt">File</span>.open(<span class="ot">@path</span>, mode: <span class="st">'a'</span>) <span class="kw">do</span> |stream|
+         <span class="kw">if</span> <span class="ot">@styles</span>.length &gt; <span class="dv">0</span>
+            stream.puts <span class="st">&quot;&lt;style&gt;&quot;</span>
+            stream.puts <span class="ot">@styles</span>
+            stream.puts <span class="st">&quot;&lt;/style&gt;&quot;</span>
+            <span class="ot">@styles</span> = <span class="st">''</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> <span class="ot">@buffer</span>.length &gt; <span class="dv">0</span>
+            stream.puts <span class="st">&quot;&lt;p&gt;Log flushed, </span><span class="ot">#{</span><span class="dt">Time</span>.now<span class="ot">}</span><span class="st">: </span><span class="ot">#{@buffer</span>.length<span class="ot">}</span><span class="st"> entries&lt;/p&gt;\n&quot;</span>
+         <span class="kw">end</span>
+         <span class="kw">if</span> before.length &gt; <span class="dv">0</span>            
+            stream.puts<span class="kw">( if</span> asis <span class="kw">then</span> before <span class="kw">else</span> <span class="st">&quot;&lt;p class=\&quot;fl\&quot;&gt;</span><span class="ot">#{</span>before<span class="ot">}</span><span class="st">&lt;/p&gt;&quot;</span> <span class="kw">end</span> )
+         <span class="kw">end</span>
+         <span class="kw">if</span> <span class="ot">@group_by</span> != <span class="st">:time</span> <span class="kw">then</span> <span class="ot">@buffer</span>.sort! <span class="kw">end</span>
+         stream.puts <span class="st">&quot;&lt;table&gt;&quot;</span>
+         <span class="ot">@buffer</span>.each { |msg| stream.puts msg.to_html(<span class="ot">@count</span>) }
+         stream.puts <span class="st">&quot;&lt;/table&gt;&quot;</span>
+         <span class="kw">if</span> after.length &gt; <span class="dv">0</span>
+            stream.puts<span class="kw">( if</span> asis <span class="kw">then</span> after <span class="kw">else</span> <span class="st">&quot;&lt;p class=\&quot;fl\&quot;&gt;</span><span class="ot">#{</span>after<span class="ot">}</span><span class="st">&lt;/p&gt;&quot;</span> <span class="kw">end</span> )
+         <span class="kw">end</span>
+         stream.puts <span class="st">&quot;&lt;hr&gt;&quot;</span>
+      <span class="kw">end</span>
+      <span class="ot">@buffer</span> = []
+      <span class="dv">nil</span>
+   <span class="kw">end</span>
+</code></pre>
+<h4 id="close"><code>close()</code></h4>
+<p>flushes the buffers to make sure all the output gets written and then marks the stream “closed”, so that any further output goes either to <code>STDOUT</code> or to <code>STDERR</code>, as appropriate.</p>
+<h4 id="finalizeexception"><code>finalize(exception)</code></h4>
+<p>is meant to be called when output may still being buffered (that is, <code>close</code> may not yet have been called), and an exception has been raised that will end the process being debugged. It tries to write an error message to the output file and then to close it. The argument is normally the <code>Exception</code> that caused the problem, but may be a <code>String</code> that is the message to write out.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+   <span class="kw">def</span> <span class="dv">self</span>.close()
+      <span class="kw">if</span> <span class="ot">@path</span> != <span class="dv">nil</span>
+         after = <span class="st">&quot;&lt;p&gt;Log ended, </span><span class="ot">#{</span><span class="dt">Time</span>.now<span class="ot">}</span><span class="st">: </span><span class="ot">#{@count}</span><span class="st"> entries in all.&lt;/p&gt;\n&lt;/code&gt;\n&lt;/body&gt;&quot;</span>
+         flush(after: after)
+         <span class="ot">@path</span> = <span class="dv">nil</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> <span class="dv">self</span>.finalize(exception, esc: <span class="dv">self</span>.esc)
+      <span class="kw">begin</span>
+         err <span class="st">&quot;finalize&quot;</span>, exception, esc
+         <span class="kw">if</span> <span class="kw">not</span> <span class="ot">@path</span>.nil? 
+            close
+         <span class="kw">end</span>
+      <span class="kw">rescue</span> <span class="dt">Exception</span> =&gt; exc 
+         <span class="ot">@path</span> = <span class="dv">nil</span>
+         <span class="dt">STDERR</span>.puts <span class="st">&quot;Finalizing the log failed.\n\n</span><span class="ot">#{</span>exc<span class="ot">}</span><span class="st">&quot;</span>
+      <span class="kw">end</span>
+      <span class="dv">nil</span>
+   <span class="kw">end</span>        
+<span class="kw">end</span>
+</code></pre>
+<hr><hr>
+
+<h2 id="dbgmessage">The <code>DbgMessage</code> class</h2>
+<p>This class really should not usually be of any immediate concern to the normal user of the <code>DbgMgr</code>. Instances of it are what are buffered when the <code>DbgMgr</code> is streaming to a file. The attributes of a <code>DbgMessage</code> instance are</p>
+<blockquote>
+<table>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">read-write</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>body</code></em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">the content of the message to be written out</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>data_class</code></em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">the CSS class for the <code>&lt;td&gt;</code> cell containing the data</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>esc</code></em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">escape characters like <code>&lt;</code> (true or false)?</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>priority</code></em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">a numeric measure of importance–see note following</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">read-only</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>caller</code></em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">the name of the method that sent the message</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>index</code></em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">the order of entry: buffer is normally sorted on this field</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>key</code></em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">the key that was used to guard the write</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>match</code></em></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">for sorting purposes only: the weakest pattern matching the key</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+
+<p>Only those attributes noted as “read-write” are writable once the instance is initialized. Probably the most useful of these is the ability to update the body, so that a complex message can be put together in several steps. Remember to reset <code>esc</code> if a changed body suddenly needs escaping and the default is to put out the body as is.</p>
+<p><strong>Note</strong>: The priority is a number that is used to sort by importance. Initially, 4 is the highest priority and it is assigned to errors. Warnings come next, then important messages, and finally, ordinary messages. The priority is an attribute that you can use to group the messages on output–the other possibilities are <a href="#group_by">discussed above.</a> When grouping by priority, the higher the priority, the earlier the message appears in the output. The initial values are all whole numbers, but there is nothing sacred about that–they are only used for purposes of comparison.</p>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">
+<span class="kw">class</span> <span class="dt">DbgMessage</span>
+   include <span class="dt">Comparable</span>
+   <span class="ot">attr_reader</span> <span class="st">:key</span>, <span class="st">:match</span>, <span class="st">:index</span>, <span class="st">:caller</span>
+   <span class="ot">attr_accessor</span> <span class="st">:body</span>, <span class="st">:priority</span>, <span class="st">:data_class</span>
+   <span class="co">#HTML_ESCAPER = HTMLEntities.new </span>
+   <span class="dt">PRIORITY_LEVELS</span> = {
+      <span class="st">:ERROR</span> =&gt; <span class="dv">4</span>, <span class="st">:WARNING</span> =&gt; <span class="dv">3</span>, <span class="st">:PRIORITY</span> =&gt; <span class="dv">2</span>, <span class="st">:ORDINARY</span> =&gt; <span class="dv">1</span>, <span class="st">:UNKNOWN</span> =&gt; <span class="dv">0</span>
+   }
+   <span class="dt">STYLE_CLASSES</span> = {
+      <span class="st">:ERROR</span> =&gt; <span class="st">'er'</span>, <span class="st">:WARNING</span> =&gt; <span class="st">'wn'</span>, <span class="st">:PRIORITY</span> =&gt; <span class="st">'hp'</span>,
+      <span class="st">:ORDINARY</span> =&gt; <span class="st">'lp'</span>, <span class="st">:UNKNOWN</span> =&gt; <span class="st">'un'</span>
+   }
+   <span class="dt">STYLES</span> =<span class="ot"> %[</span>
+<span class="st">      .er {</span>
+<span class="st">         color: #ff0000; font-weight: bold; background-color: #F0D0D0;</span>
+<span class="st">         border: 1px solid red; margin-left: 1em;</span>
+<span class="st">      }</span>
+<span class="st">      .hp {</span>
+<span class="st">         color: #007020; font-weight: bold; background-color: #E1FDC8;</span>
+<span class="st">         border: 1px solid #007020; margin-left: 1em;</span>
+<span class="st">      } </span>
+<span class="st">      .lp {color: #000000; background-color: #DDDDDD;</span>
+<span class="st">         border: 1px solid black; margin-left: 1em;</span>
+<span class="st">      } </span>
+<span class="st">      .wn {</span>
+<span class="st">         color: #0000ff; font-weight: bold; background-color: #C8E5F8;</span>
+<span class="st">         border: 1px solid blue; margin-left: 1em;</span>
+<span class="st">      } </span>
+<span class="st">      .un {</span>
+<span class="st">         color: #AEAF85; font-weight: bold; background-color: #94A2B7;</span>
+<span class="st">         border: 1px solid ccd847; margin-left: 1em;</span>
+<span class="st">      } </span>
+<span class="st">   </span><span class="ot">]</span>
+   </code></pre>
+<hr><hr>
+
+<h3 id="message_creation">Static message creation methods</h3>
+<p>These methods were written to be called by the <code>DbgMgr</code>. The one new parameter is <code>index</code>, which is effectively the time of arrival of the message into the buffer. It is normally taken to be the value of <code>DbgMgr</code>’s <code>@count</code> attribute, but any number will do. The other parameters have the same meaning as the corresponding parameters for <code>DbgMgr</code>’s analogous methods.</p>
+<h4 id="ordinarykey-nil-index-nil-key-nil-caller-nil-text-nil-style-nil"><code>ordinary(key: nil, index: nil, key: nil, caller: nil, text: nil, style: nil)</code></h4>
+<h4 id="prioritykey-nil-index-nil-key-nil-caller-nil-text-nil-style-nil"><code>priority(key: nil, index: nil, key: nil, caller: nil, text: nil, style: nil)</code></h4>
+<h4 id="errindex-nil-caller-nil-error-nil-style-nil"><code>err(index: nil, caller: nil, error: nil, style: nil)</code></h4>
+<h4 id="warnindex-nil-caller-nil-text-nil-style-nil"><code>warn(index: nil, caller: nil, text: nil, style: nil)</code></h4>
+<pre class="sourceCode ruby"><code class="sourceCode ruby">   <span class="kw">def</span> <span class="dv">self</span>.err(index: <span class="dv">nil</span>, <span class="dv">caller</span>: <span class="dv">nil</span>, body: <span class="dv">nil</span>, style: <span class="dv">nil</span>)
+      msg = <span class="dv">self</span>.new index: index, <span class="dv">caller</span>: <span class="dv">caller</span>, body: body
+      msg.priority = <span class="dt">PRIORITY_LEVELS</span>[<span class="st">:ERROR</span>]
+      <span class="kw">if</span> style.nil? <span class="kw">then</span> msg.data_class = <span class="dt">STYLE_CLASSES</span>[<span class="st">:ERROR</span>]
+      <span class="kw">else</span>  msg.data_class = style
+      <span class="kw">end</span>
+      msg
+   <span class="kw">end</span>
+   <span class="kw">def</span> <span class="dv">self</span>.warn(index: <span class="dv">nil</span>, <span class="dv">caller</span>: <span class="dv">nil</span>, body: <span class="dv">nil</span>, style: <span class="dv">nil</span>)
+      msg = <span class="dv">self</span>.new index: index, <span class="dv">caller</span>: <span class="dv">caller</span>, body: body
+      msg.priority = <span class="dt">PRIORITY_LEVELS</span>[<span class="st">:WARNING</span>]
+      <span class="kw">if</span> style.nil? <span class="kw">then</span> msg.data_class = <span class="dt">STYLE_CLASSES</span>[<span class="st">:WARNING</span>]
+      <span class="kw">else</span>  msg.data_class = style
+      <span class="kw">end</span>
+      msg
+   <span class="kw">end</span>
+   <span class="kw">private</span> 
+   <span class="kw">def</span> <span class="dv">self</span>.key_check(key)
+      <span class="kw">if</span> <span class="kw">not</span> key.kind_of? <span class="dt">String</span>
+         raise <span class="dt">TypeError</span>.new <span class="st">&quot;DbgMgr key is a </span><span class="ot">#{</span>key.class<span class="ot">}</span><span class="st">, not a String as required.&quot;</span>
+      <span class="kw">elsif</span> key.length == <span class="dv">0</span>
+         raise <span class="dt">ArgumentError</span> <span class="st">&quot;Empty string is not an allowable DbgMgr key.&quot;</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+   <span class="kw">public</span>
+   <span class="kw">def</span> <span class="dv">self</span>.priority(key: <span class="dv">nil</span>, match: <span class="dv">nil</span>, index: <span class="dv">nil</span>, <span class="dv">caller</span>: <span class="dv">nil</span>, body: <span class="dv">nil</span>, style: <span class="dv">nil</span>)
+      key_check key
+      msg = <span class="dv">self</span>.new key: key, match: match, index: index, <span class="dv">caller</span>: <span class="dv">caller</span>, body: body
+      msg.priority = <span class="dt">PRIORITY_LEVELS</span>[<span class="st">:PRIORITY</span>]
+      <span class="kw">if</span> style.nil? <span class="kw">then</span> msg.data_class = <span class="dt">STYLE_CLASSES</span>[<span class="st">:PRIORITY</span>]
+      <span class="kw">else</span>  msg.data_class = style
+      <span class="kw">end</span>
+      msg
+   <span class="kw">end</span>
+   <span class="kw">def</span> <span class="dv">self</span>.ordinary(key: <span class="dv">nil</span>, match: <span class="dv">nil</span>, index: <span class="dv">nil</span>, <span class="dv">caller</span>: <span class="dv">nil</span>, body: <span class="dv">nil</span>, style: <span class="dv">nil</span>)
+      key_check key
+      msg = <span class="dv">self</span>.new key: key, match: match, index: index, <span class="dv">caller</span>: <span class="dv">caller</span>, body: body
+      msg.priority = <span class="dt">PRIORITY_LEVELS</span>[<span class="st">:ORDINARY</span>]
+      <span class="kw">if</span> style.nil? <span class="kw">then</span> msg.data_class = <span class="dt">STYLE_CLASSES</span>[<span class="st">:ORDINARY</span>]
+      <span class="kw">else</span>  msg.data_class = style
+      <span class="kw">end</span>
+      msg
+   <span class="kw">end</span>
+
+   <span class="kw">def</span> initialize(key: <span class="dv">nil</span>, match: <span class="dv">nil</span>, index: <span class="dv">nil</span>, <span class="dv">caller</span>: <span class="st">''</span>, body: <span class="st">''</span>)
+      <span class="ot">@key</span>   = key <span class="kw">or</span> <span class="st">''</span>
+      <span class="ot">@match</span> <span class="kw">= if</span> match <span class="kw">then</span> match <span class="kw">else</span> key <span class="kw">end</span>
+      <span class="ot">@index</span> = index
+      <span class="ot">@caller</span> =  <span class="dt">DbgMgr</span>.html_encode <span class="dv">caller</span>
+      <span class="ot">@body</span> = body
+      <span class="ot">@priority</span> = <span class="dt">PRIORITY_LEVELS</span>[<span class="st">:UNKNOWN</span>]
+      <span class="ot">@data_class</span> = <span class="dt">STYLE_CLASSES</span>[<span class="st">:UNKNOWN</span>]
+   <span class="kw">end</span>
+   <span class="kw">def</span> ==(other)
+      <span class="ot">@index</span> == other.index
+   <span class="kw">end</span>
+   <span class="kw">def</span> !=(other)
+      <span class="ot">@index</span> != other.index
+   <span class="kw">end</span>
+   <span class="kw">def</span> &lt;=&gt;(other)
+      grouping = <span class="dt">DbgMgr</span>.group_by
+      <span class="kw">if</span> grouping == <span class="st">:time</span> <span class="kw">then</span> <span class="kw">return</span> <span class="ot">@index</span> &lt;=&gt; other.index <span class="co"># most common call is this</span>
+      <span class="kw">elsif</span> grouping == <span class="st">:caller</span> <span class="co"># within caller by time, not priority</span>
+         <span class="kw">if</span> <span class="ot">@caller</span> &lt; other.caller <span class="kw">then</span> <span class="kw">return</span> -<span class="dv">1</span>
+         <span class="kw">elsif</span> other.caller &lt; <span class="ot">@caller</span> <span class="kw">then</span> <span class="kw">return</span> <span class="dv">1</span>
+         <span class="kw">end</span>
+      <span class="kw">else</span> <span class="co"># group by priority and, if requested, group within that by key or match</span>
+         <span class="kw">if</span> <span class="ot">@priority</span> &gt; other.priority <span class="kw">then</span> <span class="kw">return</span> -<span class="dv">1</span> 
+         <span class="kw">elsif</span> other.priority &gt; <span class="ot">@priority</span> <span class="kw">then</span> <span class="kw">return</span> <span class="dv">1</span>
+         <span class="kw">elsif</span> <span class="ot">@key</span>.nil? <span class="kw">and</span> other.key.nil?
+            <span class="kw">return</span> <span class="ot">@index</span> &lt;=&gt; other.index <span class="co"># same priority, only time of entry counts</span>
+         <span class="kw">elsif</span> <span class="ot">@key</span>.nil? ^ other.key.nil? <span class="co"># ie. one, but not both are nil... never happens</span>
+            raise <span class="st">&quot;Invalid priority for </span><span class="ot">#{</span><span class="dv">self</span><span class="ot">}</span><span class="st"> relative to </span><span class="ot">#{</span>other<span class="ot">}</span><span class="st">&quot;</span>
+         <span class="kw">end</span>
+         <span class="co"># we get here if both have the same priority and both have keys,</span>
+         <span class="co"># and thus also have non-nil &quot;match&quot; attributes</span>
+         <span class="kw">if</span> grouping == <span class="st">:key</span> 
+            <span class="kw">if</span> <span class="ot">@key</span> &lt; other.key <span class="kw">then</span> <span class="kw">return</span> -<span class="dv">1</span>
+            <span class="kw">elsif</span> other.key &lt; <span class="ot">@key</span> <span class="kw">then</span> <span class="kw">return</span> <span class="dv">1</span>
+            <span class="kw">end</span>
+         <span class="kw">elsif</span> grouping == <span class="st">:match</span>
+            <span class="kw">if</span> <span class="ot">@match</span> &lt; other.match <span class="kw">then</span> <span class="kw">return</span> -<span class="dv">1</span>
+            <span class="kw">elsif</span> other.match &lt; <span class="ot">@match</span> <span class="kw">then</span> <span class="kw">return</span> <span class="dv">1</span>
+            <span class="kw">end</span>
+         <span class="kw">end</span>
+      <span class="kw">end</span>
+      <span class="ot">@index</span> &lt;=&gt; other.index
+   <span class="kw">end</span>      
+   <span class="kw">def</span> to_html(largest_index)
+      index_width = <span class="dv">1</span> + <span class="dt">Integer</span>(<span class="dt">Math</span>.log10 largest_index)
+      formatted_index = index.to_s 
+      <span class="kw">while</span> formatted_index.length &lt; index_width
+         formatted_index = <span class="st">&quot;&amp;nbsp;&quot;</span>+formatted_index
+      <span class="kw">end</span>
+      key <span class="kw">= if</span> <span class="ot">@key</span>.nil? <span class="kw">then</span> <span class="st">''</span> <span class="kw">else</span> <span class="st">&quot;[</span><span class="ot">#{@key}</span><span class="st">]&quot;</span> <span class="kw">end</span>
+      source_cell  = <span class="st">&quot;&lt;td class=\&quot;ref\&quot;&gt;</span><span class="ot">#{</span>formatted_index<span class="ot">}</span><span class="st">: </span><span class="ot">#{@caller}#{</span>key<span class="ot">}</span><span class="st">&lt;/td&gt;\n&quot;</span>
+      data_cell = <span class="st">&quot;&lt;td class=\&quot;</span><span class="ot">#{@data_class}</span><span class="st">\&quot;&gt;</span><span class="ot">#{</span>body<span class="ot">}</span><span class="st">&lt;/td&gt;&quot;</span>
+      <span class="st">&quot;&lt;tr&gt;</span><span class="ot">#{</span>source_cell<span class="ot">}#{</span>data_cell<span class="ot">}</span><span class="st">&lt;/tr&gt;&quot;</span>
+   <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+</body>
+</html>

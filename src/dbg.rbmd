@@ -1,0 +1,944 @@
+=begin <head> 
+Title: <code>DbgMgr</code>: filtered debugging output management
+Author: Jonathan Brezin
+Date: December, 2016
+Show source: Yes
+Tab Size: 3
+=end
+
+=begin <md>
+
+## The <code>DbgMgr</code> class {#DbgMgr_class}
+
+The `DbgMgr` class plays the role that would be played in other languages by a class with a globally
+visible singleton instance.  The singleton's job is to be a central clearing house for managing
+debugging output.  (See [naive_singleton.rb](examples/naive_singleton.rb) for some thoughts on
+singletons in Ruby.)  The goal is to make it easy to leave extensive debugging code in place while
+still being easily selective as to what actually gets written out without having to modify the
+source code--_e.g._ using command-line arguments to turn output on (or off!).
+
+=end
+require "callerid"
+require "fileutils"
+require "htmlentities"
+require 'sysutils'
+require "wildcardlookup"
+
+class DbgMgr
+   prohibit_subclassing!
+
+private
+   def self.raise_NoCopyError(method_name)
+      msg = "DbgMgr is intended for use as a singleton: '#{method_name}' is not allowed!"
+      raise NotImplementedError, msg
+   end
+public
+
+=begin <md>
+
+## A Naive First Step: Using Patterns as Guards ##
+
+One of the standard problems of adding enough debugging output to a program, almost no matter
+how modest the program, is that it is hard not to be too verbose--so verbose that becomes hard
+to see the trees for the forest.  There are probably more sophisticated ways to filter the
+output than I am implementing here, but these two work for me well enough almost all of the
+time.
+
+The simplest approach just uses a [`WildCardLookup`](WildCardLookup.html) to maintain a list of
+patterns for keywords that name sets of debug print statements or other code needed only for
+debugging.  You bootstrap the process with initial key patterns to honor, as in:
+
+<pre class="exampleCode">
+
+      DbgMgr.add_patterns("pattern1,pattern2,...") # comma-separated list is okay
+      # or if you prefer, an array
+      DbgMgr.add_patterns(["pattern1", "pattern2", ...])
+      # or if you prefer, you can just pass each pattern as its own argument
+      DbgMgr.add_patterns("pattern1", "pattern2", ...)
+
+</pre>
+
+The idiom for writing debugging code is then
+
+<pre class="exampleCode">
+
+      # these two calls do something only if "io" matches a pattern we are honoring now
+      DbgMgr.put "io", "IO, IO, it's off to work I go!" # puts the message out to STDOUT
+      if DbgMgr.active? "io"  
+         # whatever other sort of work your debugging requires goes here
+      end
+
+</pre>
+
+Only those statements guarded by keywords that match patterns which you have asked the `DbgMgr`
+to add are executed. You can imagine programs with keys `"io"`, `"user"`, `"cart"`, `"history"`,
+and the like, that partition the debugging output into semantically sensible groups, only one of
+which is likely to be of interest at any one time.
+
+The example of `"io"`, `"user"`, _etc._ is a little misleading in that it might tempt you to
+think that one could use a plain vanilla `Set` to track the keys.  That turns out to be too
+restrictive in practice.  It is useful, particularly in the early going of the debugging game,
+to be able to turn on a number of related keys, like `"user_name"`, `"user_email"`, etc.  The
+wild-card pattern `"user_*"` does what you need.  Once the code is a little more stable, though,
+even`"user_*"` may spit out far too much for whatever problem you are chasing down, so you can
+enter just the one or two individual `"user_..."` keys that you need.
+
+At most one "`*`" can appear in a pattern.  It may appear anywhere in the pattern.  _If you add
+"`*`" itself as a pattern, every key will be honored._
+
+> __A Word About Words__: As in `WildCardLookup.rb`, I will always talk about "patterns" being
+held to be matched later by "keys".  "keys" appear as guards, "patterns" are used to check those
+"keys". Not every pattern need have a wild-card, of course, and while it would not be
+unreasonable to call such a wild-card free pattern a "key", I will still call it a "pattern".
+
+## Managing the active pattern set ##
+
+You can add patterns at any time by calling `add_patterns`, and you can remove patterns by
+calling `remove_patterns`.  It is okay to try to add a pattern that is already present, or to
+try to remove a pattern that is not  present: both are just treated as a "no-ops".  Here are the
+signatures for these calls:
+
+#### <code>add_patterns( &ast;args )</code> 
+#### <code>remove_patterns( &ast;args )</code> 
+
+In both of these calls, there are one or more arguments, each of which may be either an `Array`
+of keys or a `String` that is a single key or a comma-separated list of keys.  The typical calls
+are with a single argument, either a genuine list (_i.e._ an `Array`) or a string.
+
+As will be seen below, if you ask to have your output buffered, I provide two sorts of output:
+"ordinary" and "important" . Important output will be shown before ordinary output if you ask for
+the buffered messages to be grouped by priority. The different priorities each have their own look
+in the HTML output.
+
+>  One way to say "the keys that match this pattern are important" is for the pattern to begin with
+a "`+`"--for example, "`+io`".  The "`+`" will be stripped and "`io`" will be added to both the
+active and important pattern sets.  The reason for this almost too cute syntax is that I want it to
+be as easy as possible to tune the debugging output from the command line. My own convention is to
+use `-dbg` as the command line option whose value is the list of  patterns to honor.  Thus `-dbg`
+`'db_*,+in_*'` registers a pair of patterns with `DbgMgr`.  The first pattern, `db_*`, will be
+treated as naming ordinary output, but, thanks to the leading "`+`", the second, `in_*`, will name
+important output. See also the method [`add_important_patterns`](#add_important).
+
+> _Notice the single quotes around `-dbg`'s value `'db_*,+in_*'`.  You need them to keep the
+command-line shell from expanding the stars._
+ 
+Removing a pattern does just that: removes it--from both the ordinary and important sets.  If
+what you want to do is to keep a pattern `'p'` active, but remove it from the "important" set,
+use the call [`not_important 'p'`](#not_important).
+
+=end
+
+   def self.new(*args) 
+      raise NotImplementedError, 'DbgMgr has no instances!'
+   end
+
+   def self.clone(freeze: true)
+      raise_NoCopyError("clone")
+   end
+
+   def self.dup()
+      raise_NoCopyError("dup")
+   end
+
+   class << self
+      attr_reader :esc, # if true, escape HTML entities in the output (esc is false by default)
+         :path,      # if non-nil, the file to which to write the buffer
+         :styles,    # user-added CSS definitions
+         :count,     # a cumulative count of messages written--not the buffer.length
+         :group_by   # how to group the messages before sorting by time of arrival.
+      private
+      attr_accessor :active,  # the "set" of live keys
+         :important, # a subset of the active flags that deserved to be seen first
+         :buffer     # when buffered debugging is done, the list of messages
+      attr_writer :path, # if non-nil, the file to which to write the buffer
+         :styles,    
+         :count      
+   end
+   @active = WildCardLookup.new
+   @important = WildCardLookup.new
+
+   @buffer = []
+   @count = 0
+   @group_by = :time
+
+   @path = nil
+   @styles = ''
+   @esc = false
+   MESSAGE_GROUPS = Set.new %i[caller key match priority time] # for grouping buffered message sets
+
+   def self.add_patterns(*args)
+      args.each do |arg|
+         if arg.kind_of? String
+            raw_patterns = arg.split ','
+            raw_patterns.each do |pattern|
+               if pattern[0] == '+'
+                  real_pattern = pattern[1 .. -1]
+                  @active.add_pattern real_pattern
+                  @important.add_pattern real_pattern
+               elsif pattern[0] == '@'
+                  group = pattern[1 .. -1]
+                  found = MESSAGE_GROUPS.find { |name| name.to_s.begin_with? group}
+                  if found.nil?
+                     self.warn("DbgMgr.add_patterns", "unknown message group: '#{group}'")
+                     @active.add_pattern pattern
+                  else
+                     @group_by = found
+                  end
+               else
+                  @active.add_pattern pattern
+               end
+            end # do |pattern|
+         elsif arg.kind_of? Array
+            add_patterns *arg
+         else 
+            raise ArgumentError.new "Unexpected argument type, #{arg}"
+         end
+      end
+      nil 
+   end
+
+   def self.remove_patterns(*args)
+      args.each do |arg|
+         if arg.is_a? String
+            patterns = arg.split(',')
+            @active.remove_patterns patterns
+            @important.remove_patterns patterns
+         elsif arg.is_a? Array 
+            remove_patterns *arg
+         else
+            raise ArgumentError.new "Unexpected argument type, #{arg}"
+         end
+      end
+   end
+
+=begin <md>
+## The active key tests ##
+
+The guard calls for check whether keys are active come in two flavors:
+
+#### <code>active?( &ast;args )</code>
+
+has one or more arguments, each of which may be a single key, a comma-separated list of
+keys, or an `Array` of keys.  The call returns `true` if any of the keys matches a pattern in
+the active list.
+
+#### <code>all_active?( &ast;args )</code> ###
+
+has the same arguments as `active?`, but the test is that _all_ its keys must match some active
+pattern.
+
+__PROGRAMMING NOTE:__  Why the comma-separated lists?  Or to put it less kindly, why is
+"`active?` `'a','b'`" any better or worse than "`active?` `'a,b'`"? The original motivation was
+making life easy for a command-line handler to turn on debugging.  My vision was that the
+command-line would have a single parameter `-dbg a,b,c,...` that named the patterns to turn on,
+and the comma-separated value is more convenient in the context, if for no other reason than it
+being easier to parse the command-line knowing that only the next argument in the command-ine is
+being consumed.  So why not let the handler pass `"a,b,c,..."` directly to `DbgMgr`?
+
+=end
+
+   def self.active?(*args)
+      args.each do |arg|
+         if arg.is_a? String 
+            all = arg.split(',')
+            return @active.any_matched? *all
+         elsif arg.is_a? Array and active? *arg then return true
+         else raise ArgumentError.new "Unexpected argument type, #{arg}"
+         end
+      end
+      false
+   end
+
+   def self.all_active?(*args)
+      args.each do |arg|
+         if arg.is_a? String and not @active.all_matched? arg.split(',') then return false
+         elsif arg.is_a? Array and not all_active? *arg then return false
+         else raise ArgumentError.new "Unexpected argument type, #{arg}"
+         end
+      end
+      true
+   end
+
+=begin <md>
+
+## Buffering the Output ##
+
+The approach of just using guarded debugging code shown above is adequate for a lot of projects, but
+once things get more complicated, one often needs something more flexible, not to say more robust.
+Among the things you might want:
+
+1) _Sorting on some basis other than when a message was generated:_ The patterns and the actual
+keys used for filtering can be also used to sort the messages into groups that are displayed
+contiguously in the final output. This implies buffering the debugging output.  Temporal order
+is not the only interesting one.
+
+2) _Streaming somewhere other than `STDOUT`:_  One may not want to clutter the standard output or
+error stream with kilobytes or worse of debugging output, if only in order to avoid hiding genuine
+output or error messages that you know will be sent to the console's display. Creating a log file
+with its own output stream solves this problem.
+
+3) _HTML output for better readability:_ Once you decide to create a log file, you might as well
+make it an HTML file and use distinct styles  for real error messages, warnings, and (last, but
+not least) plain-old debugging output.
+
+4) _Signaling "important" debugging output:_  Similarly, you might wish to signal some of the
+debugging output as "high priority".  Once we are in HTML-land, some simple CSS will carry
+the day here.  One can create as many message types as is convenient by assigning each type
+its own CSS class.
+
+At the heart of implementing all of these desiderata is buffering the output and streaming it to a
+file, rather than streaming it immediately to the standard output.  Calling the method `DbgMgr.open`
+signals that this is what you wish:
+
+#### <code>open(path='.', asis: false, esc: false)</code>
+
+The first argument, `path`, names a directory.  If no path is provided, the current working
+directory will be used.  If the keyword second argument, `asis`, is true, `path` will be used as
+the directory path "as is".  Otherwise, if `path` does not end in `/log`, `/log` will be
+appended and used as the directory path.  The default is to append `/log`.  The final argument,
+`esc`, sets the default for whether to replace characters that affect HTML syntax with the
+corresponding named HTML entities--e.g. whether or not to replace `<` with `&lt;`.  The default
+is to reproduce the output as is: no escapes, the caller must have done that job.  The reason
+for this default is to allow (not to say  encourage) HTML markup to be put in the output easily.
+
+The principal effect of the call is to create an HTML file, either in the directory that `path`
+names or in `path`'s `log` subdirectory. The name of the file will have the format
+`dbg`_`date_time`_`.html`</code>, _e.g._ `dbg161030_174246.html` for a file created at 17:42:46
+local time on October 30-th, 2016.
+
+The return value is the class `DbgMgr`.
+   
+=end
+   def self.open(path='.', asis: false, esc: false)
+      abspath = File.join File.expand_path path
+      if not asis and not abspath.end_with? "#{File::SEPARATOR}log"
+         abspath = File.join abspath, "#{File::SEPARATOR}log"
+      end
+      if @path == abspath then return self # caller knows last file is the only one! 
+      elsif not @path.nil?
+         msg = "Already logging to #{@path}, cannot use #{abspath}"
+         STDERR.puts msg
+         warn msg
+         self
+      end
+      File.assure_directory(abspath)
+      @path = File.join abspath, "dbg#{Time.now.strftime '%y%m%d_%H%M%S'}.html"
+      File.open(@path, mode: 'w') do |stream|
+         stream.puts "<!DOCTYPE html>\n<html>\n<head>"
+         stream.puts "   <meta charset=\"utf-8\">"
+         stream.puts "   <meta name=\"generator\" content=\"rubymd\">"
+         stream.puts "   <style type=\"text/css\">"
+         stream.puts DbgMessage::STYLES
+         stream.puts ADMIN_STYLES
+         stream.puts " #{@styles}\n    </style>\n</head>\n<body>\n<code>" 
+      end
+      @esc = esc
+      @styles = ''
+      self
+   end
+=begin <md>
+
+## Important output ##
+
+The process for managing the active filtering patterns is the same, whether you are buffering or
+not. Once we are buffering output, though, we can mark some of it as more important--"higher
+priority"-- than the rest. 
+
+#### <code>add_important_patterns(&ast;args)</code> {#add_important}
+
+both registers its arguments as active patterns and marks them as "important".  Each argument,
+as usual, may either be a list of patterns or a `String` that is a single pattern or a
+comma-separated list of patterns.
+
+#### <code>not_important(&ast;args)</code> {#not_important}
+
+leaves its arguments as active keys, but demotes them to "ordinary" status.  The arguments are
+the same as those for `add_important_patterns`.
+
+If you want to remove an important pattern, you need not demote it first: calling
+`remove_pattern` will remove it from both the active and the important lists.
+
+=end
+   def self.add_important_patterns(*args)
+      args.each do |arg|
+         if arg.is_a? String
+            add_patterns arg
+            @important.add_patterns arg.split(',')
+         elsif arg.is_a? Array 
+            add_important_patterns *arg
+         else
+            raise ArgumentError.new "Unexpected argument type: #{arg.class}"
+         end
+      end
+   end
+
+   def self.not_important(*args)
+      args.each do |arg|
+         if arg.is_a? String
+            @important.remove_patterns arg.split(',')
+         elsif arg.is_a? Array 
+            not_important *arg
+         else
+            raise ArgumentError.new "Unexpected argument type: #{arg.class}"
+         end
+      end
+   end
+=begin <md>
+## Writing output ##
+
+#### <code>DbgMgr.esc [= yes_or_no]</code> {#dbgmgr_esc}
+
+`DbgMgr.esc` is the default for whether text is escaped (or as it is sometimes called "HTML
+encoded") before being written to the HTML file. The right hand side of the assignment is a
+boolean, or any value that the method [to_b](sysutils.html#boolean_conversions) is willing to
+convert to a boolean.  Initially the default is that text is _not_ escaped.  Each of the methods
+that actually write a message allow you to specify for that message whether or not to escape it.
+
+There are four methods you can call to write a message, depending on the kind of message and how
+you want it to appear.  All four have three keyword parameters
+
+> _`esc`_ is a boolean that, if true and if we are
+buffering the output, causes characters in the text for which there are named HTML entities,
+like "`<`", to be escaped.  `DbgMgr.esc` is the default value for this boolean.
+
+> _`my_caller`_ is a string that identifies the method name you want as the sender of the
+message.  You do not have to provide this, unless you do _not_ want the actual caller's name
+to appear, but some other name.  I'll compute your caller's name for you if you do not supply
+this.
+
+> _`style`_ is a string that names a style class for the message.  Each of the four calls supplies
+its own default, but there is no reason for you not to supply your own.
+
+Two of the methods, `err` and `warn`, deal with errors or potential problems.  Both take a string as
+their first parameter, the message to be buffered.  `err` also allows you to pass an exception as
+its first argument, rather than the message.  If messages are _not_ being buffered, the output for
+both these calls is sent directly to `STDERR`.
+
+For debugging output, there are also two calls, `put` and `pre`.  Both take as their first
+argument the key whose active status determines whether the message is to be written. The second
+argument is the message.  If output is _not_ being buffered, the output is sent directly to
+`STDOUT`. 
+
+#### <code>put(key, text, esc: DbgMgr.esc, my_caller: <i>caller_name</i>)</code> ###
+
+If the key is active, the text is added to the buffer to appear, eventually, as the content of
+an HTML _`table`_ cell in the output document.  If the key is ordinary--that is, it is not
+"important"--the appearance of this output is governed by the CSS style for the HTML element
+class "`.lp`" ("low priority").  You can include any HTML markup in the message that would be
+allowed for a `td` element.  This includes refining the CSS style for `.lp` if that is what you
+would like, although it probably would be wiser to introduce a new style class.  
+
+If the key is "important", it uses the CSS style class "`.hp`" (high priority) and will sort
+earlier when the final output order is by priority.
+
+#### <code>pre(key, text, esc: DbgMgr.esc, my_caller: <i>caller_name</i>)</code> ###
+
+If the key is active, the text is added to the buffer, as with the call to `put`.  The only
+difference is that,  when html output is being generated, the text is made the content of a
+`pre` element (in order to preserve line breaks) before using it as the `td` element's content.
+The CSS styles depend on the key in the same as those for `put`.
+
+> _Be careful here!_  Just because you are inside a "`<pre>`" does not mean that characters like
+"`<`" that are meaningful to  HTML are not recognized as such and acted on.   A good way to have
+your output vanish is to have an errant "`<`", since HTML simply ignores an unrecognized tag and
+its body, which in this case is the rest of your output.  So either encode the stuff yourself,
+or pass in `true` for `esc` if there is any chance you might have trouble.
+
+#### <code>err(error, esc: DbgMgr.esc, my_caller: <i>caller_name</i>, now: false, bail_out: true)</code> ###
+
+The intention here was to allow you to leave error messages raised by exceptions in sequence
+with the debugging output, but using an different CSS style, "`.er`", so that they are clearly
+visible. The second argument, `error`, is either a `String` or an `Exception`.  If it is an
+`Exception`, its traceback ("backtrace" in Ruby talk), will be included (in a separate HTML
+`<pre>` element, if we are buffering) that immediately follows its error message in the output.
+
+If `now` is `true` or a string of non-zero length, the manager's buffer will be flushed after the
+message is added, and the `now` string will be used as the flush's "after" argument.  The default
+is not to flush, but to wait...
+
+If 'bail_out' is `true`, which is the default, raise the exception once it is buffered; otherwise,
+just return return the error.  If `error` is a `String`, and you want to bail out, a `RuntimeError`
+with that string as its message will be raised.  
+
+__WARNING__: bailing out does _not_ imply flushing the buffer.  I see no reason to believe that
+you want a line drawn here in the debugging stream, because you may not be sorting the output by
+time generated.  So: if you want it flushed, say so: "`now:` `True`"
+
+#### <code>warn(text, esc: DbgMgr.esc, my_caller: <i>caller_name</i>, now: false, bail_out: true)</code> ###
+
+This is like `err`, except that it uses yet another CSS style, "`.wn`", so that you can readily
+see that while something may be wrong, it is not as much a disaster as an `err` usually is.  The
+default for `bail_out` is also different: it is `false`: no need to bail, unless the caller 
+explicitly requests it.
+
+<pre class="exampleCode">
+
+# if 'util' is a key, the next call's message gets written out
+DbgMgr.put "util", "This is useful" 
+
+# The next call wants to show some output on two lines and clean up the &lt;
+DbgMgr.pre "weird", "Should #{x} < #{y} hold?\n   #{x&lt;y}", esc: true 
+
+# Warnings always gets written: you need to know what they have to say!
+DbgMgr.warn "Nothing serious here!"
+
+# Exceptions also always get written.  In the following code, we never assigned 
+# to "xyz", so we should have a NameError raised.  DbgMgr.err will take that
+# exception and produce output from there.
+begin
+   puts xyz 
+rescue Exception => ex
+   DbgMgr.err ex 
+end
+
+</pre>
+
+The above, then, are the four styles of message that come "out of the box".  If you cannot live with
+this taxonomy, your own types can be added by extending `DbgMgr` with analogous class methods.
+
+=end
+   def self.esc= yes_or_no
+      @esc = yes_or_no.to_b
+   end
+ 
+   @encoder = HTMLEntities.new 
+   def self.html_encode text
+      @encoder.encode text, :named
+   end
+
+   def self.put(key, text, 
+      esc: @esc, my_caller: CallerId.my_caller, style: nil
+   )
+      if key != "dbgmgr" and @active.matched?("dbgmgr")
+         tgt = if @path.nil? then "STDOUT" else @path end
+         self.put "dbgmgr", "put #{key}? #{@active.matched? key}, target #{tgt}"
+      end
+      if not @active.matched? key
+         nil
+      elsif @path.nil?
+         puts text
+         text
+      else
+         matcher = @active.weakest_pattern key
+         if esc then text = html_encode text end
+         @count += 1
+         msg = if @important.matched? key
+                  DbgMessage.priority(
+                     key: key, match: matcher, index: @count, 
+                     caller: my_caller, body: text, style: style
+                  )
+               else
+                  DbgMessage.ordinary(
+                     key: key, match: matcher, index: @count,
+                     caller: my_caller, body: text, style: style
+                  )
+               end
+         @buffer.push msg
+         msg
+      end
+   end
+   def self.err(error, esc: @esc, my_caller: CallerId.my_caller, now: false, bail_out: true)
+      if error.respond_to? :backtrace
+         backtrace  = (error.backtrace or []).join('\n')
+      else
+         backtrace = ''
+      end
+      class_name = if error.kind_of? Exception then "#{error.class}: " else "" end
+      if @path.nil?
+         STDERR.puts "#{class_name}#{error}"
+         if backtrace.length > 0
+            STDERR.puts backtrace
+         end
+      else
+         @count += 1
+         text = class_name + error.to_s
+         if esc then text = html_encode text end
+         if backtrace.length > 0
+            text += "\nTraceback:\n#{html_encode backtrace}"
+         end
+         final_text = "<pre>#{text}</pre>"
+         msg = DbgMessage.err index: @count, caller: my_caller, body: final_text
+         @buffer.push msg
+         if now 
+            if now.is_a? String then flush after: now
+            else DbgMgr.flush
+            end
+         end
+      end
+      if bail_out
+         if class_name.length > 0
+            raise error
+         else
+            raise RuntimeError(error.to_s)
+         end
+      else
+         msg
+      end
+   end
+   def self.pre(key, text, esc: @esc, my_caller: CallerId.my_caller, style: nil)
+      # If the caller wants us to escape, we have to do it here so that our "<pre>"  and
+      # "</pre>" do not get escaped later.
+      if active? key
+         if (@path != nil) and esc then text = html_encode text end
+         put key, "<pre>#{text}</pre>", esc: false, my_caller: my_caller
+      end
+   end  
+   def self.warn(warning, esc: nil, my_caller: CallerId.my_caller, now: false, bail_out: false)
+      if warning.respond_to? :backtrace
+         backtrace  = (warning.backtrace or []).join('\n')
+      else
+         backtrace = ''
+      end
+      if @path.nil?
+         STDERR.puts warning
+         if backtrace.length > 0
+            STDERR.puts backtrace
+         end
+         warning
+      else
+         @count += 1
+         warning = if esc then html_encode warning.to_s else warning.to_s end
+         if backtrace.length > 0
+            warning += "\nTraceback:\n#{html_encode backtrace}"
+         end
+         msg = DbgMessage.warn index: @count, caller: my_caller, body: warning
+         @buffer.push msg
+         if now
+            if now.is_a? String then flush after: now
+            else now DbgMgr.flush
+            end
+         end
+      end
+      if bail_out
+         if class_name.length > 0
+            raise error
+         else
+            raise RuntimeError(error.to_s)
+         end
+      else
+         msg
+      end
+   end
+=begin <md>
+## HTML output for the buffered messages {#html_output}
+
+By default, messages are sorted in ascending order by their postion in the buffer list.
+They may also be grouped by caller, key, priority, or weakest pattern matching the key.  The
+resulting groups are then sorted by their position in the buffer list before being displayed.
+
+#### <code>group_by [= field] </code> {#group_by}
+
+Fetch or assign a value for how to group the messages before sorting by order generated.
+The parameter "`field`" must have one of four values: `:caller` `:key` `:match` `:time`. For
+errors and warnings only the caller and time of arrival are relevant.  `:key` refers to the
+key that appeared in the guard, and `:match` refers to the weakest active pattern that matches
+the key.  The value for `field` may be either a `String` or a `Symbol`.
+
+=end 
+   def self.group_by=(field)
+      as_symbol = field.to_sym
+      if MESSAGE_GROUPS.member? as_symbol
+         @group_by = as_symbol
+      else
+         raise ArgumentError.new "Unrecognized message group, '#{field}'" 
+      end
+   end
+
+=begin <md>
+#### <code>add_style(css_defns)</code> ###
+
+adds CSS definitions `css_defns` to the .html document.  No vetting of `css_defns` is done.  It
+is simply buffered as is.
+
+If this method is called before opening the actual file for the first time (by calling
+[`open`](open)), the style will appear in the head of the HTML document.  Otherwise, it will be
+put in a "&lt;style&gt; ... &lt;/style&gt;" pair and will appear at the beginning of the next
+group of messages that are flushed.
+
+The CSS styles provided here initially are classes for the four message types, the text before
+and after a flush, and the index/caller reference that begins a display.  These class names are
+
+<blockquote><pre> 'er', 'wn', 'lp', 'hp', 'fl' and 'ref'</pre></blockquote>
+
+=end
+
+   ADMIN_STYLES = %[
+   .fl { color: #000000; }
+   .ref { color: #000000; font-style: oblique}
+   ]
+
+   def self.add_style(css_defns)
+      if css_defns[-1] != "\n" then css_defns += "\n" end
+      @styles += css_defns
+   end
+
+=begin <md>
+#### <code> flush(before: "", after: "", asis: false)</code> ###
+
+flushes any new CSS styles and buffered messages to the HTML file.  The `before` text is written
+before the messages are flushed, and the `after` text is written at the end.  If `asis` is
+`true`, no processing of any kind is done on `before` or `after`.  If it is `false`, both are
+wrapped in `<p>` element with a distinct style (CSS class `fl` mentioned above). An `<hr>`
+element is appended at the very end.
+
+The message and styles buffers are both emptied.
+
+=end
+
+   def self.flush(before: "", after: "", asis: false)
+      if @buffer.length + @styles.length + before.length + after.length == 0
+         return nil  # if there is nothing to do, do NOT open the file at all
+      end
+      File.open(@path, mode: 'a') do |stream|
+         if @styles.length > 0
+            stream.puts "<style>"
+            stream.puts @styles
+            stream.puts "</style>"
+            @styles = ''
+         end
+         if @buffer.length > 0
+            stream.puts "<p>Log flushed, #{Time.now}: #{@buffer.length} entries</p>\n"
+         end
+         if before.length > 0            
+            stream.puts( if asis then before else "<p class=\"fl\">#{before}</p>" end )
+         end
+         if @group_by != :time then @buffer.sort! end
+         stream.puts "<table>"
+         @buffer.each { |msg| stream.puts msg.to_html(@count) }
+         stream.puts "</table>"
+         if after.length > 0
+            stream.puts( if asis then after else "<p class=\"fl\">#{after}</p>" end )
+         end
+         stream.puts "<hr>"
+      end
+      @buffer = []
+      nil
+   end
+
+=begin <md>
+#### <code>close()</code>
+
+flushes the buffers to make sure all the output gets written and then marks the stream "closed",
+so that any further output goes either to `STDOUT` or to `STDERR`, as appropriate.
+
+#### <code>finalize(exception)</code> ###
+
+is meant to be called when output may still being buffered (that is, `close` may not yet have
+been called), and an exception has been raised that will end the process being debugged.  It
+tries to write an error message to the output file and then to close it.  The argument is
+normally the `Exception` that caused the problem, but may be a `String` that is the message to
+write out.
+
+=end
+
+   def self.close()
+      if @path != nil
+         after = "<p>Log ended, #{Time.now}: #{@count} entries in all.</p>\n</code>\n</body>"
+         flush(after: after)
+         @path = nil
+      end
+   end
+
+   def self.finalize(exception, esc: self.esc)
+      begin
+         err "finalize", exception, esc
+         if not @path.nil? 
+            close
+         end
+      rescue Exception => exc 
+         @path = nil
+         STDERR.puts "Finalizing the log failed.\n\n#{exc}"
+      end
+      nil
+   end        
+end
+
+=begin <md>
+<hr><hr>
+
+## The <code>DbgMessage</code> class {#dbgmessage}
+
+This class really should not usually be of any immediate concern to the normal user of the
+`DbgMgr`. Instances of it are what are buffered when the `DbgMgr` is streaming to a file.  The
+attributes of a `DbgMessage` instance are
+
+<blockquote>
+------------- ---------- -----------------------------------------------------------------
+&nbsp;        read-write
+_`body`_                 the content of the message to be written out
+_`data_class`_           the CSS class for the `<td>` cell containing the data
+_`esc`_                  escape characters like `<` (true or false)?
+_`priority`_             a numeric measure of importance--see note following
+&nbsp;        read-only
+_`caller`_               the name of the method that sent the message
+_`index`_                the order of entry: buffer is normally sorted on this field
+_`key`_                  the key that was used to guard the write
+_`match`_                for sorting purposes only: the weakest pattern matching the key
+--------------          -----------------------------------------------------------------
+</blockquote>
+
+Only those attributes noted as "read-write" are writable once the instance is initialized. 
+Probably the most useful of these is the ability to update the body, so that a complex message
+can be put together in several steps.  Remember to reset `esc` if a changed body suddenly needs
+escaping and the default is to put out the body as is.
+
+__Note__: The priority is a number that is used to sort by importance.  Initially, 4 is the
+highest priority and it is assigned to errors.  Warnings come next, then important messages, and
+finally, ordinary messages.  The priority is an attribute that you can use to group the messages
+on output--the other possibilities are [discussed above.](#group_by)  When grouping by priority,
+the higher the priority, the earlier the message appears in the output. The initial values are
+all whole numbers, but there is nothing sacred about that--they are only used for purposes of 
+comparison.
+
+=end
+
+class DbgMessage
+   include Comparable
+   attr_reader :key, :match, :index, :caller
+   attr_accessor :body, :priority, :data_class
+   #HTML_ESCAPER = HTMLEntities.new 
+   PRIORITY_LEVELS = {
+      :ERROR => 4, :WARNING => 3, :PRIORITY => 2, :ORDINARY => 1, :UNKNOWN => 0
+   }
+   STYLE_CLASSES = {
+      :ERROR => 'er', :WARNING => 'wn', :PRIORITY => 'hp',
+      :ORDINARY => 'lp', :UNKNOWN => 'un'
+   }
+   STYLES = %[
+      .er {
+         color: #ff0000; font-weight: bold; background-color: #F0D0D0;
+         border: 1px solid red; margin-left: 1em;
+      }
+      .hp {
+         color: #007020; font-weight: bold; background-color: #E1FDC8;
+         border: 1px solid #007020; margin-left: 1em;
+      } 
+      .lp {color: #000000; background-color: #DDDDDD;
+         border: 1px solid black; margin-left: 1em;
+      } 
+      .wn {
+         color: #0000ff; font-weight: bold; background-color: #C8E5F8;
+         border: 1px solid blue; margin-left: 1em;
+      } 
+      .un {
+         color: #AEAF85; font-weight: bold; background-color: #94A2B7;
+         border: 1px solid ccd847; margin-left: 1em;
+      } 
+   ]
+   
+=begin <md>
+<hr><hr>
+
+### Static message creation methods {#message_creation}
+
+These methods were written to be called by the `DbgMgr`.  The one new parameter is `index`, which is
+effectively the time of arrival of the message into the buffer.  It is normally taken to be the
+value of `DbgMgr`'s `@count` attribute, but any number will do.  The other parameters have the same
+meaning as the corresponding parameters for `DbgMgr`'s analogous methods.
+
+#### <code>ordinary(key: nil, index: nil, key: nil, caller: nil, text: nil, style: nil)</code> 
+#### <code>priority(key: nil, index: nil, key: nil, caller: nil, text: nil, style: nil)</code> 
+#### <code>err(index: nil, caller: nil, error: nil, style: nil)</code>
+#### <code>warn(index: nil, caller: nil, text: nil, style: nil)</code>
+
+=end
+   def self.err(index: nil, caller: nil, body: nil, style: nil)
+      msg = self.new index: index, caller: caller, body: body
+      msg.priority = PRIORITY_LEVELS[:ERROR]
+      if style.nil? then msg.data_class = STYLE_CLASSES[:ERROR]
+      else  msg.data_class = style
+      end
+      msg
+   end
+   def self.warn(index: nil, caller: nil, body: nil, style: nil)
+      msg = self.new index: index, caller: caller, body: body
+      msg.priority = PRIORITY_LEVELS[:WARNING]
+      if style.nil? then msg.data_class = STYLE_CLASSES[:WARNING]
+      else  msg.data_class = style
+      end
+      msg
+   end
+   private 
+   def self.key_check(key)
+      if not key.kind_of? String
+         raise TypeError.new "DbgMgr key is a #{key.class}, not a String as required."
+      elsif key.length == 0
+         raise ArgumentError "Empty string is not an allowable DbgMgr key."
+      end
+   end
+   public
+   def self.priority(key: nil, match: nil, index: nil, caller: nil, body: nil, style: nil)
+      key_check key
+      msg = self.new key: key, match: match, index: index, caller: caller, body: body
+      msg.priority = PRIORITY_LEVELS[:PRIORITY]
+      if style.nil? then msg.data_class = STYLE_CLASSES[:PRIORITY]
+      else  msg.data_class = style
+      end
+      msg
+   end
+   def self.ordinary(key: nil, match: nil, index: nil, caller: nil, body: nil, style: nil)
+      key_check key
+      msg = self.new key: key, match: match, index: index, caller: caller, body: body
+      msg.priority = PRIORITY_LEVELS[:ORDINARY]
+      if style.nil? then msg.data_class = STYLE_CLASSES[:ORDINARY]
+      else  msg.data_class = style
+      end
+      msg
+   end
+
+   def initialize(key: nil, match: nil, index: nil, caller: '', body: '')
+      @key   = key or ''
+      @match = if match then match else key end
+      @index = index
+      @caller =  DbgMgr.html_encode caller
+      @body = body
+      @priority = PRIORITY_LEVELS[:UNKNOWN]
+      @data_class = STYLE_CLASSES[:UNKNOWN]
+   end
+   def ==(other)
+      @index == other.index
+   end
+   def !=(other)
+      @index != other.index
+   end
+   def <=>(other)
+      grouping = DbgMgr.group_by
+      if grouping == :time then return @index <=> other.index # most common call is this
+      elsif grouping == :caller # within caller by time, not priority
+         if @caller < other.caller then return -1
+         elsif other.caller < @caller then return 1
+         end
+      else # group by priority and, if requested, group within that by key or match
+         if @priority > other.priority then return -1 
+         elsif other.priority > @priority then return 1
+         elsif @key.nil? and other.key.nil?
+            return @index <=> other.index # same priority, only time of entry counts
+         elsif @key.nil? ^ other.key.nil? # ie. one, but not both are nil... never happens
+            raise "Invalid priority for #{self} relative to #{other}"
+         end
+         # we get here if both have the same priority and both have keys,
+         # and thus also have non-nil "match" attributes
+         if grouping == :key 
+            if @key < other.key then return -1
+            elsif other.key < @key then return 1
+            end
+         elsif grouping == :match
+            if @match < other.match then return -1
+            elsif other.match < @match then return 1
+            end
+         end
+      end
+      @index <=> other.index
+   end      
+   def to_html(largest_index)
+      index_width = 1 + Integer(Math.log10 largest_index)
+      formatted_index = index.to_s 
+      while formatted_index.length < index_width
+         formatted_index = "&nbsp;"+formatted_index
+      end
+      key = if @key.nil? then '' else "[#{@key}]" end
+      source_cell  = "<td class=\"ref\">#{formatted_index}: #{@caller}#{key}</td>\n"
+      data_cell = "<td class=\"#{@data_class}\">#{body}</td>"
+      "<tr>#{source_cell}#{data_cell}</tr>"
+   end
+end

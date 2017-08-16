@@ -1,0 +1,213 @@
+=begin <head> 
+Title: Some File Methods Supporting Backups
+Author: Jonathan Brezin
+Date: October, 2016
+Show source: Yes
+Tab Size: 3
+=end 
+
+require "dbgclient"
+require "fileutils"
+
+=begin <md>
+## The class <code>VersionedFile &lt; File</code> ##
+
+This module started because I wanted an "emacs"-style file backup facility that, on opening
+files for writing, would save up to some fixed number of backups of the file somewhere.  The
+idea was to be able to open a file and, if the mode allowed either "write" or "append", to
+create a backup version automatically.  Once opened, a `VersionedFile` instance is just a 
+`File`.
+
+### Some comments on version management ###
+
+In order to preserve the ability to edit the backups easily with syntax-directed editors, I
+decided to label the version using a (small) number immediately preceeding the file type:
+`foo_001.bar`, `foo_002.bar`, and so on. 
+
+Two issues to be faced are what a good default is for the backup directory, and what a good
+default is for the limit on how many versions to keep. Here's my take:
+
+1) Two obvious choices for the backup directory are the source's own path and the current
+working directory. As the number of backups increases, neither of these choices looks very
+attractive.  A great deal of clutter is introduced into working directories that make the
+immediately useful files hard to see at a glance.  A reasonable alternative is to create a
+subdirectory of either of these two and save the backups there.  The static attribute
+@VersionedFile.backup_path provides a default for this, which if it is a relative path, is taken
+relative to the directory for the file being backed up.  If for a particular file, you
+absolutely need to use a path special to that file, the constructor makes that easy to do.
+
+
+> Since I don't know your tastes, my default for the backup directory is the same directory as
+the file being backed up. No new directories needed! There are good arguments for using a hidden
+subdirectory, like `.bak`, but, again, I did not feel like imposing that default uninvited.
+
+2) How many files to keep?  This is not "TimeMachine":  I don't feel like tracking dates and
+keeping one per hour until some limit, then one per day, and so on.  The trade-off I see is:
+wasting vast amounts of storage versus having only too-recent copies available when you really
+need to back out a disaster.  It is easy to imagine 5 or 10 saves per hour editing something, so
+if you need to go back to yesterday's version, keeping only the last 5 backups is not going to
+help.  If you always keep TimeMachine running (or always use some other service's versioning),
+then 5 or 10 backups probably does what you need, because yesterday's stuff--even an hours ago's
+stuff--is there in the system-wide backup, so you are really only protecting yourself here
+against what happened in the last hour or so.  My bottom line is that, for the kinds of small
+files I am concerned with (tens of kilobytes), keeping 5 versions is adequate, and that is
+the initial value of the static attribute `VersionedFile.backup_limit`.  
+
+In setting this limit, understand that a value of `0` will be interpreted as just that: do not
+create any backups.  If the value is `nil`, it will be interpreted as "no limit has been set, so
+please keep all the backups".
+
+## The API ##
+
+### The constructor, <code>VersionedFile(path, options)</code> ###
+
+The `path` names the file to open.  The `options` are the same as those for `File.new`, plus:
+
+> __`:keep`__: if supplied, the number of versions to keep for this particular file.  The
+default is kept as `VersionedFile.backup_limit`, which is initially set to 5 and may be
+reset at any time during execution by assigning the new value to `VersionedFile.backup_limit`.
+
+> __`:bak`__: if supplied, the directory, normally relative to that named in `path`, where the
+backups are to be stored.  If absolute, it will be used "as is".  The default is kept as
+`VersionedFile.backup_dir`, which is  initially set to `''` and may be reset at any time during
+execution by assigning the new value to `VersionedFile.backup_path`.
+
+The default being the empty string implies that the backups live in the same directory as the
+original.  Two common alternatives are `'bak' and `'../bak'.  Thus, a  typical call might look
+like:
+
+<pre class="exampleCode">
+
+      file = VersionedFile.new path, mode: 'w', perm: 0644, bak: 'bak'
+      file.each_line do |line| 
+         ...
+
+</pre>
+This opens the file named by the path for writing with the usual file permissions on the file
+created. If the file is just opened for reading, no new version is created.
+
+=end
+class VersionedFile < File
+   include DbgClient
+   DbgClient::configure self, "versions", "versions"
+   def initialize(path, options)
+      if not options.key? :mode then options[:mode] = 'r' end
+      if not File.exists? path
+         write_dbg_stream "#{path} is a new file: no backup created."
+      else
+         case options[:mode].gsub('b', '')
+         when 'w', 'w+'
+            VersionedFile.new_version path, true, options
+         when 'a', 'a+', 'r+'
+            VersionedFile.new_version path, false, options
+         else # do nothing
+            write_dbg_stream "#{path} opened read-only: no new version needed"
+         end
+      end
+      super path, options
+   end
+   @@backup_limit = 5  # the default is to keep at most 5 backup versions
+   @@backup_path = '.' # the default is to backup in the same directory as the file
+   def self.backup_limit=(new_limit)
+      old_limit = @@backup_limit
+      @@backup_limit = if new_limit.nil? then nil else Integer(new_limit) end
+      write_dbg_msg "Default backup limit reset to #{new_limit}", key: "backup"
+      old_limit
+   end
+   def self.backup_limit
+       @@backup_limit
+   end
+   def self.backup_path=(new_path)
+      old_path = @@backup_path
+      @@backup_path = new_path
+      write_dbg_msg "Default backup path reset to #{new_path}", key: "backup"
+      old_path
+   end
+   def self.backup_path
+      @@backup_path
+   end
+
+=begin <md>
+### Static method <code>new_version(path, may_rename, options)</code>###
+
+determines the path to the new version from the given path, and, if provided, the value of
+`options[:bak]`, which, if relative, is taken to be relative to `path`.  Once the backup
+directory is known, the backup file is created.  If `may_rename` is `true`, the existing file
+is simply renamed (and, of course, put in the backup directory).  Otherwise a copy is put in
+the backup directory.
+
+The name for the new copy is the base name of the original, followed by an underscore, followed
+by at least 3 digits, followed by the extension used by the original.  Preserving the original's
+extension makes using syntax-directed editors easier, as noted earlier.
+
+If adding the new version would exceed the limit on backups established by the value of
+`options[:keep]`, if supplied, or `VersionedFile.backup_limit` if not, versions are deleted
+with the lowest numbered version deleted first.
+
+   
+=end
+
+   def self.new_version(path, may_rename, options)
+      write_dbg_msg "new=#{path}, bak='#{options[:bak]}'"
+      path = File.expand_path path
+      if not File.exists? path
+         return
+      end
+      
+      to_keep = if options[:keep].nil? then @@backup_limit else Integer options[:keep] end
+      if to_keep == 0
+         msg = "Request to backup '#{path}', but 0 versions are to be kept!!!"
+         write_dbg_msg msg
+         return
+      end 
+      directory = File.dirname path # path is already absolute here, so dirname works ok
+      filename = File.basename path
+      write_dbg_msg "File name from path is #{filename}"
+      last_dot = filename.rindex '.'
+      if last_dot.nil?
+         extension = ''
+      else
+         extension = filename[last_dot .. -1]
+         filename  = filename[0 ... last_dot]
+      end
+      msg = "after split, filename is #{filename} and the extension is #{extension}"
+      write_dbg_msg msg
+      backup_dir = File.expand_path (options[:bak] or  @@backup_path), directory
+      msg = "backups go to #{backup_dir}; options[:bak] is #{options[:bak]} "
+      write_dbg_msg msg
+      File.assure_directory(backup_dir)
+      new_version, versions = self.name_the_next_version(backup_dir, filename, extension)
+      # if there are too many backups, delete some before creating a new one
+      if not (to_keep.nil? or to_keep > versions.length)
+         number_to_delete = versions.length + 1 - to_keep
+         versions[0 ... number_to_delete].each do | version |
+            write_dbg_msg "removing backup #{version} of #{path}"
+            File.delete(File.join backup_dir, version)
+         end
+      end
+      new_path = File.join(backup_dir, new_version)
+      if may_rename # don't save original, which will be truncated on opening for write
+         File.rename path, new_path
+      else   
+         IO.copy_stream path, new_path
+      end 
+   end
+
+   private
+   def self.name_the_next_version(directory, filename, extension)
+      write_dbg_msg "filename: #{filename}, ext: #{extension}", key: "next_version"
+      regexp_src = '^' + Regexp.escape(filename) + "_0*([1-9][0-9]*)" + Regexp.escape(extension) +'$'
+      matcher = Regexp.compile(regexp_src)
+      versions = Dir.entries(directory).find_all {|entry| matcher.match(entry) != nil}
+      write_dbg_msg "Saved versions:\n#{versions}", key: "next_version"
+      if versions.length == 0
+         new_version = filename+"_001"+extension
+      else
+         versions.sort! 
+         last_version = Integer matcher.match(versions[-1]).captures[0]
+         next_version = last_version + 1
+         new_version = filename + "_#{'%.3d' % next_version}" + extension
+      end
+      [new_version, versions]
+   end
+end
