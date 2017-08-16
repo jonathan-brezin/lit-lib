@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>The Singleton Pattern</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">The Singleton Pattern</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">May, 2017</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#general-considerations">General considerations</a></li>
+<li><a href="#forcing-an-instance-to-be-unique">Forcing an instance to be unique</a><ul>
+<li><a href="#using-a-global-variable">Using a global variable</a></li>
+<li><a href="#using-a-metaclass">Using a <code>metaclass</code></a></li>
+<li><a href="#using-a-decorator">Using a decorator</a></li>
+</ul></li>
+<li><a href="#subclassing-and-singletons">Subclassing and singletons</a></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> sysutils <span class="ch">as</span> su
+</code></pre>
+<h2 id="general-considerations">General considerations</h2>
+<p>This discussion was inspired by a <a href="https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons?">stackoverflow discussion</a>, which I recommend to your attention. What follows is almost all just a minor variation on it. Please check out the web page for the authors who suggested the snippets here.</p>
+<p>The obvious ploy for creating a “singleton” is just to use the class and <a href="https://docs.python.org/3/library/functions.html#classmethod"><code>@classmethod</code>s</a> rather than creating any “instances” at all. This was the approach that I used for the Ruby version of a debugging manager, but when I came to writing the analogous Python module, I found that the class approach, at least for Python, has its minuses as well as its pluses.</p>
+<blockquote>
+<p><em>Big plus:</em> simplicity.<br /><em>Tiny minus:</em> <a href="https://docs.python.org/3/library/functions.html#classmethod"><code>@classmethod</code>s</a>, which treat the class as the implied first argument “<code>self</code>”, are kind of an “add on” to Python, somehow not really “Pythonic”.<br /><em>Modest minus:</em> security–one has to prevent the class from being copied or deep-copied.</p>
+</blockquote>
+<p>For the debugging manager, more secure versions seemed unnecessary, and working in Ruby, static methods are perfectly natural, but for Python, I just didn’t feel comfortable with the <code>@classmethod</code> “hack”. By the way, one can prevent copying the class in the obvious way. We want the following snippet to fail:</p>
+<pre class="exampleCode">
+
+    class CopyOfMe(Me):
+      pass
+</pre>
+
+<p>One way to make this happen (and keep the singleton a singleton) was recommended in a <a href="https://stackoverflow.com/questions/16056574/how-does-python-prevent-a-class-from-being-subclassed)"><em>stackoverflow</em>article</a></p>
+<pre class="exampleCode">
+
+class Final(type):
+    def __new__(cls, name, bases, classdict):
+        for b in bases:
+            if isinstance(b, Final):
+                raise TypeError(&quot;type '{0}' is not an acceptable base type&quot;.format(b.__name__))
+        return type.__new__(cls, name, bases, dict(classdict))
+
+class Foo(metaclass = Final):
+   pass
+
+</pre>
+
+<p>If you try executing</p>
+<pre class="exampleCode">
+
+class Bar(Foo):
+    pass
+
+</pre>
+
+<p>you should get the message <code>&quot;TypeError: type 'Foo' is not an acceptable base type&quot;</code></p>
+<h2 id="forcing-an-instance-to-be-unique">Forcing an instance to be unique</h2>
+<p>There are basically three ways to create a class that has a unique instance:</p>
+<ol type="1">
+<li>use a “constant” member of a module for the unique instance,</li>
+<li>create a <a href="https://docs.python.org/3/reference/datamodel.html#metaclasses">metaclass</a> for overriding <code>type.__new__</code>, or</li>
+<li>create a decorator class.</li>
+</ol>
+<p>I’ll look at all three here.</p>
+<h3 id="using-a-global-variable">Using a global variable</h3>
+<p>The module/global approach is about as simple using the class.</p>
+<pre class="exampleCode">
+
+_the_one_and_only = None
+def TheOneAndOnly():
+   global _the_one_and_only
+   class NothingSpecial:
+      pass
+   if not _the_one_and_only:
+      _the_one_and_only = NothingSpecial()
+   return _the_one_and_only
+
+</pre>
+
+<p>If there is no issue with instantiating when the module is first imported, things are even simpler:</p>
+<pre class="exampleCode">
+
+class _NothingSpecial:
+    pass
+THE_ONE_AND_ONLY = _NothingSpecial()
+
+</pre>
+
+<p>Using “<code>_NothingSpecial</code>” rather than “<code>NothingSpecial</code>” underscores (no pun intended) that the class is not meant for use outside the module in which it appears. If you are careful to make direct copying of the one instance impossible (see “<code>_inhibit_copy()</code>” immediately below), then the only vulnerability here is that, even though it is a violation of the module’s contract, rogue code <em>can</em> still use the private class <code>_NothingSpecial</code> to create other instances.</p>
+<p>The constructor here is nullary: that is, has no arguments. This is a matter of good taste, because if it is possible to call a singleton’s constructor with different sets of arguments, one has a nasty dilemma. Is the second call with different arguments an error (in the context it is made)? Should one at least warn the caller? Or can one simply ignore the call and return the unique instance?</p>
+<h3 id="using-a-metaclass">Using a <code>metaclass</code></h3>
+<p>The metaclass based approach is also not so bad. Here’s a factory approach, that makes sense if the singleton constructor is not being called in a high frequency path. We start with some code to prevent cloning the instance:</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> _copy(<span class="ot">self</span>): 
+   msg = <span class="st">&quot;'{}' is a singleton class: no copy allowed!&quot;</span>
+   <span class="kw">raise</span> <span class="ot">AssertionError</span>(msg.<span class="dt">format</span>(<span class="ot">self</span>.__class__.<span class="ot">__name__</span>))
+
+<span class="kw">def</span> _deepcopy(<span class="ot">self</span>, memo):
+      msg = <span class="st">&quot;'{}' is a singleton class: no deep copy allowed!&quot;</span>
+      <span class="kw">raise</span> <span class="ot">AssertionError</span>(msg.<span class="dt">format</span>(<span class="ot">self</span>.__class__.<span class="ot">__name__</span>))
+
+<span class="kw">def</span> _inhibit_copy(cls):
+   <span class="co"># If cls implements __copy__ or __deepcopy__, well so be it! I will leave it alone.</span>
+   <span class="co"># If not, I will provide an implementation that raises an appropriate exception.</span>
+   <span class="kw">try</span>:
+      cls.__copy__
+   <span class="kw">except</span> <span class="ot">AttributeError</span>:
+      cls.__copy__ = _copy
+   <span class="kw">try</span>:
+      cls.__deepcopy__
+   <span class="kw">except</span> <span class="ot">AttributeError</span>:
+      cls.__deepcopy__ = _deepcopy
+
+<span class="kw">class</span> OnlyOne(<span class="dt">type</span>):
+   instances = <span class="dt">dict</span>()
+   <span class="kw">def</span> <span class="ot">__call__</span>(cls, *args, **kwargs):
+      <span class="kw">if</span> cls.<span class="ot">__name__</span> not in OnlyOne.instances:
+         OnlyOne.instances[cls.<span class="ot">__name__</span>] = <span class="dt">type</span>.<span class="ot">__call__</span>(cls, *args, **kwargs)
+         _inhibit_copy(cls)
+      <span class="kw">return</span> OnlyOne.instances[cls.<span class="ot">__name__</span>]
+</code></pre>
+<p>You use <code>OnlyOne</code> as follows:</p>
+<pre class="exampleCode">
+
+class NothingSpecial(metaclass=OnlyOne):
+   pass
+</pre>
+
+<h3 id="using-a-decorator">Using a decorator</h3>
+<p>At last we come to the decorator approach. Here’s one way:</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> OneAndOnly(<span class="dt">object</span>):
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, cls):
+      <span class="ot">self</span>.__dict__[<span class="st">'cls'</span>] = cls <span class="co"># make cls's dict available</span>
+      _inhibit_copy(cls)
+   instances = {}
+   <span class="kw">def</span> <span class="ot">__call__</span>(<span class="ot">self</span>):
+      <span class="kw">if</span> <span class="ot">self</span>.cls not in <span class="ot">self</span>.instances:
+         <span class="ot">self</span>.instances[<span class="ot">self</span>.cls] = <span class="ot">self</span>.cls()
+         _inhibit_copy(<span class="ot">self</span>.cls)
+      <span class="kw">return</span> <span class="ot">self</span>.instances[<span class="ot">self</span>.cls]
+   <span class="kw">def</span> <span class="ot">__getattr__</span>(<span class="ot">self</span>, attr):
+      <span class="kw">return</span> <span class="dt">getattr</span>(<span class="ot">self</span>.__dict__[<span class="st">'cls'</span>], attr)
+   <span class="kw">def</span> <span class="ot">__setattr__</span>(<span class="ot">self</span>, attr, value):
+      <span class="kw">return</span> <span class="dt">setattr</span>(<span class="ot">self</span>.__dict__[<span class="st">'cls'</span>], attr, value)
+</code></pre>
+<p><code>OneAndOnly</code> is used to decorate your class:</p>
+<pre class="exampleCode">
+
+@OneAndOnly
+class NothingSpecial():
+   pass
+
+</pre>
+
+<p>You can also go a slightly different route, a decorator that creates a class method “<code>get()</code>” for retrieving the unique instance:</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> OneOnly(<span class="dt">object</span>):
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, cls):
+      <span class="ot">self</span>._cls = cls
+      <span class="ot">self</span>._instance = cls()
+      _inhibit_copy(cls)
+   <span class="kw">def</span> get(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>._instance 
+   <span class="kw">def</span> <span class="ot">__call__</span>(<span class="ot">self</span>): <span class="co"># make sure the constructor for the singleton class fails</span>
+      <span class="kw">raise</span> <span class="ot">AssertionError</span>(<span class="st">&quot;'{}' is a singleton class&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>._cls.<span class="ot">__name__</span>))
+</code></pre>
+<pre class="exampleCode">
+
+@OneOnly
+class NothingSpecial():
+   pass
+
+n = NothingSpecial.get()
+
+</pre>
+
+<p>If you execute “<code>n = NothingSpecial()</code>”, you will see an exception raised with the message “<code>'NothingSpecial'</code> <code>is a singleton class</code>”.</p>
+<p>As a matter of taste, I guess I prefer the “get” version, as it underlines that the class itself is not being asked to construct something: you are just retrieving something.</p>
+<h2 id="subclassing-and-singletons">Subclassing and singletons</h2>
+<p>Because metaclassing and decorating muck about with the class being constrained, making subclassing work is probably best done by creating a vanilla class for the parent and then making a copy of that class the singleton. Here “<code>AImpl</code>” is the real implementation of the class, and “<code>A</code>” is the singleton version:</p>
+<pre class="exampleCode">
+
+from singleton import OneOnly
+class AImpl:
+   def __init__(self):
+      self.a = &quot;A&quot;
+
+@OneOnly
+class A(AImpl):
+   pass
+
+a = A.get()
+print(&quot;a.a is {}&quot;.format(a.a))
+
+</pre>
+
+<p>To get a subclass “<code>B</code>” of “<code>A</code>”, you play the same game: create a “<code>BImpl</code>” class that contains the real code, and then create singleton from the copy:</p>
+<pre class="exampleCode">
+
+class BImpl(AImpl):
+   def __init__(self):
+      super().__init__()
+      self.b = &quot;B&quot;
+
+@OneOnly
+class B(BImpl):
+   pass
+
+b = B.get()
+print(&quot;b.a is {}&quot;.format(b.a)) 
+print(&quot;b.b is {}&quot;.format(b.b)) 
+
+</pre>
+
+<p>Would I rather have two classes here, rather than 4? I think that the answer is: often, but not always. The issue here is whether the unconstrained classes, here <code>AImpl</code> and <code>BImpl</code>, are ever going to used as such–in other words, used in non-singleton mode. It does not take too much imagination to conjure up examples where it is the context that requires the unique instance, but where there may be several such contexts.</p>
+<p>It’s not exactly on the same topic, but since I’m worrying about subclasssing, I thought I’d recommend Raymond Hettinger’s <a href="https://rhettinger.wordpress.com/2011/05/26/super-considered-super/">https://rhettinger.wordpress.com/2011/05/26/super-considered-super/</a>. It is a great reference for <code>super()</code> calls, which are quite different for Python from what they are in other languages.</p>
+</body>
+</html>

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Filtered debugging output</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Filtered debugging output</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">April, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#getdbgmgr"><code>getDbgMgr(*patterns)</code>: a naive, but useful first step</a></li>
+<li><a href="#opendbgmgr"><code>openDbgMgr(*patterns, **kwargs)</code>: a more elaborate tool</a><ul>
+<li><a href="#output_stream">The output stream</a></li>
+<li><a href="#sorting_info">A few words about sorting</a></li>
+</ul></li>
+<li><a href="#the-dbgmessage-class">The <code>DbgMessage</code> class</a></li>
+<li><a href="#the-dbgmgr-class-and-the-managers-api">The <code>DbgMgr class</code> and the manager’s API</a><ul>
+<li><a href="#operators">The <code>in</code>, <code>with</code> and <code>[]</code> operators</a></li>
+<li><a href="#methods-for-maintaining-the-pattern-set">Methods for maintaining the pattern set</a><ul>
+<li><a href="#add_patternsnew_patterns"><code>add_patterns(new_patterns)</code></a></li>
+<li><a href="#remove_patternsdead_patterns"><code>remove_patterns(dead_patterns)</code></a></li>
+<li><a href="#raise_prioritynew_patterns"><code>raise_priority(new_patterns)</code></a></li>
+<li><a href="#lower_priorityptns"><code>lower_priority(ptns)</code></a></li>
+<li><a href="#all_matchedkeys"><code>all_matched(keys)</code></a></li>
+<li><a href="#any_matchedkeys"><code>any_matched(keys)</code></a></li>
+</ul></li>
+<li><a href="#methods-for-writing-output">Methods for writing output</a><ul>
+<li><a href="#addstyleclassname-spec"><code>addstyleclass(name, spec)</code></a></li>
+<li><a href="#buffer_messagemsg"><code>buffer_message(msg)</code></a></li>
+<li><a href="#dbgkey-text-srcnone-stylenone-nowfalse"><code>dbg(key, text, src=None, style=None, now=False)</code></a></li>
+<li><a href="#prekey-text-srcnone-stylenone-nowfalse"><code>pre(key, text, src=None, style=None, now=False)</code></a></li>
+<li><a href="#errtextorerror-srcnone"><code>err(textOrError, src=None)</code></a></li>
+<li><a href="#warntext-srcnone"><code>warn(text, src=None)</code></a></li>
+<li><a href="#flush"><code>flush(before=“”, after=“”, asis=False)</code></a></li>
+<li><a href="#close"><code>close(before=“”, after=“”, asis=False)</code></a></li>
+</ul></li>
+<li><a href="#methods-mostly-for-debugging-convenience">Methods mostly for debugging convenience</a><ul>
+<li><a href="#pattern_iterator"><code>pattern_iterator()</code></a></li>
+<li><a href="#buffer_iterator"><code>buffer_iterator()</code></a></li>
+<li><a href="#pattern_count"><code>pattern_count()</code></a></li>
+<li><a href="#msg_count"><code>msg_count()</code></a></li>
+<li><a href="#buffer_count"><code>buffer_count()</code></a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<p>One of the standard problems of adding verbose debugging output to a program, almost no matter how modest the program, is that it is hard not to be too verbose–so verbose that it can be hard to see the output that is immediately important. The job here, therefore, is to allow one to leave a lot of debugging code in place, but make it easy to filter what one sees on any one execution. There are probably more sophisticated ways to so that than the two faciliities I am implementing here, but they work well enough for me almost all of the time.</p>
+<p>The heart of the implementation is the <code>DbgMgr</code> class. It is a <a href="singleton.pype">singleton class</a>, whose unique instance I’ll call the “debug manager”, or more often, just “the manager”. The class, as you would expect for a singleton, is not expected to be accessed directly as such. There are two module-level functions, <code>getDbgMgr</code> and <code>openDbgMgr</code> that return the manager, appropriately initialized. The next two sections describe what each of these two has to offer.</p>
+<h2 id="getdbgmgr"><code>getDbgMgr(*patterns)</code>: a naive, but useful first step</h2>
+<p>The arguments are a set of patterns, if any, to activate. Each argument is a string that is a comma-separated list of the patterns, e.g. <code>&quot;cart, *_in, *_out&quot;</code>. White space around the keys is ignored, and asterisks are treated as wildcards. At most one “*&quot; can appear in a pattern. It may appear anywhere in the pattern. If you add “*&quot; itself as a pattern, every key in the code being debugged will be honored.</p>
+<p>You bootstrap the manager with an initial set of key patterns to honor:</p>
+<pre class="exampleCode">
+
+import dbg
+dbgmgr = dbg.DbgMgr(&quot;io,user,cart,history&quot;)
+
+</pre>
+
+<p>or if you prefer:</p>
+<pre class="exampleCode">
+
+import dbg
+dbgmgr = dbg.getDbgMgr(&quot;io&quot;, &quot;user&quot;, &quot;cart&quot;, &quot;history&quot;)
+
+</pre>
+
+<p>The idiom for writing debugging code is then simply:</p>
+<pre class="exampleCode">
+
+if &quot;io&quot; in dbgmgr:
+   print(&quot;IO, IO, it's off to stderr we go!&quot;, file=sys.stderr)
+   # or do whatever other sort of work your debugging requires here
+
+</pre>
+
+<p><code>getDbgMgr</code> uses a single set-like object, a <a href="WildCardLookup.html"><code>WildCardLookup</code></a> to be precise, to maintain a list of patterns for keywords that name sets of debug print statements or other code needed only for debugging. You can activate more patterns or remove unneeded patterns at any time by calling <a href="#add_patternsnew_patterns"><code>dbgmgr.add_patterns</code></a> or <a href="#remove_patternsdead_patterns"><code>dbgmgr.remove_patterns</code></a>. You can also add patterns by calling <code>getDbgMgr</code> again with the new patterns as arguments.</p>
+<blockquote>
+<p><code>getDbgMgr</code> is safe to call anywhere, at any time, with no arguments. The call just returns the manager. This is the normal way a library module <em>that wants to work directly with the manager as in the example above</em> should ask for it.</p>
+</blockquote>
+<p>Only those debugging statements are executed that are guarded by keywords that match patterns which have been added to the manager. You can imagine programs with keys <code>&quot;io&quot;</code>, <code>&quot;user&quot;</code>, <code>&quot;cart&quot;</code>, <code>&quot;history&quot;</code>, and the like, that partition the debugging output into semantically sensible groups, only one of which is likely to be of interest at any one time.</p>
+<p>The example of <code>&quot;io&quot;</code>, <code>&quot;user&quot;</code>, etc is a little misleading in that it might tempt you to think that one could use a plain vanilla <code>set</code> to track the keys. That turns out to be too restrictive in practice. It is useful, particularly in the early going of the debugging game, to be able to turn on a number of related keys, like <code>&quot;user_name&quot;</code>, <code>&quot;user_email&quot;</code>, etc. The wild-card pattern <code>&quot;user_*&quot;</code> does what you need. Once the code is a little more stable, though, even<code>&quot;user_*&quot;</code> may spit out far too much for whatever problem you are chasing down, so you can enter just the one or two individual <code>&quot;user_...&quot;</code> keys that you need.</p>
+<blockquote>
+<p><strong>A Word About Words</strong>: In order to avoid massive confusion, I will always talk about “patterns” being held to be matched later by “keys”. “keys” appear as guards, “patterns” are used to check those “keys”. Not every pattern need have a wild-card, of course, and while it would not be unreasonable to call such a wild-card free pattern a “key”, I will still call it a “pattern”.</p>
+</blockquote>
+<p>For a non-trivial example of this approach in action, take a look at the <a href="qsort.html"><code>qsort</code></a> module, which is a pure Python implementation of the “quicksort” algorithm. There’s only one function, but it involves a triply nested loop with two innermost loops, so there are a number of different contexts where it is natural to focus one’s attention. The code uses half a dozen or so keys to allow one to do just that. In this example, limiting the output is important, because if you turn all of the patterns on, you can get overwhelmed: remember, it is a three-deep nested set of loops doing an <code>nlog(n)</code> sorting algorithm on an array of size <code>n</code>.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> blist <span class="ch">import</span> blist
+<span class="ch">import</span> html
+<span class="ch">import</span> inspect
+<span class="ch">import</span> io
+<span class="ch">import</span> os
+<span class="ch">from</span> singleton <span class="ch">import</span> OneOnly
+<span class="ch">from</span> sys <span class="ch">import</span> stdout, stderr
+<span class="ch">import</span> sysutils <span class="ch">as</span> su
+<span class="ch">import</span> time
+<span class="ch">import</span> traceback
+<span class="ch">from</span> wildcardlookup <span class="ch">import</span> WildCardLookup
+
+<span class="kw">def</span> getDbgMgr(*patterns):
+   mgr = DbgMgr.get()
+   mgr.add_patterns(*patterns)
+   <span class="kw">return</span> mgr
+        </code></pre>
+<h2 id="opendbgmgr"><code>openDbgMgr(*patterns, **kwargs)</code>: a more elaborate tool</h2>
+<p><code>getDbgMgr</code> is adequate for a lot of projects, but once things get a little involved, one often needs something more elaborate, which is where <code>openDbgMgr</code> comes in. Its positional arguments are the initial patterns to register, either strings that are comma-separated lists or lists of such strings. Leading and trailing white space is trimmed from these patterns. It has two keyword arguments, “<code>path</code>” and “<code>sortby</code>”.</p>
+<blockquote>
+<p><em><code>path</code></em> names the directory into which to put the HTML output file. The default is the “<code>log</code>” subdirectory of the current working directory. The debugging output will be written to <a href="#output_stream">a file in that directory</a>.</p>
+</blockquote>
+<blockquote>
+<p><em><code>sortby</code></em> is one of the strings <code>&quot;time&quot;</code>, <code>&quot;key&quot;</code>, <code>&quot;match&quot;</code>, or <code>&quot;source&quot;</code>. Normally messages are displayed in the order generated–in other words, sorted by “time”. Since the messages are being buffered and only streamed when the buffer is flushed, we are free to sort by other “keys”. More on that will be found <a href="#sorting_info">below.</a></p>
+</blockquote>
+<p>This call is the moral equivalent of a <code>File</code> open call. One may not want to clutter <code>stderr</code> with kilobytes or more of debugging output, if only in order to avoid hiding genuine error messages that you know should be sent there, so creating a log file with its own output stream is a common need and is the approach that is taken here. There is more at stake, though, like automatically decorating the messages with additional information:</p>
+<ol type="1">
+<li><p>Tracking the “source” of the messages may be useful. The debug keys serve as one possible “source”, but it is better in many cases to use the name of the calling function that wrote the message. Part of the job here is to relieve the user of supplying that name — if I am the currently executing Python code object, I know my caller’s name. even if it is just a lambda. The Python library <code>inspect</code> module entry <code>currentframe</code> has the information I need.</p></li>
+<li><p>The patterns as well as actual keys used for filtering in <code>getDbgMgr</code> can be also used to sort the messages into groups that are displayed contiguously in the final output. This implies buffering the debugging output as long as possible. Temporal order is not the only interesting one.</p></li>
+<li><p>Once you decide to create a log file, you might as well really decorate the messages and make the output HTML, so that you can use distinct styles for real error messages, warnings, and (last, but not least) plain-old debugging output.</p></li>
+<li><p>Similarly, you might wish to signal some of the debugging output as “high priority”. Since we are in HTML-land now, some simple CSS will carry the day here. We can create as many message types as is convenient by extending a basic message class.</p></li>
+<li><p>When your application raises an error, it is convenient to copy the error into the debugging buffer before blowing the app out of the water. That is the job of <a href="#errtext">the <code>err</code> method.</a></p></li>
+</ol>
+<p><strong>A final word:</strong> Remember, <code>openDbgMgr</code> is like any other stream opener: meant to be called once and once only. Execute <code>getDbgMgr()</code> to get a debug manager, or pass the debug manager around from the “main”.</p>
+<h3 id="output_stream">The output stream</h3>
+<p><code>openDbgMgr</code> opens an output stream to a <code>File</code>. You can revert to streaming to <code>stdout</code>, <code>stderr</code>, or any other stream later on by assigning that value to <code>dbgmgr.stream</code>. The effect of such an assignment is to flush the current buffer to the original stream, then, if it is not <code>stdout</code> or <code>stderr</code>, to close that stream and finally, to start writing to the new stream. You can also close the output stream and revert to streaming to <code>stderr</code> by assigning <code>None</code> to <code>dbgmgr.stream</code>.</p>
+<p>The manager has four methods for creating buffered output: <code>dbg</code>, <code>pre</code>, <code>warn</code> and <code>err</code>. Each adds its output to an output buffer. They are safe to call at any time, even if all you called to get the manager was <code>getDbgMgr</code>. Just make sure to call the <em><code>close</code></em> method to flush the buffer when you are done spewing messages. Unless you explicitly set <code>dbgmgr.stream</code> to <code>stdout</code> or a file stream, all output will be flushed to <code>stderr</code>.</p>
+<p>In addition to calling <code>add_patterns</code>, you can register patterns by calling <code>raise_priority</code> which both registers the pattern, if it is not already there, and then makes sure it has high priority. This call works even for unopened managers, but has an effect only if you use the buffered <code>dbg</code> and <code>pre</code> calls.</p>
+<p>The manager can be used to create a <a href="https://docs.python.org/3/reference/datamodel.html#context-managers">“managed context”</a>. Here is a call that registers a few patterns and opens the output file in the default directory with the default sort order:</p>
+<blockquote><pre class="exampleCode">
+
+import dbg
+with openDbgMgr(&quot;a, a_*, *b, a*b&quot;) as dbgmgr:
+   # the code to be debugged goes here
+   # ...
+
+</pre></blockquote>
+
+<p>Doing this in a <code>with</code> statement assures that when control leaves that context, all of the buffered output will be flushed to the log file, and the log file will be closed, unless it is <code>stdout</code> or <code>stderr</code>. I think it is probably not a good idea to close either of the standard streams “implicitly”. It is too easy to lose output that you have every reason to expect, even though the debug manager has quit.</p>
+<h3 id="sorting_info">A few words about sorting</h3>
+<p>You can change the sort order whenever convenient. Sorting is done on flushing the stream. In particular, closing the stream will flush any messages in the buffer in sorted order.</p>
+<p>If <code>sortby</code>’s value is <code>&quot;key&quot;</code>, error messages will appear first, then warnings, both in the order generated. Then the ordinary debugging output will appear, with all of the messages guarded by a given key grouped together and displayed, within the group, in the order they were generated.</p>
+<p>Sorting with <code>sortby</code> equal to <code>&quot;match&quot;</code> is a slight variation on this theme. The sorting of the debugging output is done not on the basis of the key that actually guarded the request, but on the basis of the <em>weakest pattern in the wild-card set that matches the key at the time the message is buffered.</em> “Weaker” means “matches more strings”, versus “stricter”, meaning “matches fewer strings”. For example, if you have a bunch of input debugging keys named <code>in_...</code>, and if <code>in_*</code> is alive when the messages are buffered, all of the <code>in_...</code> messages will appear, in the order generated, in a single group.</p>
+<p>Sorting by <code>&quot;source&quot;</code> uses the name of the function that generated the message as the attribute on which to sort. The function name is used for sorting <em>all</em> the messages, <em>including errors and warnings.</em> Again, the messages for each function appear in the order generated.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> openDbgMgr(*patterns, **kwargs): 
+   mgr = DbgMgr.get()
+   mgr.add_patterns(patterns)
+   <span class="kw">if</span> mgr.path is <span class="ot">None</span>:
+      path = su.getitem(kwargs, <span class="st">&quot;path&quot;</span>, <span class="ot">None</span>)
+      mgr._open(path)
+      mgr.sortby = su.getitem(kwargs, <span class="st">&quot;sortby&quot;</span>, <span class="st">&quot;time&quot;</span>)
+   <span class="kw">return</span> mgr
+   </code></pre>
+<h2 id="the-dbgmessage-class">The <code>DbgMessage</code> class</h2>
+<p>The debug manager buffers its messages as a <code>list</code> of instances of the <code>DbgMessage</code> class. There are two reasons for having such a class and not just buffering the message texts: the look and feel of individual messages and the overall organization of the output. By keeping the CSS “class” of a message as part of the message is easy to apply different CSS styles to messages whenever convenient, and by keeping at hand a message’s key (if it has one) and name of the function requesting the output, one can easily sort the messages in ways other than simply by order generated.</p>
+<p>There are four styles of message realized by classes that come “out of the box”: errors, warnings, high priority HTML text, and ordinary HTML text. If you can live with this taxonomy, <code>DbgMgr</code> has methods for creating and buffering each. In addition, one can specify for both high priority and ordinary output whether it needs to be in an HTML <code>&lt;pre&gt;</code> element or not.</p>
+<p>For an example of how to add your own message style, see the interface class in the module <a href="idbg.html">idbg</a>.</p>
+<p>Five fields in a message govern its sort order.</p>
+<blockquote>
+<p><code>display_priority</code>: a number that is used to order the messages crudely by type when the order is not simply by time. Each <code>DbgMessage</code> subclass has a default value: 0 for error messages, 1 for warnings and 2 for everything else. Messages are sorted by ascending <code>display_priority</code>. You can overwrite the field for any message or set of messages, and provide your own (floating point) values for your own classes that extend those here. For example, if you want to separate the high priority messages from the low by more than just the output style, you could use <code>1.5</code> as the <code>display_priority</code> for high priority messages. The high priority messages will then all follow immediately after the warnings and before any low priority messages.</p>
+</blockquote>
+<blockquote>
+<p><code>key</code>: the string that actually appeared as the guard in the call that lead to a message being buffered.</p>
+</blockquote>
+<blockquote>
+<p><code>weakest_match</code>: the string that is the weakest pattern that matches the key and was alive at the time the message was buffered.</p>
+</blockquote>
+<blockquote>
+<p><code>caller</code>: the name of the function that called the manager to buffer the message.</p>
+</blockquote>
+<blockquote>
+<p><code>index</code>: a number that yields the order in which messages are buffered. When I speak of sorting “by order generated”, this is the field I am using to order the messages.</p>
+</blockquote>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> DbgMessage:
+   DEFAULTS = {
+      <span class="st">&quot;key&quot;</span>: <span class="st">&quot;&quot;</span>,              <span class="co"># not used by errors and warnings</span>
+      <span class="co">&quot;weakest_match&quot;</span>: <span class="ot">None</span>,  <span class="co"># weakest pattern that matches the key (if key is non-empty)</span>
+      <span class="co">&quot;display_priority&quot;</span>: <span class="dv">3</span>,  <span class="co"># the priority assigned to ordinary debugging output</span>
+      <span class="co">&quot;caller&quot;</span>: <span class="st">'??'</span>,         <span class="co"># should always be supplied by the caller</span>
+      <span class="co">&quot;body&quot;</span>: <span class="st">&quot;&quot;</span>,             <span class="co"># should always be supplied by the caller</span>
+      <span class="co">&quot;index&quot;</span>: -<span class="dv">1</span>,            <span class="co"># should always be supplied by the caller</span>
+      <span class="co">&quot;style_class&quot;</span>: <span class="st">&quot;ordinary_msg&quot;</span> <span class="co"># ordinary, non-priority debugging output</span>
+   }
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, parms_in):
+      parms = su.mergepairs(parms_in, <span class="ot">self</span>.DEFAULTS, clone=<span class="ot">True</span>)
+      <span class="ot">self</span>.key = parms[<span class="st">'key'</span>]
+      <span class="ot">self</span>.match = parms[<span class="st">'weakest_match'</span>] <span class="kw">if</span> parms[<span class="st">'weakest_match'</span>] <span class="kw">else</span> parms[<span class="st">'key'</span>]
+      <span class="ot">self</span>.display_priority = parms[<span class="st">'display_priority'</span>]
+      <span class="ot">self</span>.caller = parms[<span class="st">'caller'</span>]
+      <span class="ot">self</span>.body = parms[<span class="st">'body'</span>]
+      <span class="ot">self</span>.index = parms[<span class="st">'index'</span>]
+      <span class="ot">self</span>.style_class = parms[<span class="st">'style_class'</span>]
+
+   <span class="kw">def</span> <span class="ot">__eq__</span>(<span class="ot">self</span>, other):
+      <span class="ot">self</span>.index is other.index
+
+   <span class="kw">def</span> <span class="ot">__ne__</span>(<span class="ot">self</span>, other):
+      not (<span class="ot">self</span>.index is other.index)
+
+   <span class="kw">def</span> <span class="ot">__lt__</span>(<span class="ot">self</span>, other):
+      <span class="co"># the display priority always rules:</span>
+      <span class="kw">if</span> <span class="ot">self</span>.display_priority &lt; other.display_priority:
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">elif</span> <span class="ot">self</span>.display_priority is other.display_priority:
+         <span class="kw">if</span> <span class="ot">self</span>.key is <span class="ot">None</span>: 
+            <span class="co"># both are either an error or a warning, so the index rules</span>
+            <span class="kw">return</span> <span class="ot">self</span>.index &lt; other.index
+         <span class="kw">else</span>:
+             <span class="co"># Both must be debugging messages, since they have the same priority and</span>
+             <span class="co"># are not errors or warnings. They should both, therefore, have keys,</span>
+             <span class="co"># weakest matches, and sources.</span>
+            pivot = DbgMgr.get().sortby
+            <span class="kw">if</span> pivot == <span class="st">&quot;key&quot;</span>:
+               <span class="kw">if</span> <span class="ot">self</span>.key &lt; other.key:
+                  <span class="kw">return</span> <span class="ot">True</span>
+               <span class="kw">elif</span> <span class="ot">self</span>.key == other.key:
+                  <span class="kw">if</span> <span class="ot">self</span>.index &lt; other.index:
+                     <span class="kw">return</span> <span class="ot">True</span>
+            <span class="kw">elif</span> pivot == <span class="st">&quot;match&quot;</span>:
+               <span class="kw">if</span> <span class="ot">self</span>.match &lt; other.match: 
+                  <span class="kw">return</span> <span class="ot">True</span>
+               <span class="kw">elif</span> <span class="ot">self</span>.match == other.match:
+                  <span class="kw">if</span> <span class="ot">self</span>.index &lt; other.index:
+                     <span class="kw">return</span> <span class="ot">True</span>
+            <span class="kw">elif</span> pivot == <span class="st">&quot;source&quot;</span>:
+               <span class="kw">if</span> <span class="ot">self</span>.source &lt; other.source:
+                  <span class="kw">return</span> <span class="ot">True</span>
+               <span class="kw">elif</span> <span class="ot">self</span>.source == other.source:
+                  <span class="kw">if</span> <span class="ot">self</span>.index &lt; other.index:
+                     <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">return</span> <span class="ot">False</span>
+
+   <span class="kw">def</span> <span class="ot">__le__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.<span class="ot">__lt__</span>(other) or <span class="ot">self</span>.<span class="ot">__eq__</span>(other)
+
+   <span class="kw">def</span> <span class="ot">__gt__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> not (<span class="ot">self</span>.<span class="ot">__lt__</span>(other) or <span class="ot">self</span>.<span class="ot">__eq__</span>(other))
+
+   <span class="kw">def</span> <span class="ot">__ge__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> not <span class="ot">self</span>.<span class="ot">__lt__</span>(other)
+
+   <span class="kw">def</span> <span class="ot">__str__</span>(<span class="ot">self</span>):
+      from_key = <span class="st">&quot;[{}]&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.key) <span class="kw">if</span> <span class="ot">self</span>.key <span class="kw">else</span> <span class="st">&quot;&quot;</span>
+      clean_caller =  html.escape(<span class="ot">self</span>.caller)
+      about = <span class="st">&quot;&lt;span class=</span><span class="ch">\&quot;</span><span class="st">msg_source</span><span class="ch">\&quot;</span><span class="st">&gt;</span><span class="ot">{0}</span><span class="st">: </span><span class="ot">{1}{2}</span><span class="st">&lt;/span&gt;&quot;</span>.<span class="dt">format</span>(
+         <span class="ot">self</span>.index, clean_caller, from_key
+      )
+      table = <span class="st">&quot;&lt;table class=</span><span class="ch">\&quot;</span><span class="ot">{0}</span><span class="ch">\&quot;</span><span class="st">&gt;&lt;tr&gt;&lt;td&gt;</span><span class="ot">{1}</span><span class="st">&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&quot;</span>.<span class="dt">format</span>(
+         <span class="ot">self</span>.style_class, <span class="ot">self</span>.body
+      )
+      <span class="kw">return</span> about+table
+</code></pre>
+<h2 id="the-dbgmgr-class-and-the-managers-api">The <code>DbgMgr class</code> and the manager’s API</h2>
+<p>As noted at the outset, there is a unique instance, “the manager”, of the <code>DbgMgr</code> class. For reasons discussed in the <a href="singeton.html"><code>singleton</code> module</a>, the use of a class as a singleton object is not very Pythonic, so much so that there is a whole bunch of articles about the appropriate use of <a href="https://docs.python.org/3/library/functions.html#classmethod"><code>@classmethod</code></a>, which is the natural sort of method to use, because it treats the class as “<code>self</code>”. I chose to go with the route that uses a “get” method to get the unique instance, to make it clear that you are retrieving something, not necessarily creating the thing retrieved.</p>
+<h3 id="operators">The <code>in</code>, <code>with</code> and <code>[]</code> operators</h3>
+<p>A <code>DbgMgr</code> manages three aggregates: the set of live patterns, the subset of those patterns that have high priority, and the buffered list of output messages that have not yet been streamed out to the log file. In order to make the transition from <code>getDbgMgr</code> to <code>openDbgMgr</code> as easy as possible, the <code>in</code> operator is implemented here solely in terms of the set of live patterns. The code</p>
+<pre class="exampleCode">
+
+dbgmgr = openDbgMgr(&quot;...<i>patterns</i>...&quot;, path=&quot;../log&quot;)  # or getDbgMgr()
+# ...
+if key in dbgmgr: 
+   ...
+
+</pre>
+
+<p>does what you think: it checks whether <code>key</code> is matched by a currently active pattern. You can also iterate over the active pattern set: the statement</p>
+<pre class="exampleCode">
+
+for pattern in dbgmgr: 
+   ...
+
+</pre>
+
+<p>iterates over all of the currently active patterns (high priority and low) in <code>dbgmgr</code>.</p>
+<p>For a simple example of this API in action, see <a href="examples/dbgmgr_test.py">dbgmgr_test.py</a>.</p>
+<p>The expression <code>dbgmgr[value]</code> is available and has different interpretations, depending on the type of <code>value</code>.</p>
+<ul>
+<li><p>If it is an integer, the entry in the message list at position <code>value</code> is returned.</p></li>
+<li><p>If <code>value</code> is a slice or range, the corresponding sublist of the message buffer list is returned.</p></li>
+<li><p>If <code>value</code> is a string, it is interpreted as a comma-separated list of patterns. A <a href="WildCardLookup.html"><code>WildCardLookup</code></a> is created with these patterns, and the value for each pattern being the list consisting of all of the messages in the buffer whose key is matches the pattern.</p></li>
+</ul>
+<h3 id="methods-for-maintaining-the-pattern-set">Methods for maintaining the pattern set</h3>
+<h4 id="add_patternsnew_patterns"><code>add_patterns(new_patterns)</code></h4>
+<p>adds the patterns named by <code>new_patterns</code> to the active set. The value of <code>new_patterns</code> is like that of the pattern-valued arguments for <code>getDbgMgr()</code>.</p>
+<h4 id="remove_patternsdead_patterns"><code>remove_patterns(dead_patterns)</code></h4>
+<p>removes the patterns named by <code>dead_patterns</code> from the active set.</p>
+<h4 id="raise_prioritynew_patterns"><code>raise_priority(new_patterns)</code></h4>
+<p>makes the key patterns high priority, adding to the ordinary pattern set if need be.</p>
+<h4 id="lower_priorityptns"><code>lower_priority(ptns)</code></h4>
+<p>lowers the patterns in the list from high priority to ordinary priority. Patterns not found are ignore</p>
+<h4 id="all_matchedkeys"><code>all_matched(keys)</code></h4>
+<p>returns <code>True</code> if the keys specified by its argument are all matched by something in the current pattern set. The argument type is the same as that for the <a href="wildcardlookup.html#allmatchedkeys">corresponding method of <code>WildCardLookup</code></a>.</p>
+<h4 id="any_matchedkeys"><code>any_matched(keys)</code></h4>
+<p>returns <code>True</code> if at least one of the keys specified by its argument is matched by something in the current pattern set. The argument type is the same as that for the <a href="wildcardlookup.html#anymatchedkeys">corresponding method of <code>WildCardLookup</code></a>.</p>
+<h3 id="methods-for-writing-output">Methods for writing output</h3>
+<h4 id="addstyleclassname-spec"><code>addstyleclass(name, spec)</code></h4>
+<p>adds the CSS class “<code>name</code>” with specification “<code>spec</code>” to the set of message style classes. This is needed when adding a new message class. You can have a leading “.” in the name, which is the normal CSS convention. The idea here is not to encourage wild addition of classy CSS. I just want to make it easy to add new message types with distinct appearances.</p>
+<h4 id="buffer_messagemsg"><code>buffer_message(msg)</code></h4>
+<p>adds an instance of <code>DbgMessage</code> to the buffer. This is only needed if you want to define your own message styles. The four styles described in the next four methods are all buffered by those calls.</p>
+<h4 id="dbgkey-text-srcnone-stylenone-nowfalse"><code>dbg(key, text, src=None, style=None, now=False)</code></h4>
+<p>if the <code>key</code> matches an active pattern, writes the text, as is, as the body of a debugging message. “as is” means that no HTML escape translation is done… what you pass is what gets written, so it has to be valid HTML 5.</p>
+<p>The optional argument “<code>src</code>” allows one to specify who the caller should be shown to be. If its value is <code>None</code>, the name of the actual caller of <code>dbg</code> is computed for you and used; otherwise, your value for <code>src</code> is. This is here because interfaces like <a href="idbg.html"><code>DbgClient</code></a> need to supply a caller, because otherwise all the calls to <code>dbg</code> will appear to have come from it!.</p>
+<p>If you wish to supply your own CSS style for the message, <code>style</code> should be its name, and you should have added to to the manager’s list. If you are happy with my defaults, at least be assured that a distinct CSS style will be used for keys that match high priority patterns, so they should be immediately visible as such.</p>
+<p>The final argument <code>now</code> governs whether to flush the buffer after this message is added. If <code>now</code> is <code>False</code>, the buffer is not flushed. This is the default and should almost always be your choice, because flushing brackets the entries flushed in some extra text, so flushing all the time creates visual clutter without adding any significant information. If <code>now</code> is <code>True</code>, the buffer is flushed with the default “before” and “after” messages. If <code>now</code> is a non-empty string, the buffer is flushed with that string as its “after” message.</p>
+<h4 id="prekey-text-srcnone-stylenone-nowfalse"><code>pre(key, text, src=None, style=None, now=False)</code></h4>
+<p>if the <code>key</code> matches an active pattern, wraps the text in a <code>&lt;pre&gt;</code> element, rather than just writing it out “as is”, so the line ends are honored. No other processing of the text is done. The optional <code>src</code> argument is the caller, as it is for <code>dbg</code>.</p>
+<h4 id="errtextorerror-srcnone"><code>err(textOrError, src=None)</code></h4>
+<p>wraps the text (or the error’s message) in a <code>&lt;pre&gt;</code> and formats it with a style recognizably different from debugging output. This is intended for writing out error messages and tracebacks and the like, which is why the text is wrapped in the <code>&lt;pre&gt;</code>. If the argument is an <code>Exception</code>, it is raised. Otherwise the call simply returns. This enables you to capture the error information in the log file without special handling. Calling “<code>dbgmgr.err(SurpriseError('Gosh!'))</code>” will look to your application as if you had executed “`raise SurpriseError(‘Gosh!’)” at the same point in the code.</p>
+<p>The optional <code>src</code> argument is the caller, as it is for <code>dbg</code>.</p>
+<h4 id="warntext-srcnone"><code>warn(text, src=None)</code></h4>
+<p>writes the text, as is, as the body of a message, with a CSS style that clearly identifies it as neither an error nor a debugging message.</p>
+<p>The optional <code>src</code> argument is the caller, as it is for <code>dbg</code>.</p>
+<h4 id="flush"><code>flush(before=“”, after=“”, asis=False)</code></h4>
+<p>flushes buffer into the output stream. The <code>before</code> text is written before any messages are flushed, and the <code>after</code> text is written at the end. If <code>asis</code> is <code>True</code>, no processing of any kind is done on <code>before</code> or <code>after</code>. If it is <code>False</code>, both are wrapped in <code>&lt;p&gt;</code> element with a distinct style. An “<code>&lt;hr&gt;</code>” is appended to clearly mark the flush’s end.</p>
+<p>As another side effect, the message buffer list is emptied.</p>
+<h4 id="close"><code>close(before=“”, after=“”, asis=False)</code></h4>
+<p>calls <code>flush(before,after,asis)</code> to make sure all the buffered messages get written out and then closes the output stream.</p>
+<h3 id="methods-mostly-for-debugging-convenience">Methods mostly for debugging convenience</h3>
+<p>Each of these last five methods is a short “one-liner” involving a visible field of the <code>DbgMgr</code>, but I don’t want to make guarantees about those field names and their types, so in my own work, I have avoided the temptation to work directly with the fields. I do want to guarantee that the API will remain stable, so I use it, if only to keep the pressure on myself.</p>
+<h4 id="pattern_iterator"><code>pattern_iterator()</code></h4>
+<p>returns an iterator that traverses the set of key patterns in lexicographic order.</p>
+<h4 id="buffer_iterator"><code>buffer_iterator()</code></h4>
+<p>returns an iterator that traverses the current list of buffered messages.</p>
+<h4 id="pattern_count"><code>pattern_count()</code></h4>
+<p>returns the number of patterns currently alive. This is a count of patterns, not keys! Patterns containing “<code>*</code>”, including the universal match, <code>&quot;*&quot;</code>, each count as one pattern.</p>
+<h4 id="msg_count"><code>msg_count()</code></h4>
+<p>returns the total number of messages generated so far, as opposed to the current buffer count.</p>
+<h4 id="buffer_count"><code>buffer_count()</code></h4>
+<p>returns the number of messages currently buffered.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ot">@OneOnly</span>
+<span class="kw">class</span> DbgMgr:
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>):
+      <span class="ot">self</span>.<span class="dt">buffer</span> = []
+      <span class="ot">self</span>.count = <span class="dv">0</span>
+      <span class="ot">self</span>.highpriority = WildCardLookup()
+      <span class="ot">self</span>.keypatterns = WildCardLookup()
+      <span class="ot">self</span>.message_styles = {
+         <span class="st">&quot;error_msg&quot;</span>: <span class="st">&quot;&quot;&quot;{color: #ff0000; font-weight: bold; background-color: #F0D0D0; </span>
+<span class="st">                   border: 1px solid red; margin-left: 1em;}&quot;&quot;&quot;</span>,
+         <span class="co">&quot;priority_msg&quot;</span>: <span class="st">&quot;&quot;&quot;{color: #007020; font-weight: bold; background-color: #E1FDC8;</span>
+<span class="st">                   border: 1px solid #007020; margin-left: 1em;}&quot;&quot;&quot;</span>, 
+         <span class="co">&quot;ordinary_msg&quot;</span>: <span class="st">&quot;&quot;&quot;{color: #000000; background-color: #DDDDDD; </span>
+<span class="st">                   border: 1px solid black; margin-left: 1em;}&quot;&quot;&quot;</span>, 
+         <span class="co">&quot;warning_msg&quot;</span>: <span class="st">&quot;&quot;&quot;{color: #0000ff; font-weight: bold; background-color: #C8E5F8;</span>
+<span class="st">                   border: 1px solid blue; margin-left: 1em;}&quot;&quot;&quot;</span>, 
+         <span class="co">&quot;flush_before_after&quot;</span>:  <span class="st">&quot;{color: #000000;}&quot;</span>, 
+         <span class="co">&quot;msg_source&quot;</span>: <span class="st">&quot;{color: #000000; font-style: oblique}&quot;</span>
+      }
+      <span class="ot">self</span>._path = <span class="ot">None</span>
+      <span class="ot">self</span>._sortby = <span class="ot">None</span>
+      <span class="ot">self</span>._stream = <span class="ot">None</span>
+      <span class="ot">self</span>._head = <span class="ot">None</span>
+      <span class="ot">self</span>._head_started = <span class="ot">False</span>
+      <span class="ot">self</span>._head_is_open = <span class="ot">False</span>
+      <span class="ot">self</span>._something_written = <span class="ot">False</span>
+      <span class="ot">self</span>._bail_on_warning = <span class="ot">False</span>
+
+   <span class="kw">def</span> get_path(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>._path
+
+   <span class="kw">def</span> set_path(<span class="ot">self</span>, logdirpath):
+      <span class="kw">if</span> <span class="ot">self</span>._path is <span class="ot">None</span>:
+         abspath = <span class="ot">self</span>._normalizeThePath(logdirpath)
+         <span class="kw">if</span> not os.path.exists(abspath):
+            os.makedirs(abspath)
+         <span class="kw">elif</span> not os.path.isdir(abspath):
+            msg = <span class="st">&quot;'</span><span class="ot">{0}</span><span class="st">' exists, but is not a directory&quot;</span>.<span class="dt">format</span>(abspath)
+            <span class="kw">raise</span> <span class="ot">NotADirectoryError</span>(msg)
+         <span class="ot">self</span>._path = os.path.join(abspath, <span class="st">&quot;dbg&quot;</span>+su.now4FileName()+<span class="st">&quot;.html&quot;</span>)
+      <span class="kw">elif</span> logdirpath is <span class="ot">None</span>:
+         <span class="ot">self</span>.stream = <span class="ot">None</span> <span class="co"># flushes and closes the stream</span>
+         <span class="ot">self</span>._path = <span class="ot">None</span>
+      <span class="kw">else</span>:
+         <span class="kw">raise</span> <span class="ot">RuntimeError</span>(<span class="st">&quot;DbgMgr already opened '{}'&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>._path))
+
+   <span class="kw">def</span> _normalizeThePath(<span class="ot">self</span>, path):
+      rootpath = os.getcwd()
+      <span class="kw">if</span> path:
+         <span class="kw">if</span> os.path.isabs(path):         
+            raw = path
+         <span class="kw">elif</span> path.startswith(<span class="st">&quot;./&quot;</span>) or path.startswith(<span class="st">&quot;../&quot;</span>) or path.startswith(<span class="st">&quot;~/&quot;</span>):
+            raw = path <span class="co"># implied absolute paths: &quot;here&quot; and &quot;home&quot;                 </span>
+         <span class="kw">else</span>:
+            raw =  os.path.join(rootpath, path)
+      <span class="kw">else</span>:
+         raw = os.path.join(rootpath, <span class="st">&quot;log&quot;</span>)
+      <span class="kw">return</span> os.path.abspath(raw) <span class="co"># gets rid of pesky dots, double dots and tildes</span>
+
+   <span class="kw">def</span> del_path(<span class="ot">self</span>):
+      <span class="kw">raise</span> <span class="ot">RuntimeError</span>(<span class="st">&quot;Cannot remove the path attribute&quot;</span>)
+
+   <span class="kw">def</span> get_sortby(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>._sortby
+
+   <span class="kw">def</span> set_sortby(<span class="ot">self</span>, new_value):
+      new_value = new_value.lower()
+      <span class="kw">if</span> new_value in [<span class="st">&quot;key&quot;</span>, <span class="st">&quot;match&quot;</span>, <span class="st">&quot;source&quot;</span>, <span class="st">&quot;time&quot;</span>]:
+         <span class="ot">self</span>._sortby = new_value
+      <span class="kw">elif</span> new_value is <span class="ot">None</span>:
+         <span class="ot">self</span>._sortby = <span class="st">&quot;time&quot;</span>
+      <span class="kw">else</span>:
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Unrecognized sort type: '{}'&quot;</span>.<span class="dt">format</span>(new_value))
+
+   <span class="kw">def</span> del_sortby(<span class="ot">self</span>):
+      <span class="kw">raise</span> <span class="ot">RuntimeError</span>(<span class="st">&quot;Cannot remove the sortby attribute&quot;</span>)
+
+   <span class="kw">def</span> get_stream(<span class="ot">self</span>):
+      <span class="kw">return</span> stderr <span class="kw">if</span> <span class="ot">self</span>._stream is <span class="ot">None</span> <span class="kw">else</span> <span class="ot">self</span>._stream
+
+   <span class="kw">def</span> set_stream(<span class="ot">self</span>, astream):
+      <span class="kw">if</span> <span class="ot">self</span>._stream is <span class="ot">None</span>:
+         <span class="ot">self</span>.dbg(<span class="st">&quot;dbg&quot;</span>, <span class="st">&quot;initializing stream: {}&quot;</span>.<span class="dt">format</span>(astream))
+         <span class="ot">self</span>._stream = astream
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.dbg(<span class="st">&quot;dbg&quot;</span>, <span class="st">&quot;resetting stream to None&quot;</span>)
+         <span class="kw">if</span> astream in [stdout, stderr, <span class="ot">None</span>]:
+            <span class="kw">if</span> <span class="ot">self</span>._stream in [stdout, stderr]:
+               <span class="kw">if</span> astream != <span class="ot">self</span>._stream:
+                  <span class="ot">self</span>.flush()
+                  <span class="ot">self</span>._stream = astream
+               <span class="co"># else: no change: output is already going to &quot;astream&quot;</span>
+            <span class="kw">else</span>:
+               <span class="co"># closing the current output file flushes the buffer</span>
+               <span class="ot">self</span>.close()
+               <span class="ot">self</span>._stream = astream
+         <span class="kw">else</span>:
+            <span class="kw">raise</span> <span class="ot">RuntimeError</span>(<span class="st">&quot;Output stream is already opened&quot;</span>)
+
+   <span class="kw">def</span> del_stream(<span class="ot">self</span>):
+      <span class="kw">raise</span> <span class="ot">RuntimeError</span>(<span class="st">&quot;Cannot remove the stream attribute&quot;</span>)
+
+   path   = <span class="dt">property</span>(get_path, set_path, del_path)
+   sortby = <span class="dt">property</span>(get_sortby, set_sortby, del_sortby)
+   stream = <span class="dt">property</span>(get_stream, set_stream, del_stream)
+
+   <span class="kw">def</span> mycallersname(<span class="ot">self</span>): 
+      <span class="kw">return</span> inspect.currentframe().f_back.f_back.f_code.co_name
+
+   <span class="kw">def</span> prepare_patterns(<span class="ot">self</span>, patterns):
+      as_blist = blist(patterns)
+      su.flatten(as_blist)
+      extras = []
+      <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, <span class="dt">len</span>(as_blist)):
+         entry_n = as_blist[n]
+         <span class="kw">if</span> <span class="st">','</span> in entry_n:            
+            actual_entries = [s.strip() <span class="kw">for</span> s in entry_n.split(<span class="st">','</span>)]
+            as_blist[n] = actual_entries[<span class="dv">0</span>] <span class="co"># replace the comma list with its first entry</span>
+            extras += actual_entries[<span class="dv">1</span>:]    <span class="co"># do NOT change the size of as_blist</span>
+         <span class="kw">else</span>:
+            as_blist[n] = entry_n.strip()
+      as_blist += extras
+      as_blist.sort()
+      <span class="kw">return</span> as_blist
+
+   <span class="kw">def</span> addstyleclass(<span class="ot">self</span>, name, spec):
+      <span class="co"># I try to keep all the style classes together in the head of the document, so I buffer them</span>
+      <span class="co"># until the first flush.  Once they are written, I write a new &lt;style&gt; element for each new</span>
+      <span class="co"># class.  I do insist that a class be declared only once or with the same spec each time. </span>
+      <span class="co">#</span>
+      <span class="co"># The reason for having this call is to allow one to create new message types easily, not to</span>
+      <span class="co"># encourage your artistic genius.  Simple classes only, please!</span>
+      <span class="kw">if</span> name.startswith(<span class="st">&quot;.&quot;</span>): name = name[<span class="dv">1</span>:]
+      <span class="kw">if</span> name in <span class="ot">self</span>.message_styles:
+         <span class="kw">if</span> spec != <span class="ot">self</span>.message_styles[name]:
+            <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Debugging style class '&quot;</span>+name+<span class="st">&quot;' mulitply declared.&quot;</span>)
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.message_styles[name] = spec
+         <span class="kw">if</span> <span class="ot">self</span>._head_started:
+            as_html = <span class="st">&quot;&lt;style type=</span><span class="ch">\&quot;</span><span class="st">text/css</span><span class="ch">\&quot;</span><span class="st">&gt;.</span><span class="ot">{0}</span><span class="st"> </span><span class="ot">{1}</span><span class="st">&lt;/style&gt;</span><span class="ch">\n</span><span class="st">&quot;</span>.<span class="dt">format</span>(name, spec)
+            <span class="kw">if</span> <span class="ot">self</span>._head_is_open:
+               <span class="ot">self</span>._head += as_html
+            <span class="kw">else</span>:
+               <span class="ot">self</span>.stream.write(as_html)
+
+   <span class="kw">def</span> <span class="ot">__enter__</span>(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>
+
+   <span class="kw">def</span> <span class="ot">__exit__</span>(<span class="ot">self</span>, exc_type, exc_value, exc_tb):
+      <span class="kw">if</span> exc_type:
+         tb = io.StringIO()
+         traceback.print_tb(exc_tb, limit=<span class="dv">10</span>, <span class="dt">file</span>=tb)
+         <span class="ot">self</span>.err(<span class="st">&quot;</span><span class="ot">{0}</span><span class="st">: </span><span class="ot">{1}</span><span class="ch">\n</span><span class="ot">{2}</span><span class="st">&quot;</span>.<span class="dt">format</span>(exc_type, exc_value, tb.getvalue()))
+      <span class="ot">self</span>.close()
+   
+   <span class="kw">def</span> <span class="ot">__contains__</span>(<span class="ot">self</span>, name):
+      <span class="kw">return</span> name in <span class="ot">self</span>.keypatterns
+
+   <span class="kw">def</span> <span class="ot">__getitem__</span>(<span class="ot">self</span>, what):
+      <span class="kw">if</span> <span class="dt">type</span>(what) is <span class="dt">int</span>:
+         <span class="kw">return</span> <span class="ot">self</span>.<span class="dt">buffer</span>[what]
+      <span class="kw">elif</span> <span class="dt">type</span>(what) is <span class="dt">str</span>:
+         whatMatcher = WildCardLookup(what)
+         <span class="kw">return</span> [<span class="ot">self</span>.<span class="dt">buffer</span>[x] <span class="kw">for</span> x in <span class="ot">self</span>.<span class="dt">buffer</span> <span class="kw">if</span> <span class="ot">self</span>.<span class="dt">buffer</span>[x].key in whatMatcher]
+      <span class="kw">if</span> <span class="dt">type</span>(what) is <span class="dt">slice</span>:
+         what = su.slice2range(what, <span class="dt">max</span>=<span class="dt">len</span>(<span class="ot">self</span>.<span class="dt">buffer</span>))
+      <span class="kw">if</span> <span class="dt">type</span>(what) is <span class="dt">range</span>:
+         <span class="kw">return</span> [<span class="ot">self</span>.<span class="dt">buffer</span>[x] <span class="kw">for</span> x in what]
+      <span class="kw">else</span>:
+         msg = <span class="st">&quot;</span><span class="ot">{0}</span><span class="st"> cannot be used to index </span><span class="ot">{1}</span><span class="st">&quot;</span>
+         <span class="kw">raise</span> <span class="ot">TypeError</span>(msg.<span class="dt">format</span>(su.a_classname(what), su.a_classname(<span class="ot">self</span>)))
+
+   <span class="kw">def</span> <span class="ot">__iter__</span>(<span class="ot">self</span>): <span class="kw">return</span> <span class="ot">self</span>.keypatterns.<span class="ot">__iter__</span>()
+
+   <span class="kw">def</span> pattern_iterator(<span class="ot">self</span>): <span class="kw">return</span> <span class="ot">self</span>.keypatterns.<span class="ot">__iter__</span>()
+   <span class="kw">def</span> buffer_iterator(<span class="ot">self</span>): <span class="kw">return</span> <span class="ot">self</span>.<span class="dt">buffer</span>.<span class="ot">__iter__</span>()
+
+   <span class="kw">def</span> pattern_count(<span class="ot">self</span>): <span class="kw">return</span> <span class="dt">len</span>(<span class="ot">self</span>.keypatterns)
+   <span class="kw">def</span> msg_count(<span class="ot">self</span>): <span class="kw">return</span> <span class="ot">self</span>.count - <span class="dv">1</span> <span class="co"># message numbering starts at 1</span>
+   <span class="kw">def</span> buffer_count(<span class="ot">self</span>): <span class="kw">return</span> <span class="dt">len</span>(<span class="ot">self</span>.<span class="dt">buffer</span>)
+
+   <span class="kw">def</span> _open(<span class="ot">self</span>, logdirpath):
+      <span class="kw">if</span> <span class="ot">self</span>.path:
+         <span class="kw">return</span> <span class="ot">self</span>
+      <span class="kw">if</span> <span class="ot">self</span>.stream in [stdout, stderr]: 
+         <span class="ot">self</span>.stream = <span class="ot">None</span>
+      <span class="kw">elif</span> <span class="ot">self</span>.stream:
+         <span class="ot">self</span>.stream.close()
+         <span class="ot">self</span>.stream = <span class="ot">None</span>
+      <span class="ot">self</span>.path = logdirpath 
+      <span class="kw">return</span> <span class="ot">self</span>._start_the_head()
+
+   <span class="kw">def</span> _start_the_head(<span class="ot">self</span>):
+      headlines = [
+         <span class="st">'&lt;!DOCTYPE html&gt;'</span>
+         <span class="co">'&lt;html&gt;'</span>
+         <span class="co">'&lt;head&gt;'</span>
+         <span class="co">'&lt;meta charset=&quot;utf-8&quot;&gt;'</span>,
+         <span class="co">'&lt;style type=&quot;text/css&quot;&gt;'</span>
+         ]
+      <span class="ot">self</span>._head_started = <span class="ot">True</span>
+      <span class="ot">self</span>._head_is_open = <span class="ot">True</span>
+      lines = [
+      <span class="st">&quot;.&quot;</span>+name+<span class="st">&quot; &quot;</span>+<span class="ot">self</span>.message_styles[name] <span class="kw">for</span> name in <span class="ot">self</span>.message_styles
+      ]
+      lines.sort() <span class="co"># NB. sort does NOT return &quot;self&quot;</span>
+      headlines += lines
+      headlines.append(<span class="st">'&lt;/style&gt;</span><span class="ch">\n</span><span class="st">'</span>)
+      <span class="ot">self</span>._head = <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>.join(headlines)
+      <span class="kw">return</span> <span class="ot">self</span>
+
+   <span class="kw">def</span> add_patterns(<span class="ot">self</span>, *new_patterns):
+      <span class="kw">for</span> pattern in <span class="ot">self</span>.prepare_patterns(new_patterns):
+         <span class="kw">if</span> <span class="dt">len</span>(pattern) &gt; <span class="dv">0</span>:
+            <span class="kw">if</span> pattern[<span class="dv">0</span>] == <span class="st">'+'</span>:
+               pattern = pattern[<span class="dv">1</span>:]
+               <span class="ot">self</span>.highpriority.add(pattern)
+            <span class="ot">self</span>.keypatterns.add(pattern)
+
+   <span class="kw">def</span> remove_patterns(<span class="ot">self</span>, *dead_patterns):
+      <span class="kw">for</span> pattern in <span class="ot">self</span>.prepare_patterns(dead_patterns):
+         <span class="ot">self</span>.keypatterns.remove(pattern)
+         <span class="ot">self</span>.highpriority.remove(pattern)
+
+   <span class="kw">def</span> raise_priority(<span class="ot">self</span>, *ptns):
+      <span class="kw">for</span> ptn in <span class="ot">self</span>.prepare_patterns(ptns):
+         <span class="ot">self</span>.keypatterns.add(ptn)
+         <span class="ot">self</span>.highpriority.add(ptn)
+
+   <span class="kw">def</span> lower_priority(<span class="ot">self</span>, *ptns):
+      <span class="kw">for</span> ptn in <span class="ot">self</span>.prepare_patterns(ptns):
+         <span class="ot">self</span>.highpriority.remove(ptn)
+
+   <span class="kw">def</span> all_matched(<span class="ot">self</span>, *keys):
+      <span class="kw">return</span> <span class="ot">self</span>.keypatterns.all_matched(<span class="ot">self</span>.prepare_patterns(keys))
+
+   <span class="kw">def</span> any_matched(<span class="ot">self</span>, *keys):
+      <span class="kw">return</span> <span class="ot">self</span>.keypatterns.any_matched(<span class="ot">self</span>.prepare_patterns(keys))
+
+   <span class="kw">def</span> buffer_message(<span class="ot">self</span>, parms):
+      <span class="ot">self</span>.count += <span class="dv">1</span>
+      parms[<span class="st">&quot;index&quot;</span>] = <span class="ot">self</span>.count
+      <span class="ot">self</span>.<span class="dt">buffer</span>.append(DbgMessage(parms))
+
+   <span class="kw">def</span> dbg(<span class="ot">self</span>, key, text, *, src=<span class="ot">None</span>, style=<span class="ot">None</span>, now=<span class="ot">False</span>):
+      <span class="kw">if</span> (key in <span class="ot">self</span>.keypatterns) or not key:
+         parms =  {}
+         parms[<span class="st">&quot;key&quot;</span>] = key or <span class="st">&quot;&quot;</span>
+         parms[<span class="st">&quot;weakest_match&quot;</span>] = <span class="ot">self</span>.keypatterns.weakestPatternFor(key)
+         parms[<span class="st">&quot;caller&quot;</span>] = <span class="ot">self</span>.mycallersname() <span class="kw">if</span> src is <span class="ot">None</span> <span class="kw">else</span> src
+         parms[<span class="st">&quot;display_priority&quot;</span>] = <span class="dv">3</span>
+         <span class="kw">if</span> style: parms[<span class="st">&quot;style_class&quot;</span>] = style
+         <span class="kw">elif</span> key in <span class="ot">self</span>.highpriority:  parms[<span class="st">&quot;style_class&quot;</span>] = <span class="st">&quot;priority_msg&quot;</span>
+         <span class="kw">else</span>: parms[<span class="st">&quot;style_class&quot;</span>] = <span class="st">&quot;ordinary_msg&quot;</span>
+         parms[<span class="st">&quot;body&quot;</span>] = text
+         <span class="ot">self</span>.buffer_message(parms)
+         <span class="kw">if</span> now: 
+            <span class="kw">if</span> <span class="dt">isinstance</span>(now, <span class="dt">str</span>): <span class="ot">self</span>.flush(after=now)
+            <span class="kw">else</span>: <span class="ot">self</span>.flush()
+      <span class="co"># else key is not active, so I do nothing</span>
+
+   <span class="kw">def</span> err(<span class="ot">self</span>, text_or_err, src=<span class="ot">None</span>, bail_out=<span class="ot">True</span>):
+      parms =  {}
+      parms[<span class="st">&quot;caller&quot;</span>] =  <span class="ot">self</span>.mycallersname() <span class="kw">if</span> src is <span class="ot">None</span> <span class="kw">else</span> src
+      parms[<span class="st">&quot;body&quot;</span>] = <span class="st">&quot;&lt;pre&gt;&quot;</span>+<span class="dt">str</span>(text_or_err)+<span class="st">&quot;&lt;/pre&gt;&quot;</span>
+      parms[<span class="st">&quot;display_priority&quot;</span>] = <span class="dv">1</span>   <span class="co"># in English: &quot;first priority!&quot;</span>
+      parms[<span class="st">&quot;style_class&quot;</span>] = <span class="st">&quot;error_msg&quot;</span>
+      <span class="ot">self</span>.buffer_message(parms)
+      <span class="kw">if</span> bail_out:
+         <span class="kw">if</span> <span class="dt">isinstance</span>(text_or_err, <span class="ot">Exception</span>):
+            <span class="kw">raise</span> text_or_err
+         <span class="kw">else</span>:
+            <span class="kw">raise</span> <span class="ot">RuntimeError</span>(text_or_err)
+
+   <span class="kw">def</span> pre(<span class="ot">self</span>, key, text, *, src=<span class="ot">None</span>, style=<span class="ot">None</span>, now=<span class="ot">False</span>):
+      <span class="kw">if</span> (key in <span class="ot">self</span>.keypatterns) or not key:
+         <span class="kw">if</span> not src:
+            src = <span class="ot">self</span>.mycallersname()
+         <span class="ot">self</span>.dbg(key, <span class="st">&quot;&lt;pre&gt;&quot;</span> + text + <span class="st">&quot;&lt;/pre&gt;&quot;</span>, src=src, style=style, now=now)
+
+   <span class="kw">def</span> warn(<span class="ot">self</span>, text_or_err, src=<span class="ot">None</span>, bail_out = <span class="ot">False</span>):
+      parms =  {}
+      parms[<span class="st">&quot;caller&quot;</span>] =  <span class="ot">self</span>.mycallersname() <span class="kw">if</span> src is <span class="ot">None</span> <span class="kw">else</span> src
+      parms[<span class="st">&quot;body&quot;</span>] = <span class="st">&quot;&lt;pre&gt;&quot;</span>+<span class="dt">str</span>(text_or_err)+<span class="st">&quot;&lt;/pre&gt;&quot;</span>
+      parms[<span class="st">&quot;display_priority&quot;</span>] = <span class="dv">2</span>   <span class="co"># second priority: after errors</span>
+      parms[<span class="st">&quot;style_class&quot;</span>] = <span class="st">&quot;warning_msg&quot;</span>
+      <span class="ot">self</span>.buffer_message(parms)
+      <span class="kw">if</span> (bail_out or <span class="ot">self</span>._bail_on_warning):
+         <span class="kw">if</span> <span class="dt">isinstance</span>(text_or_err, <span class="ot">Exception</span>):
+            <span class="kw">raise</span> text_or_err
+         <span class="kw">else</span>:
+            <span class="kw">raise</span> <span class="ot">RuntimeError</span>(text_or_err)
+
+   <span class="kw">def</span> flush(<span class="ot">self</span>, before=<span class="st">&quot;&quot;</span>, after=<span class="st">&quot;&quot;</span>, asis=<span class="ot">False</span>):
+      <span class="ot">self</span>.dbg(<span class="st">&quot;dbg&quot;</span>, <span class="st">&quot;flush() called by {}&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.mycallersname()))
+      <span class="kw">if</span> <span class="ot">self</span>.buffer_count() is <span class="dv">0</span> and <span class="dt">len</span>(before) is <span class="dv">0</span> and <span class="dt">len</span>(after) is <span class="dv">0</span>:
+         <span class="kw">return</span> 
+      <span class="kw">if</span> not <span class="ot">self</span>._head_started:
+         <span class="ot">self</span>._start_the_head()
+      <span class="kw">if</span> <span class="ot">self</span>._head_is_open: <span class="co"># first time switch: close the head and open the body</span>
+         <span class="ot">self</span>.stream = <span class="dt">open</span>(<span class="ot">self</span>.path, mode=<span class="st">'x'</span>)
+         <span class="ot">self</span>.stream.write(<span class="ot">self</span>._head)
+         <span class="ot">self</span>.stream.write(<span class="st">'&lt;/head&gt;</span><span class="ch">\n</span><span class="st">&lt;body&gt;</span><span class="ch">\n</span><span class="st">&lt;code&gt;</span><span class="ch">\n</span><span class="st">'</span>)
+         <span class="ot">self</span>._head_is_open = <span class="ot">False</span>
+      <span class="kw">if</span> <span class="ot">self</span>.sortby is not <span class="st">&quot;time&quot;</span>:
+         <span class="ot">self</span>.<span class="dt">buffer</span>.sort()
+      <span class="kw">if</span> <span class="dt">len</span>(before) &gt; <span class="dv">0</span>:
+         <span class="kw">if</span> asis:
+            <span class="ot">self</span>.stream.write(before)
+         <span class="kw">else</span>:
+            <span class="ot">self</span>.stream.write(<span class="st">'&lt;p class=&quot;flush_before_after&quot;&gt;</span><span class="ot">{0}</span><span class="st">&lt;/p&gt;</span><span class="ch">\n</span><span class="st">'</span>.<span class="dt">format</span>(before))
+      <span class="ot">self</span>.dbg(<span class="st">&quot;dbg&quot;</span>, <span class="st">&quot;flushing buffer to {}&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.stream))
+      <span class="kw">for</span> entry in <span class="ot">self</span>.<span class="dt">buffer</span>:
+         <span class="ot">self</span>.stream.write(<span class="dt">str</span>(entry))
+      <span class="kw">if</span> <span class="dt">len</span>(after) &gt; <span class="dv">0</span>:
+         <span class="kw">if</span> asis:
+            <span class="ot">self</span>.stream.write(after)
+         <span class="kw">else</span>:
+            <span class="ot">self</span>.stream.write(<span class="st">'&lt;p class=&quot;flush_before_after&quot;&gt;</span><span class="ot">{0}</span><span class="st">&lt;/p&gt;</span><span class="ch">\n</span><span class="st">'</span>.<span class="dt">format</span>(after))
+      <span class="ot">self</span>.stream.write(<span class="st">&quot;&lt;hr&gt;</span><span class="ch">\n</span><span class="st">&quot;</span>)
+      <span class="ot">self</span>.<span class="dt">buffer</span> = []
+      <span class="ot">self</span>._something_written = <span class="ot">True</span>
+
+   <span class="kw">def</span> close(<span class="ot">self</span>, before=<span class="st">&quot;&quot;</span>, after=<span class="st">&quot;&quot;</span>, asis=<span class="ot">False</span>):
+      <span class="ot">self</span>.flush(before, after, asis)
+      <span class="kw">if</span> <span class="ot">self</span>._something_written:
+         msg = <span class="st">&quot;&lt;p&gt;Log ended, </span><span class="ot">{1}</span><span class="st">: </span><span class="ot">{0}</span><span class="st"> entries&lt;/p&gt;</span><span class="ch">\n</span><span class="st">&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.count, time.asctime())
+         <span class="ot">self</span>.stream.write(msg)
+         <span class="ot">self</span>.stream.write(<span class="st">'&lt;/code&gt;</span><span class="ch">\n</span><span class="st">&lt;/body&gt;</span><span class="ch">\n</span><span class="st">'</span>)
+         <span class="kw">if</span> <span class="ot">self</span>._stream not in [stdout, stderr, <span class="ot">None</span>]:
+            <span class="ot">self</span>._stream.close()
+         <span class="kw">elif</span> <span class="ot">self</span>._stream is not <span class="ot">None</span>:
+            <span class="ot">self</span>._stream.flush() <span class="co"># dump the stream's buffer (ours is empty!!!)</span>
+         <span class="ot">self</span>._stream = <span class="ot">None</span></code></pre>
+</body>
+</html>

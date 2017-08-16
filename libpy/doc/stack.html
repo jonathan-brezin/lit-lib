@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Stack Management</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2018pt%3B%20%7D%0A%20%20%20code%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20code%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2024pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2EtitleText%20%7B%20font%2Dsize%3A%2016pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Stack Management</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">May, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#the-stack-class">The <code>Stack</code> class</a><ul>
+<li><a href="#the-constructor-stackiterable-maxlen-vet-basetype">The constructor <code>Stack(iterable, maxlen, vet, baseType)</code></a></li>
+<li><a href="#some-standard-methods-delegated-to-the-underlying-store">Some standard methods delegated to the underlying store</a></li>
+<li><a href="#indexed-access-to-the-list-getitemwhich_indices">Indexed access to the list: <code><strong>getitem</strong>(which_indices)</code></a></li>
+</ul></li>
+<li><a href="#the-usual-stack-api-push-pop-and-more">The usual stack API, <code>push</code>, <code>pop</code>, and more</a><ul>
+<li><a href="#appendsomething"><code>append(something)</code></code></a></li>
+<li><a href="#poporelseorelsenone-howmanynone"><code>popOrElse(orElse=None, howMany=None)</code></a></li>
+<li><a href="#peekorelse-none-howmany-none"><code>peek(orElse = None, howMany = None)</code></a></li>
+<li><a href="#tophowmany-none"><code>top(howMany = None)</code></a></li>
+<li><a href="#poll"><code>poll()</code></a></li>
+<li><a href="#searchwhat-and-findwhat"><code>search(what)</code> and <code>find(what)</code></a></li>
+</ul></li>
+<li><a href="#typedstackatype-iterable-maxlen-none-basetypelist"><code>TypedStack(aType, iterable=[], maxlen = None, baseType=list)</code></a></li>
+</ul>
+</nav>
+<h2 id="the-stack-class">The <code>Stack</code> class</h2>
+<p>The <code>Stack</code> class extends the usual list API with safe stack operations.</p>
+<h3 id="the-constructor-stackiterable-maxlen-vet-basetype">The constructor <code>Stack(iterable, maxlen, vet, baseType)</code></h3>
+<p>All four arguments are keyword arguments:</p>
+<blockquote>
+<p><code>iterable</code> is a set of initial values to enter into the stack: they will be pushed in the order they are returned by <code>iterable</code>. The default is an empty list.</p>
+</blockquote>
+<blockquote>
+<p><code>maxlen</code> is an integer that is the maximum number of entries in the stack at any one time. The default is to place no limit on the stack size.</p>
+</blockquote>
+<blockquote>
+<p><code>vet</code> is a function that checks the data which is to be pushed before that data is stored. The function should return the value to be pushed. It should raise an appropriate exception should the data not pass muster. The default is always to return the data “as is”. If you want to preprocess the data, <code>vet</code> is the place to do it: just make sure to return precisely what the push is to add to the stack. See <a href="#typedstackatype-iterable-maxlen-none-basetypelist"><code>TypedStack</code> below</a> for an example.</p>
+</blockquote>
+<blockquote>
+<p><code>baseType</code> is what class to use to create the underlying store. It should have a nullary constructor and support, with the same semantics as does <code>list</code>, the methods <code>__getitem__</code>, <code>__len__</code>, <code>append</code>, <code>clear</code>, <code>copy</code>, <code>pop</code>, and <code>reverse</code>. The default base type is <code>list</code> itself. All operations are delegated to the store, rather than having <code>Stack</code> extend some particular store, like the default, <code>list</code>, for two reasons: first, you may prefer some other type of store, like <a href="https://pypi.python.org/pypi/blist/?"><code>blist</code></a>, and second, I don’t want to expose list operations that make no sense for the stack protocol, even if, like <code>reverse</code>, I use them under the covers.</p>
+</blockquote>
+<p>The constructor also provides a default value, 12, for the “<code>poplimit</code>” attribute, which is count at which popping a slice off the top of the stack by individual pops becomes uneconomical and it is better to slice the store directly and reverse the result. It is a rare program indeed that will have to worry about this value.</p>
+<p>Following the constructor are local versions of the magic methods that control reading and writing attribute values. I’ve overridden the defaults solely to make it hard to directly access the field <code>_entries</code> that is the underlying store and to protect the saved base store type. Since the only settable attributes of a <code>Stack</code> are the vetting function and the slice minimum, this should not affect performance at all.</p>
+<p>For some test code, see <a href="examples/stack.test.py">stack.test.py</a>.</p>
+<h3 id="some-standard-methods-delegated-to-the-underlying-store">Some standard methods delegated to the underlying store</h3>
+<p>Gathered here are the methods every collection implements that here essentially require only delegating to the data store.</p>
+<h3 id="indexed-access-to-the-list-getitemwhich_indices">Indexed access to the list: <code><strong>getitem</strong>(which_indices)</code></h3>
+<p>Although it is probably bad taste in most situations to do so, you can access an item in the stack using its index. The argument, <code>which_indices</code> can be an integer, in which case the element it indexes is returned, or a slice or range, in which case a <code>Stack</code> is returned containing all of the elements in that slice or range.</p>
+<p>The seemingly over-elaborate code here is required because in case the base type is not <code>list</code>, but a class like collections.deque that does not support slices for the [] operator, there is work to be done.</p>
+<p>The flip side of getting is setting, and that simply is not allowed: you can look but you can’t touch.</p>
+<h2 id="the-usual-stack-api-push-pop-and-more">The usual stack API, <code>push</code>, <code>pop</code>, and more</h2>
+<p>The obvious candidates are <code>push(something)</code> and <code>pop(howmany=None)</code>. Both are here. The one thing to be careful about is the difference between <code>pop()</code> and <code>pop(1)</code>: the former returns the entry at the top of the stack, whereas the latter returns a list containing a single element, namely, the top entry from the stack. This convention is consistent across all of the methods that return 1 or more entries from the stack.</p>
+<h3 id="appendsomething"><code>append(something)</code></code></h3>
+<p>This is just a synonym for <code>push(something)</code>.</p>
+<h3 id="poporelseorelsenone-howmanynone"><code>popOrElse(orElse=None, howMany=None)</code></h3>
+<p><code>popOrElse</code> retrieves and removes <code>howMany</code> elements off the top of the stack, using “orElse” to supply enough values, if need be. When <code>howMany</code> is an integer, a list of length <code>howMany</code> is returned. The stack entries appear in the list in the order that would be seen if popped individually, and the extra “orElses” appear at the end. If <code>howMany</code> is <code>None</code>, the top of the stack itself is returned, or, if the stack is empty, <code>orElse</code> is returned.</p>
+<h3 id="peekorelse-none-howmany-none"><code>peek(orElse = None, howMany = None)</code></h3>
+<p><code>peek</code> returns a list of the top <code>howMany</code> elements in the order they would appear if they had been popped off the stack. The value <code>orElse</code> to fill out the list as needed if <code>howMany</code> exceeds the current stack size. The stack is unaffected. It is an error to call this method with <code>howMany</code> less than 0. If called with <code>howMany</code> equal to <code>None</code>, the entry at the top of the stack is returned (not a list containing that entry!).</p>
+<p><em>Programming Note:</em> This method, as well as <code>pop</code> for large slices, assumes that the underlying store has a nullary <code>reverse</code> method that, like <code>list.reverse</code>, reverses the collection in place. The alternative, which was implementing it here, was too gruesome to contemplate–besides, I have to assume that <code>list</code> and <code>blist</code> use native code to speed the operation up. But I confess, this really is an efficiency hack.</p>
+<h3 id="tophowmany-none"><code>top(howMany = None)</code></h3>
+<p><code>top</code>, like <code>peek</code>, retrieves, but does not remove, the top <code>howMany</code> elements of the stack. <code>top</code> differs from <code>peek</code> only in that it raises an <code>IndexError</code> if <code>howMany</code> is too large.</p>
+<h3 id="poll"><code>poll()</code></h3>
+<p><code>poll</code> retrieves and removes the top of the stack, or returns <code>None</code> if the stack is empty. It is a synonmy for <code>popOrElse()</code>.</p>
+<h3 id="searchwhat-and-findwhat"><code>search(what)</code> and <code>find(what)</code></h3>
+<p><code>search</code> and its synonym, <code>find</code>, both try to find their argument in the stack’s entries by working back from the top of the stack. If <code>n</code> is the first index at which it is found, the return value, <code>rv</code> will be <code>self.size-n</code>. This means that <code>self[-rv]</code> <code>==</code> <code>what</code> is <code>True</code>. Entries are compared using <code>==</code>.</p>
+<p>In plain English, the return value is 1 greater than the distance of the entry from the top of the stack. This is consistent with the convention that if <code>l</code> is a <code>list</code>, then <code>l[-1]</code> is the last item in the list.</p>
+<p>If <code>what</code> is not found, -1 is returned.</p>
+<p>What is missing here is an analogue of <code>index()</code>. There’s something wrong if you are working with the index in the usual sense. The point of <code>find</code> and <code>search</code> is that you are getting information relative to the <em>top of the stack, not the bottom</em>. If you really need both, use a <a href="deque.html">deque</a></p>
+<h2 id="typedstackatype-iterable-maxlen-none-basetypelist"><code>TypedStack(aType, iterable=[], maxlen = None, baseType=list)</code></h2>
+<p><code>TypedStack</code> returns a <code>Stack</code> with a vetter that raises an exception whenever an attempt is made to push data onto the stack whose type is not “aType”, or at least is convertible to that type via <code>asAType</code>. <code>asAType</code>, if it is not <code>None</code>, must be callable (a function or constructor). If the pushed data does <em>not</em> have type <code>aType</code>, <code>asAType</code> will be called with the pushed data as its only argument. Its job is to transform the data into an instance of <code>aType</code>. It should return the transformed value when it succeeds; otherwise, it should raise an appropriate exception.</p>
+<p>The remaining arguments are simply passed through “as is” to <code>Stack</code>’s constructor.</p>
+</body>
+</html>

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Quicksort in Pure Python</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Quicksort in Pure Python</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">November, 2015</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#quicksorta-kwargs"><code>Quicksort(a, **kwargs)</code></a><ul>
+<li><a href="#the-api">The API</a></li>
+<li><a href="#comments-on-the-code">Comments on the code</a></li>
+<li><a href="#quicksort.debugkeys"><code>Quicksort.debugkeys()</code></a></li>
+<li><a href="#quicksort.debugcommaseparatedkeylist"><code>Quicksort.debug(commaSeparatedKeyList)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> dbg <span class="ch">import</span> getDbgMgr
+<span class="ch">from</span> stack <span class="ch">import</span> TypedStack
+<span class="ch">import</span> math
+</code></pre>
+<h3 id="quicksorta-kwargs"><code>Quicksort(a, **kwargs)</code></h3>
+<h4 id="the-api">The API</h4>
+<p>The argument keys and their default values are:</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Keyword</th>
+<th style="text-align: left;"></th>
+<th style="text-align: left;">Semantics</th>
+<th style="text-align: left;"></th>
+<th style="text-align: left;">Default Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;"><code>start</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">first index in <code>a</code> of the subarray to sort</td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"><code>0</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>stop</code></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">first index AFTER the subarray to sort</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"><code>a</code>’s length</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>cmp</code></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">function used to compare two entries</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"><code>None</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;"><code>max_for_insertion</code></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">maximum array size that uses insertion sort</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"><code>6</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;"><code>min_for_median</code></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">smallest size using “median of 3 medians”</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"><code>40</code></td>
+</tr>
+</tbody>
+</table>
+<p>Quicksort is a method for sorting in place an array with entries of arbitrary type. This call does the operation in-place on the slice <code>a[start:stop]</code> of the array “<code>a</code>”. The return value is the array <code>a[]</code> itself.</p>
+<p>For arrays of strings or numbers, use the built-in <code>list.sort()</code>, which is surely much faster. This code is intended for cases where you need to provide the ordering function, realized here as the keyword argument “<code>cmp</code>”.</p>
+<blockquote>
+<p>The API for <code>cmp</code> is the usual one: <code>cmp(x,y)</code> returns a value that is</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p><code>&gt; 0</code> if <code>x</code> is greater than <code>y</code>,<br /><code>= 0</code> if <code>x</code> and <code>y</code> are “equal”, and<br /><code>&lt; 0</code> if <code>x</code> is less than <code>y</code>.</p>
+</blockquote>
+</blockquote>
+<p>For those not familiar with this convention, its rationale can be understood by thinking about what happens when you have a pair of possibly very long strings s1 and s2, and you need to evaluate a conditional expression that looks like</p>
+<pre class="exampleCode">
+
+   if s1 &lt; s2 ... do something; elif s1 == s2 ... do something else
+
+</pre>
+
+<p>The last thing you want to do is to perform two comparisons of <code>s1</code> against <code>s2</code>, which is what the code fragment above would do. That’s where <code>cmp</code> comes in: <code>cmp(s1, s2)</code> can figure out its return value in a single traversal of the strings that stops at the first index where the two differ. The conditional becomes</p>
+<pre class="exampleCode">
+
+   c = cmp(s1,s2);  if c &lt; 0 ... do something; elif c == 0 ... do something else
+
+</pre>
+
+<p>There are still two comparisons, but both are very cheap.</p>
+<p>Insertion sort, and not Quicksort, is the fastest game in town for small arrays, hence the argument <code>max_for_insertion</code>. My choice of the default breakeven point for Quicksort versus insertion sort is based on empirical work in <a href="http:dl.acm.org/citation.cfm?id=172710&gt;">Jon L. Bentley and M. Douglas McIlroy. 1993. <i>Engineering a sort function</i>. Softw. Pract. Exper. 23, 11 (November 1993), 1249-1265</a>, as is my decision to use a “median of 3 medians” sample for a partition value when there are at least 40 elements in the array (as opposed to just using the entry in the middle of the currently active subarray).</p>
+<h4 id="comments-on-the-code">Comments on the code</h4>
+<p>The strategy is tail recursive. You choose a value in the current subarray, the “partition value”, and use it to group the current subarray into three smaller subarrays <code>left</code>, <code>middle</code> and <code>right</code>, in which: every element of <code>left</code> is less than the partition value, every element of <code>middle</code> equals that value, and every element of <code>right</code> is greater. You are then left with the problem of sorting <code>left</code> and <code>right</code>. Even for arrays of modest size, you want to avoid a bad choice for the partition value, one nearly the largest or smallest entry. The technique here is to look at three sets of 3 values from various parts of the subarray. The median of each set is found, and then the median of these 3 medians is used as the partition value. One could still be unlucky, but it is certainly a better bet than simply taking one random value from somewhere in the middle of the current subarray.</p>
+One confusing bit in this code is that, since we do not know <em>a priori</em> where or how often the partition value occurs in the subarray, we have to be a little clever in how we isolate them. The strategy is to work from outside in from both ends of the subarray and leave the partition values we encounter at these two ends, so our first pass leaves us with something close to, but not quite, what we want:
+<pre class="`exampleCode`">
+
+            (partition values, less, greater, more partition values)
+
+</pre>
+Once we have the four subarrays as above, we can swap the rightmost few entries in the <code>less</code> subarray with those of the subarray <code>partition values</code> to its left, and do the analogous thing for the <code>greater</code> subarray and the subarray <code>more partition values</code> to its right. The end result is<br />
+<pre class="`exampleCode`">
+
+            (less, partition values, more partition values, greater)  
+
+</pre>
+<p>This is the partition we really wanted in the first place: smaller to the left, larger to the right, however many partition values in the middle. The important thing is that we are <em>not</em> shifting the whole <code>less</code> or <code>greater</code> subarray to move the partition values. We are just swapping as many off the end of each as we need to move the partition values.</p>
+<p>There are two possible types of comparisons one can have for ordering the data: native (use <code>x&lt;y</code>) or supplied (use <code>cmp(x,y)&lt;0</code>). We take advantage of native comparisons when we can in computing the medians. <code>medianNear</code>, defined immediately below is a function that, given an index <code>k</code> into <code>a</code>, returns the median of the three values <code>a[k-2]</code>, <code>a[k]</code> and <code>a[k+2]</code>. This is not a situation where the same pair of values is compared twice.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> Quicksort(a, *, start=<span class="dv">0</span>, stop=<span class="ot">None</span>, <span class="dt">cmp</span>=<span class="ot">None</span>, max_for_insertion = <span class="dv">6</span>, min_for_median=<span class="dv">40</span>):
+
+   <span class="kw">if</span> <span class="dt">cmp</span> is <span class="ot">None</span>: <span class="co"># use the native comparison</span>
+      <span class="dt">cmp</span> = <span class="kw">lambda</span> x, y: <span class="dv">1</span> <span class="kw">if</span> x &gt; y <span class="kw">else</span> (-<span class="dv">1</span> <span class="kw">if</span> x &lt; y <span class="kw">else</span> <span class="dv">0</span>)
+      <span class="kw">def</span> medianNear(k): 
+         x = a[k<span class="dv">-2</span>]; y = a[k]; z = a[k<span class="dv">+2</span>]
+         <span class="kw">if</span> x &lt; y:
+            <span class="kw">return</span> y <span class="kw">if</span> y &lt; z <span class="kw">else</span> ( z <span class="kw">if</span> x &lt; z <span class="kw">else</span> x )                       
+         <span class="kw">else</span>:
+            <span class="kw">return</span> x <span class="kw">if</span> x &lt; z <span class="kw">else</span> ( z <span class="kw">if</span> y &lt; z <span class="kw">else</span> y )
+   <span class="kw">else</span>:
+      <span class="kw">def</span> medianNear(k):
+         x = a[k<span class="dv">-2</span>]; y = a[k]; z = a[k<span class="dv">+2</span>]
+         <span class="kw">if</span> <span class="dt">cmp</span>(x,y) &lt; <span class="dv">0</span>:
+            <span class="kw">return</span> y <span class="kw">if</span> <span class="dt">cmp</span>(y,z) &lt; <span class="dv">0</span> <span class="kw">else</span> ( z <span class="kw">if</span> <span class="dt">cmp</span>(x,z) &lt; <span class="dv">0</span> <span class="kw">else</span> x )                       
+         <span class="kw">else</span>:
+            <span class="kw">return</span> x <span class="kw">if</span> <span class="dt">cmp</span>(x,z) &lt; <span class="dv">0</span> <span class="kw">else</span> ( z <span class="kw">if</span> <span class="dt">cmp</span>(y,z) &lt; <span class="dv">0</span> <span class="kw">else</span> y )
+
+   dbg = getDbgMgr()
+   inner_in_dbg = (<span class="st">&quot;inner&quot;</span> in dbg); outer_in_dbg = (<span class="st">&quot;outer&quot;</span> in dbg)
+   move_in_dbg = (<span class="st">&quot;move&quot;</span> in dbg);   swap_in_dbg = (<span class="st">&quot;swap&quot;</span> in dbg)
+   left_in_dbg = (<span class="st">&quot;left&quot;</span> in dbg);   middle_in_dbg = (<span class="st">&quot;middle&quot;</span> in dbg)
+   right_in_dbg = (<span class="st">&quot;right&quot;</span> in dbg)
+
+   initialRange = <span class="dt">range</span>(start, <span class="dt">len</span>(a) <span class="kw">if</span> stop is <span class="ot">None</span> <span class="kw">else</span> stop)
+   size         = <span class="dt">len</span>(initialRange) <span class="co"># &quot;size&quot; is always the length of some subarray of &quot;a&quot;</span>
+   stack        = TypedStack(<span class="dt">range</span>, maxlen=size) 
+   stack.push(initialRange)
+   <span class="kw">while</span> stack.size &gt; <span class="dv">0</span>:
+      <span class="co"># quicksort is tail recursive: this outer loop tracks the remaining work</span>
+      currentRange = stack.pop()
+      start = currentRange.start; stop = currentRange.stop; size = <span class="dt">len</span>(currentRange)
+      <span class="kw">if</span> size &lt;= max_for_insertion: <span class="co"># insertion sort: faster once size is around 8 or so?</span>
+         <span class="kw">for</span> i in <span class="dt">range</span>(start<span class="dv">+1</span>, stop):
+            a_i = a[i]
+            j = i - <span class="dv">1</span> <span class="co"># eventually j is the first element before i-th with a[i] &lt;= a[j]</span>
+            <span class="kw">while</span> j&gt;=start and <span class="dt">cmp</span>(a_i, a[j]) &lt; <span class="dv">0</span>: 
+               a[j<span class="dv">+1</span>] = a[j] <span class="co"># shift right to make room for a_i</span>
+               j -= <span class="dv">1</span>
+            <span class="co"># j==start-1 or a[i] &gt;= a[j]</span>
+            a[j<span class="dv">+1</span>] = a_i
+      <span class="kw">else</span>:
+         middle = start+ size//<span class="dv">2</span>
+         <span class="kw">if</span> size&lt;=min_for_median: partitionValue = a[middle]
+         <span class="kw">else</span>:
+            last = stop<span class="dv">-1</span>
+            left = medianNear(start<span class="dv">+2</span>); middle = medianNear(middle); right = medianNear(last<span class="dv">-2</span>)
+            <span class="co"># median of the medians near the start, middle, and end of the segment:</span>
+            <span class="kw">if</span> <span class="dt">cmp</span>(left,middle) &lt; <span class="dv">0</span>:
+               <span class="kw">if</span> <span class="dt">cmp</span>(middle,right) &lt; <span class="dv">0</span>: partitionValue = middle
+               <span class="kw">elif</span> <span class="dt">cmp</span>(left,right) &lt; <span class="dv">0</span>: partitionValue = right
+               <span class="kw">else</span>: partitionValue = left                    
+            <span class="kw">else</span>:
+               <span class="kw">if</span> <span class="dt">cmp</span>(left,right) &lt; <span class="dv">0</span>: partitionValue = left
+               <span class="kw">elif</span> <span class="dt">cmp</span>(middle,right) &lt; <span class="dv">0</span>: partitionValue = right
+               <span class="kw">else</span>: partitionValue = middle
+         firstLessOnLeft     = start       <span class="co"># first index that MIGHT have a value &lt; partition</span>
+         nextLeft            = firstLessOnLeft <span class="co"># the next entry on the left to look at</span>
+         lastOnRight         = stop - <span class="dv">1</span>    <span class="co"># last valid index to the right of the partition</span>
+         firstGreaterOnRight = lastOnRight <span class="co"># where the first &gt; partition might be</span>
+         nextRight           = lastOnRight <span class="co"># the first index on the right to check</span>
+         <span class="kw">if</span> outer_in_dbg:
+            msg = <span class="st">&quot;########### start=</span><span class="ot">{0}</span><span class="st">, stop=</span><span class="ot">{1}</span><span class="st"> count=</span><span class="ot">{2}</span><span class="st"> ###########&quot;</span>
+            <span class="dt">print</span>(msg.<span class="dt">format</span>(start, stop, stop-start))
+         <span class="kw">while</span> <span class="ot">True</span>:     
+            <span class="kw">while</span> nextLeft &lt;= nextRight: <span class="co"># work in from the left</span>
+               nextLeftRelMedian = <span class="dt">cmp</span>(a[nextLeft], partitionValue)
+               <span class="kw">if</span> middle_in_dbg:
+                  <span class="dt">print</span>(<span class="st">&quot;left </span><span class="ot">{0}</span><span class="st">: </span><span class="ot">{1}</span><span class="st">&gt;</span><span class="ot">{2}</span><span class="st">?&quot;</span>.<span class="dt">format</span>(nextLeft,a[nextLeft],partitionValue))
+               <span class="kw">if</span> nextLeftRelMedian &gt; <span class="dv">0</span>: 
+                  <span class="kw">if</span> inner_in_dbg: <span class="dt">print</span>(<span class="st">&quot;left breaking nl=</span><span class="ot">{0}</span><span class="st">&quot;</span>.<span class="dt">format</span>(nextLeft)) 
+                  <span class="kw">break</span>
+               <span class="kw">elif</span> nextLeftRelMedian is <span class="dv">0</span>: <span class="co"># push the partition value to the left end</span>
+                  temp = a[firstLessOnLeft]
+                  <span class="kw">if</span> inner_in_dbg:
+                     msg = <span class="st">&quot;left: swap </span><span class="ot">{0}</span><span class="st"> at </span><span class="ot">{1}</span><span class="st"> for </span><span class="ot">{2}</span><span class="st"> at </span><span class="ot">{3}</span><span class="st">&quot;</span>
+                     <span class="dt">print</span>(msg.<span class="dt">format</span>(temp,firstLessOnLeft,a[nextLeft],nextLeft))
+                  a[firstLessOnLeft] = a[nextLeft]
+                  a[nextLeft] = temp
+                  firstLessOnLeft += <span class="dv">1</span>
+               nextLeft += <span class="dv">1</span>
+            <span class="kw">while</span>(nextLeft &lt;= nextRight): <span class="co"># work in from the right</span>
+               nextRightRelMedian = <span class="dt">cmp</span>(a[nextRight], partitionValue)
+               <span class="kw">if</span> inner_in_dbg:
+                  msg = <span class="st">&quot;right </span><span class="ot">{0}</span><span class="st">: </span><span class="ot">{1}</span><span class="st">&lt;</span><span class="ot">{2}</span><span class="st">?&quot;</span>
+                  <span class="dt">print</span>(msg.<span class="dt">format</span>(nextRight,a[nextRight],partitionValue))
+               <span class="kw">if</span> nextRightRelMedian &lt; <span class="dv">0</span>:
+                  <span class="kw">if</span> inner_in_dbg: <span class="dt">print</span>(<span class="st">&quot;right breaking nr=</span><span class="ot">{0}</span><span class="st">&quot;</span>.<span class="dt">format</span>(nextRight)) 
+                  <span class="kw">break</span>
+               <span class="kw">elif</span> nextRightRelMedian is <span class="dv">0</span>: <span class="co"># push the partition value to the right end</span>
+                  temp = a[firstGreaterOnRight]
+                  <span class="kw">if</span> inner_in_dbg:
+                     msg = <span class="st">&quot;right: swap </span><span class="ot">{0}</span><span class="st"> at </span><span class="ot">{1}</span><span class="st"> for </span><span class="ot">{2}</span><span class="st"> at </span><span class="ot">{3}</span><span class="st">&quot;</span>
+                     <span class="dt">print</span>(msg.<span class="dt">format</span>(temp,firstGreaterOnRight, a[nextRight],nextRight))
+                  a[firstGreaterOnRight] = a[nextRight]
+                  a[nextRight] = temp
+                  firstGreaterOnRight -= <span class="dv">1</span>
+               nextRight -= <span class="dv">1</span>
+            <span class="kw">if</span> nextLeft &gt; nextRight:
+               <span class="kw">if</span> middle_in_dbg: 
+                  <span class="dt">print</span>(<span class="st">&quot;breaking nl=</span><span class="ot">{0}</span><span class="st">&gt;nr=</span><span class="ot">{1}</span><span class="st">&quot;</span>.<span class="dt">format</span>(nextLeft, nextRight)) 
+               <span class="kw">break</span>
+            temp = a[nextRight]
+            <span class="kw">if</span> swap_in_dbg:
+               msg = <span class="st">&quot;value swap </span><span class="ot">{0}</span><span class="st"> at </span><span class="ot">{1}</span><span class="st"> for </span><span class="ot">{2}</span><span class="st"> at </span><span class="ot">{3}</span><span class="st">&quot;</span>
+               <span class="dt">print</span>(msg.<span class="dt">format</span>(temp,nextRight,a[nextLeft],nextLeft))
+            a[nextRight] = a[nextLeft]
+            a[nextLeft] = temp
+            nextLeft += <span class="dv">1</span>
+            nextRight -= <span class="dv">1</span>
+            <span class="kw">if</span> middle_in_dbg:
+               <span class="dt">print</span>(<span class="st">&quot;end while true: a=&quot;</span>+<span class="dt">str</span>(a))
+               msg = <span class="st">&quot;</span><span class="ot">{0}</span><span class="st">&lt;</span><span class="ot">{1}</span><span class="st">&lt;</span><span class="ot">{2}</span><span class="st">&lt;</span><span class="ot">{3}</span><span class="st">&quot;</span>
+               <span class="dt">print</span>(msg.<span class="dt">format</span>(firstLessOnLeft,nextLeft,nextRight,firstGreaterOnRight))
+         <span class="kw">if</span> outer_in_dbg:
+            <span class="dt">print</span>(<span class="st">&quot;pv=&quot;</span>+<span class="dt">str</span>(partitionValue)+<span class="st">&quot; and a before swap=&quot;</span>+<span class="dt">str</span>(a))
+            <span class="dt">print</span>(<span class="st">&quot;[</span><span class="ot">{0}</span><span class="st">:</span><span class="ot">{1}</span><span class="st">:</span><span class="ot">{2}</span><span class="st">] min(</span><span class="ot">{3}</span><span class="st">,</span><span class="ot">{4}</span><span class="st">)&quot;</span>.<span class="dt">format</span>(
+               start, firstLessOnLeft,nextLeft,firstLessOnLeft-start,
+               nextLeft-firstLessOnLeft))
+            <span class="dt">print</span>(<span class="st">&quot;[</span><span class="ot">{0}</span><span class="st">:</span><span class="ot">{1}</span><span class="st">:</span><span class="ot">{2}</span><span class="st">] min(</span><span class="ot">{3}</span><span class="st">,</span><span class="ot">{4}</span><span class="st">)&quot;</span>.<span class="dt">format</span>(
+               nextRight, firstGreaterOnRight,lastOnRight,firstGreaterOnRight-nextRight,
+               lastOnRight-firstGreaterOnRight))
+         <span class="co"># move all the partition value entries to the middle</span>
+         valuesToMoveOnLeft = <span class="dt">min</span>(firstLessOnLeft-start, nextLeft-firstLessOnLeft)
+         <span class="kw">if</span> valuesToMoveOnLeft &gt; <span class="dv">0</span>:
+            firstPV = nextLeft - <span class="dv">1</span>
+            <span class="kw">for</span> i in <span class="dt">range</span>(<span class="dv">0</span>, valuesToMoveOnLeft):
+               <span class="kw">if</span> move_in_dbg: 
+                  <span class="dt">print</span>(<span class="st">&quot;</span><span class="ot">{0}</span><span class="st">=s+i and </span><span class="ot">{1}</span><span class="st">=fpv-i&quot;</span>.<span class="dt">format</span>(start+i, firstPV-i))
+               a[start+i]    = a[firstPV-i]
+               a[firstPV-i] = partitionValue
+         valuesToMoveOnRight = <span class="dt">min</span>(firstGreaterOnRight-nextRight,
+                  lastOnRight-firstGreaterOnRight)
+         <span class="kw">if</span> valuesToMoveOnRight &gt; <span class="dv">0</span>:
+            firstPV = nextRight + <span class="dv">1</span>
+            <span class="kw">for</span> i in <span class="dt">range</span>(<span class="dv">0</span>, valuesToMoveOnRight):
+               <span class="kw">if</span> move_in_dbg:
+                  <span class="dt">print</span>(<span class="st">&quot;</span><span class="ot">{0}</span><span class="st">=lr-i and </span><span class="ot">{1}</span><span class="st">=fpv+i&quot;</span>.<span class="dt">format</span>(lastOnRight-i, firstPV+i))
+               a[lastOnRight-i] = a[firstPV+i]
+               a[firstPV+i] = partitionValue
+         leftSize  = nextLeft - firstLessOnLeft
+         rightSize = firstGreaterOnRight - nextRight
+         <span class="kw">if</span> leftSize &gt; <span class="dv">1</span>: stack.push(<span class="dt">range</span>(start, start+leftSize))
+         <span class="kw">if</span> rightSize &gt; <span class="dv">1</span>: stack.push(<span class="dt">range</span>(stop-rightSize, stop))
+   <span class="kw">return</span> a
+</code></pre>
+<p>The debugging printouts are filtered using the <a href="dbg.html"><code>dbg</code></a> module. The keywords are available as the return value from</p>
+<h4 id="quicksort.debugkeys"><code>Quicksort.debugkeys()</code></h4>
+<p>which is a list of the strings. To turn on debugging output, call</p>
+<h4 id="quicksort.debugcommaseparatedkeylist"><code>Quicksort.debug(commaSeparatedKeyList)</code></h4>
+<p>with a comma-separated list of the keys you want honored, or with <code>&quot;*&quot;</code> to get them all in one shot. The return value is the <a href="dbg.html#dbgmgr_class">debugging manager</a>, which means you have the full API from the <code>dbg</code> module available, in particular the ability to turn of the keys you activated. The output goes to <code>stdout</code>. I don’t use the fancy HTML buffering, because compactness of the output is important, and the time order in which messages are generated is the only sensible display order.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+Quicksort.debug = <span class="kw">lambda</span> commaSeparatedKeys: getDbgMgr(commaSeparatedKeys)
+Quicksort.debugkeys = <span class="kw">lambda</span>: [<span class="st">&quot;inner&quot;</span>, <span class="st">&quot;left&quot;</span>, <span class="st">&quot;middle&quot;</span>, <span class="st">&quot;move&quot;</span>, <span class="st">&quot;outer&quot;</span>, <span class="st">&quot;right&quot;</span>, <span class="st">&quot;swap&quot;</span>]</code></pre>
+</body>
+</html>

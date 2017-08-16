@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>numpy data type utilities</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2018pt%3B%20%7D%0A%20%20%20code%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20code%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2024pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2EtitleText%20%7B%20font%2Dsize%3A%2016pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title"><span class="titleCode">numpy</span> data type utilities</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">November, 2015</h3>
+</header>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">import</span> numpy <span class="ch">as</span> np
+</code></pre>
+<p><strong><code>datatype(strOrType)</code></strong> translates a string naming a numpy type to the actual type. The intended use is for command line processing. If anything other than a string is passed as the argument, it is returned untouched. Otherwise, the numpy type of that name is returned.</p>
+<p><strong><code>typename(strOrType)</code></strong> translates a <code>numpy</code> type to its name.</p>
+<p><strong><code>typeformat(strOrType)</code></strong> translates a <code>numpy</code> type or type name to the simplest “printf” format that makes sense for that type–either “d”, “u”, or “g”.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+_TYPE_DICTIONARY = {
+   <span class="st">'bool_'</span>: np.bool_,      <span class="co"># Boolean (True or False) stored as a byte</span>
+   <span class="co">'int_'</span>: np.int_,        <span class="co"># Default integer type (= C long; normally either int64 or int32)</span>
+   <span class="co">'intc'</span>: np.intc,        <span class="co"># Identical to C int (normally int32 or int64)</span>
+   <span class="co">'intp'</span>: np.intp,        <span class="co"># Integer used for indexing (= C ssize_t; normally either int32 or int64)</span>
+   <span class="co">'int8'</span>: np.int8,        <span class="co"># Byte (-128 to 127)</span>
+   <span class="co">'int16'</span>: np.int16,      <span class="co"># Integer (-32768 to 32767)</span>
+   <span class="co">'int32'</span>: np.int32,      <span class="co"># Integer (-2147483648 to 2147483647)</span>
+   <span class="co">'int64'</span>: np.int64,      <span class="co"># Integer (-9223372036854775808 to 9223372036854775807)</span>
+   <span class="co">'uint8'</span>: np.uint8,      <span class="co"># Unsigned integer (0 to 255)</span>
+   <span class="co">'uint16'</span>: np.uint16,    <span class="co"># Unsigned integer (0 to 65535)</span>
+   <span class="co">'uint32'</span>: np.uint32,    <span class="co"># Unsigned integer (0 to 4294967295)</span>
+   <span class="co">'uint64'</span>: np.uint64,    <span class="co"># Unsigned integer (0 to 18446744073709551615)</span>
+   <span class="co">'float_'</span>: np.float_,    <span class="co"># Shorthand for float64.</span>
+   <span class="co">'float16'</span>: np.float16,  <span class="co"># Half precision float: sign bit, 5 bits exponent, 10 bits mantissa</span>
+   <span class="co">'float32'</span>: np.float32,  <span class="co"># Single precision float: sign bit, 8 bits exponent, 23 bits mantissa</span>
+   <span class="co">'float64'</span>: np.float64,  <span class="co"># Double precision float: sign bit, 11 bits exponent, 52 bits mantissa</span>
+   <span class="co">'complex_'</span>: np.complex_,    <span class="co"># Shorthand for complex128.</span>
+   <span class="co">'complex64'</span>: np.complex64,  <span class="co"># Complex number: two 32-bit floats (real and imaginary components)</span>
+   <span class="co">'complex128'</span>: np.complex128 <span class="co"># Complex number: two 64-bit floats (real and imaginary components)</span>
+}
+
+_NAME_DICTIONARY = {}
+_FORMAT_DICTIONARY = {<span class="st">'b'</span>: <span class="st">&quot;d&quot;</span>, <span class="st">'i'</span>: <span class="st">&quot;d&quot;</span>, <span class="st">'u'</span>: <span class="st">&quot;u&quot;</span>, <span class="st">'f'</span>: <span class="st">&quot;g&quot;</span>, <span class="st">'c'</span>: <span class="st">&quot;g&quot;</span>}
+
+<span class="kw">for</span> name in _TYPE_DICTIONARY:
+   _NAME_DICTIONARY[_TYPE_DICTIONARY[name]] = name
+
+
+<span class="kw">def</span> datatype(strOrType):
+   <span class="kw">return</span> _TYPE_DICTIONARY[strOrType] <span class="kw">if</span> <span class="dt">isinstance</span>(strOrType, <span class="dt">str</span>) <span class="kw">else</span> strOrType
+
+<span class="kw">def</span> typename(strOrType):
+   <span class="kw">return</span> strOrType <span class="kw">if</span> <span class="dt">isinstance</span>(strOrType, <span class="dt">str</span>) <span class="kw">else</span> _NAME_DICTIONARY[strOrType]
+
+<span class="kw">def</span> typeformat(strOrType):
+   name = numpy_typename(strOrType)
+   <span class="kw">return</span>  _FORMAT_DICTIONARY[name[<span class="dv">0</span>]]</code></pre>
+</body>
+</html>

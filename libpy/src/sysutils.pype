@@ -1,0 +1,1352 @@
+""" <head>
+
+Title: Some system utilities -- low level attribute and property access
+Author: Jonathan Brezin
+Date: November, 2015
+Show source: yes
+
+"""
+
+from collections import namedtuple
+from inspect import getmro
+import re
+import sys
+import time
+
+""" <md>
+
+## Introduction ##
+
+This module implements some *very* basic system utilities, mostly one-liners, that wrap a few Python
+fundamentals.  If you want to get right to that code, skip to
+[the attribute and item accessing code](#attribute-and-item-management-code).
+
+I do not pretend to have a deep understanding of the ideas behind Python's type system.   I am going
+to make an attempt here to sugar-coat what is really a more complex set of ideas than I have any
+real desire to master in their entirety.   My source for Python semantics is  [Section 3 of the
+Python Language Reference](https://docs.python.org/3/reference/datamodel.html).
+
+## Data model ##
+
+### Objects, types and values ###
+
+Objects are Python’s abstraction for all data, including code.  Every object has an identity, a type
+and a value. An object’s identity never changes once it has been set and may be viewed as "the
+object’s address in memory".  
+
+> The `is` operator compares the identities of a pair of objects. The global `id()` function returns
+an integer representing its identity.
+
+The object’s *type* is set as part of the object's creation and is immutable thereafter.  A type is
+usually specified by using a `class` statement.  A `class` statement compiles into a callable
+object. Instances of the type are created by calling it.  Two special keywords, `def` and `lambda`,
+are reserved for creating instances of the class `function`, but this special syntax aside, Python
+functions are simply objects like Python values of any other type.  They just happen, like compiled
+`class` definitions, to be callable.  Indeed, any object can be made callable.  See Rafe Kettler's
+[*A Guide to Python's Magic Methods*](magicmethods.pdf) for how to do so
+and  clear descriptions of Python's other so-called "*magic methods.*"
+
+An object's class determines both a set of possible values for the object and a set of operations
+that each of those values will support _at the time of the object's instantiation._  That last
+phrase is crucial.  An object's attributes are kept in a dictionary-like object that normally is
+read-write, so you can add and delete attributes whenever it is convenient to do so.
+
+> The builtin `type()` function returns an object’s type. Like all data in a Python program, this
+returned value is itself an object.  Its class is `type`.
+
+The *value* of an object is somewhat more subtle to describe than either its id or its type.  I know
+of no reference that attempts to articulate this idea. Instead, as is done in the [Python reference
+manual](https://docs.python.org/3/reference/datamodel.html), examples are given that cover what
+comes standard as part of the language.  I don't have much to add, except a few words later about
+numerical values and hashes.
+
+While it is true that one should not confuse an *identifier* `x` with the *identity* of the object
+`x` names, life is too short not to use the shorthand "`x`'s id" for "the id of the object to which
+`x` now refers." Along the same lines, the integer "literal" `4` names an object and is not to be
+confused with its value, the number _4_, which is just one aspect of its objecthood.  The following
+terminal session illustrates the point:
+
+<pre class="exampleCode">
+
+   >>> 4 . __class__ # 4 really is an object, so you can evaluate its "__class__" attribute
+   &lt;class 'int'>
+   >>> id(4)         # and has its own id 
+   4297515008
+   >>> x = 4
+   >>> id(x)         # x names the same object as 4
+   4297515008
+   >>> y = 4
+   >>> x is y        # True, because both name the same object, 4
+   True
+   >>> x = 5         # x gets a new id: that of 5
+   >>> id(x)
+   4297515040
+   >>> id(5)         # no surprise: same value as id(x)
+   4297515040
+   >>> id(y)         # y's id is unchanged
+   4297515008
+
+</pre>
+
+By the way, the `id` of `4`, as you can see, is not `4`, but some very large integer that looks like
+an address in the far reaches of memory, but could be just another pretty hash code.
+
+Not all assignments in which an identifier appears on the left-hand side change an identifier's id.
+The obvious example is updating a list:
+
+<pre class="exampleCode">
+
+   >>> x = [4]  # x is a list containing one entry, 4.
+   >>> id(x)
+   4324344264
+   >>> x[0] = 5 # x still has only one entry, but now it is 5
+   >>> x        #    ... as evaluating x shows
+   [5]
+   >>> id(x)    # x has the same id and type as before, but a different "value"
+   4324344264
+
+</pre>
+
+### Immutability ###
+
+The two examples above, numbers and lists, illustrate the two sides of the notion of "mutability". A
+numeric object is immutable. Two different numeric values will have different ids when realized as
+Python objects.  Collection containers like lists can have their contents altered without changing
+identity.
+
+The string class, "`str`", is an example of a collection container that is immutable.  You can look
+at individual members in a string, *e.g.* `"abc"[1]` is `"b"`, but you cannot reassign them:
+`"abc"[1]` `=` `d` will raise a `TypeError` whose message is "`'str'` `object` `does` `not`
+`support` `item` `assignment`". Different string values always have distinct ids: you cannot modify
+the value of a string-valued identifier without assigning the identifier a new id.
+
+A final example of an immutability is a code object, which is the operative part of function value,
+whether the function defined as a `lambda` or via `def`.  If `f` is a function, its compiled code
+object is `f.__code__` and `f.__call__` appears to be an thin interface to the runtime that 
+assembles the argument list and executes the compiled code.  
+
+> This is a good example of a gap in my knowledge.  What I said above seems to make sense
+from such documentation as is easily available.  But: is it correct? Who knows?
+
+The object ids referred to by an immutable object's own attributes cannot be changed.  The values
+associated with these objects may or may not be mutable&ndash;*e.g.* if `obj` is immutable and
+`obj.attr` is a  `list`, that `list`, and no other, will always be what `obj.attr` refers to, but
+that `list`'s membership may change at any time during execution.  
+
+I'll come back to how you declare objects with immutable attributes in the discussion on the "dot
+operator" that follows.
+
+### Attributes and containers ###
+
+What's at stake here are two binary operators, the "dot" and the "square-brackets" operators. Python
+makes a strict distinction between the two. (By way of contrast, JavaScript makes none.)
+
+>  __The dot operator, "`.`"__:  _`obj.attr`_  has two operands.  The first is an object
+reference `obj`,  and the other is a valid Python identifier `attr`, and the expression
+evaluates to the value of the "attribute" named _`attr`_ of  _`obj`_. The attribute labels of an
+object, like _`attr`_ in this example, are normally defined either in (1) the object's class
+declaration, (2) the class declaration for any classes that `obj`'s class extends,  or (3) the
+initialization method, "`__init__()`" of one of those classes.  The attributes associated in
+this way can be viewed as defining the type of the object, but more properly they constitute its
+initial [duck type](https://en.wikipedia.org/wiki/Duck_typing).
+
+>> There is a subtle _gotcha_ here.  Nothing stops you from adding or removing attributes at
+runtime, which alters the duck type, _but not the value of_ `type(obj)`.  The `type()` builtin
+returns the "type" with which an object was created.   So: while attributes may be added or deleted
+at runtime, doing so after `__init__` returns should be much more the exception than the rule.
+There is an example of this behavior of `type()` in
+[`readonly_attributes.term.py`](examples/readonly_attributes.term.py)
+
+> __The square-brackets operator, "`[]`"__:  _`obj[key]`_, is a different thing altogether from
+_obj.key_.  It yields a value from an object _`obj`_ and a value _`key`_, but there the
+similarity ends.  "`[]`" is intended for objects `obj` whose types are "containers" (Python
+lingo) or "collections" (everyone else).  The right operand, `key`, is a value.  _It need not be
+a literal, as is the case for the "`.`" operator._  The collection of currently valid key/value
+pairs determines the current _state_ of the collection at runtime, but has nothing to do with
+the type of the collection.  Thus, even in the case of read-only collections like `tuple`s, the
+particular set of valid keys at any given moment is just runtime state: `(1,2)` and
+`("a","b","c")` are distinct collections that have the same type, namely `tuple`, but not the
+same valid keys.
+
+>> The implementation of the `[]` operator for a given type may well constrain the set of values
+that may be used as keys, as well as whether a given key's value may be overwritten after having
+been set the first time.  The only global constraint is that keys should be hashable--a topic I'll
+ponder [a little below](#hashes).
+
+An object `obj` builds its value out of references to other objects that are the values of its
+attributes.  Roughly speaking, attributes values fall into one of two categories: data that is the
+"current state" of the object, and functions that are the object's "methods".  The Python built-in
+function `dir` returns a `list` of all of an object's attribute names.  The function
+[`pubdir`](#pubdirvalue) defined below does the same job, but only returns the attribute names
+intended for public use.
+
+Attributes, as noted before, are normally introduced either as part of the `class` statement, or as
+a result of executing a function call, such as the method `__init__()` which is automatically called
+as part of an object's creation.   Even functions not defined in an object's class hierarchy can add
+attributes to that object, although it is probably very, very bad taste to do so in any  way other
+than some discipline like
+[decorators](https://docs.python.org/3/reference/compound_stmts.html#function). 
+
+Attributes that are defined for the first time in an assigment to an instance, rather than as  part
+of the class definition, are local to that instance.  Importantly, _this includes attributes
+assigned in the initializer `__init__()`_.  Attributes that are inherited from the class definition
+are "copy on write", as the following code illustrates:
+
+<pre class="exampleCode">
+
+   >>> class A:
+   ...    a = 0       # integer attribute
+   ... 
+   >>> anA = A()      # create an instance, "anA"
+   >>> anA.a = 3      # assign a new value to anA's attribute "a"; A.a is unaffected
+   >>> A.a
+   0
+   >>> anotherA = A() # whenever you create another instance, its "a" is A.a,
+   >>> anotherA.a     #   so it still is 0
+   0
+   >>> A.a = 5        # if you assign a new value to A.a itself,
+   >>> anotherA.a     #   instances whose 'a' was not reset will see the new value
+   5
+   >>> anA.a          # anA.a still has the value 3, because anA has its own copy
+   3
+
+</pre>
+
+So: assigning to an attribute inherited by an instance from its class creates a copy local to
+the instance to hold the new value--that's the copy on write.  One way to think of this is that
+an object's attributes are kept in a list of dictionaries, one for each class in the object's
+inheritance hierarchy, and _one for the object itself_.  Assigning a new value to an attribute
+creates an entry for the attribute in the objects's own dictionary.  Looking up an attribute's
+value amounts to checking the objects's dictionary, and then working back through the
+dictionaries for the classes from which it inherits, until the attribute appears.  For an
+implementation of this idea, see [InheritanceDict](inheritancedict.html).  See also the method
+[hierarchyFor](##hierarchyforobjortype) below.
+
+Here is a terminal session that illustrates the difference between adding an attribute at the class
+level and at the method level:
+
+<pre class="exampleCode">
+
+   >>> class Foo:
+   ...   a = 0                        # attribute 'a' defined in the class
+   ...   def __init__(self, value):
+   ...     self.b = value             # attribute 'b' defined in the initializer
+   ... 
+   >>> class Bar(Foo):                # Bar is a class that extends Foo
+   ...   def __init__(self):
+   ...     Foo.__init__(self, "bar")  # Bar's initializer calls its parent Foo's
+   ... 
+   >>> bar = Bar()
+   >>> bar.a                          # bar inherits 'a' from Foo,
+   0
+   >>> bar.b                          # and it gets 'b' because Bar's init calls Foo's
+   'bar'
+   >>> 
+   >>> class Baz(Foo):                # Baz is another extension of Foo
+   ...   def __init__(self):          # It's initializer does not call Foo's, though!
+   ...     pass
+   ... 
+   >>> baz = Baz()
+   >>> baz.a                          # as we expect, 'a' is inherited by baz,
+   0
+   >>> baz.b                          # but 'b' is not
+   Traceback (most recent call last):
+     File "<stdin>", line 1, in <module>
+   AttributeError: 'Baz' object has no attribute 'b'
+
+</pre>
+
+### The dot operator's implementation ###
+
+All objects have three methods, `__getattribute__(key)`, `__setattr__(key,` `value)` and
+`__delattr__(key)` that  implement the behavior of the dot operator.  Normally, these methods
+are inherited from the class "`object`", which sits at the top of the class hierarchy for types
+defined by `class` statements. The author of a `class` statement is free to override these
+methods as need be. In particular, one can use these methods to create private attributes and
+immutable attributes. Another way to create at least the "read-only" attributes is to create a
+_descriptor_ for the attribute you want to protect.  A descriptor is a class with one or all of
+the method attributes `__get__(key)`, `__set__(key,` `value)`, and `__del__(key)`.  If a class
+declaration assigns an instance of a descriptor as the value of an attribute, these methods will
+be called to get, set, or remove the attribute.
+
+As a simple first example of how one might create a read-only attribute, consider an attribute
+whose value should be computed on demand, but is never saved and hence cannot be set directly.
+The area of a rectangle fits this bill.  Here is the descriptor approach to creating an "area"
+attribute:
+
+<pre class="exampleCode">
+
+   >>> class _area(object):                  # define a virtual attribute descriptor
+   ...    def __get__(self, obj, objtype):   # this will do the fetch of obj.area
+   ...       return obj.x*obj.y              # x and y are the rectangle's dimensions
+   ...    def __set__(self, obj, val):       # this handles assignment: obj.area = val
+   ...       raise AttributeError("Silly you... nothing here to set!")
+   ... 
+   >>> class Rectangle(object):
+   ...    area = _area()                     # access to value is via the descriptor
+   ...    def __init__(self, x=1, y=1):
+   ...       self.x = x
+   ...       self.y = y
+   ... 
+   >>> r = Rectangle(3,4)
+   >>> r.area # should display 12
+   12
+   >>> try:
+   ...    r.area = 15
+   ... except AttributeError as ae:
+   ...    print("set r.area = 15: {0}".format(ae))
+   ... 
+   set r.area = 15: Silly you... nothing here to set!
+
+</pre>
+
+For this example's input, see [derivedattribute.py ](examples/derivedattribute.py). Notice that
+you can change `r.x` and `r.y`, so the area will change, but you cannot set the area itself
+directly: it is read-only.  The leading underscore in the descriptor class's name effectively
+makes it private  when the `Rectangle` code is part of a module that is being imported.
+
+Another approach is to modify the class's `__getattribute__` and `__setattr__` methods:
+
+<pre class="exampleCode">
+
+   >>> class Rectangle2(object):
+   ...    def __init__(self, x=1, y=1):
+   ...       self.x = x
+   ...       self.y = y
+   ...    def __getattribute__(self, key):
+   ...       if key == "area":
+   ...          return self.x * self.y
+   ...       else:
+   ...          return object.__getattribute__(self, key)
+   ...    def __setattr__(self, key, value):
+   ...       if key == "area":
+   ...          raise AttributeError("Silly you... nothing here to set!")
+   ...       else:
+   ...          return object.__setattr__(self, key, value)
+
+</pre>
+
+There is an obvious trade-off here: the second approach implies that every access to an attribute
+value, be it `x`, `y`, or `area`, incurs the cost of the test on the key, whereas the descriptor
+only pays some overhead to get at the area itself.  There's another, more subtle difference that
+the code in [derivedattribute.py ](examples/derivedattribute.py) brings out.  If `r` is a 
+`Rectangle` in the first sense (descriptor for area), you cannot blast it away by calling a 
+superclass's `__setattr__`:
+
+<pre class="exampleCode">
+
+   >>> try:
+   ...    object.__setattr__(r, "area", "area")
+   ... except AttributeError as ae:
+   ...    print("Even object cannot change the area")
+   ... 
+   Even object cannot change the area
+   >>> print("r.area is now {}".format(object.__getattribute__(r, "area")))
+   r.area is now 12
+
+</pre>
+
+The point is that _`r` is already using  `object.__setattr__`_, so a direct call to
+`object.__setattr__` is no different from what is already happening internally for `r` when you
+evaluate `r.area = "area"`.  Now look at the same thing for an instance `r2` of `Rectangle2`,
+which has its own `__setattr__`.  Things are different for it:
+
+<pre class="exampleCode">
+
+   >>> r2 = Rectangle2(5,6)
+   >>> print("r2.area should be 30: it is {0}".format(r2.area))
+   r2.area should be 30: it is 30
+   >>> try:
+   ...    r2.area = 25  # use Rectangle2.__setattr__, which should raise the exception
+   ... except AttributeError as ae:
+   ...    print("I tried to set r2.area = 25: {0}".format(ae))
+   ... 
+   I tried to set r2.area = 25: Silly you... nothing here to set!
+   >>> object.__setattr__(r2, "area", "area") # now use the superclass
+   >>> print("r2.area is {}".format(r2.area)) # this is still r2's __getattribute__
+   r2.area is now 30
+   >>> new_area = object.__getattribute__(r2, "area")
+   >>> print("r2.area via object: {}".format(repr(new_area))
+   r2.area via object: 'area'
+
+</pre>
+
+Oops! When you have two implementations of `__getattribute__` and `__setattr__` around, funny
+things can happen.  `object.__setattr__` creates a local attribute for `r2` named `'area'`--this
+is "copy on write", again--and `object.__getattribute__` will find it. On the other hand, _the
+operator expression `r2.area` calls the class's own `__getattribute__`, which treats `'area'`
+specially_.  The bottom line is that `Rectangle2` really is less robust than `Rectangle`: more
+readable, perhaps, but less robust.
+
+There are times when you really do want to save a value you know will not be tampered with, but
+it may be impossible or impractical to recompute the value on demand. The code that follows
+shows one approach that uses two classes: a read-write class and a read-only extension of it. In
+that code, "`object`" refers to the Python built-in type that, as I mentioned above, is the
+ultimate base type. Calling `object`'s `__setattr__` in `__init__` allows one to bypass the
+local version of `__setattr__`, which enforces the read-only discipline.
+
+<pre class="exampleCode">
+
+>>> class Rect: 
+...    def __init__(self, x, y):
+...       self.x = x
+...       self.y = y      
+...    def area(self): return self.x * self.y
+...    def perimeter(self): return 2*(self.x + self.y)
+... 
+>>> r = Rect(4,5)
+>>> [r.x, r.y, r.area(), r.perimeter()] # should print [4, 5, 20, 18]
+[4, 5, 20, 18]
+>>> 
+>>> class RORect(Rect):           # delegates to a Rect that is otherwise hidden
+...    def __init__(self, x, y):  # use the usual __setattr__ to initialize self._r
+...       object.__setattr__(self, "x", x)
+...       object.__setattr__(self, "y", y)
+...    def __setattr__(self, name, value): # assigns to an RORect attribute
+...       if name in set(("area", "perimeter", "x", "y")):
+...          raise AttributeError("RORect.{0} is read-only".format(name))
+...       else: # all other cases are attributes added at runtime
+...          object.__setattr__(self, name, value)
+... 
+>>> ro = RORect(7,8)
+>>> [ro.x, ro.y, ro.area(), ro.perimeter()] # [7, 8, 56, 30]
+[7, 8, 56, 30]
+>>> try:
+...    ro.x = 21  # this had better throw an AttributeError!
+... except AttributeError as ae:
+...    print("I told you so: {}".format(ae))
+... 
+I told you so: RORect.x is read-only
+>>> ro.z = 3   # I have done nothing to stop you from adding read-write attributes
+>>> ro.z       #  ... the value should be 3
+3
+>>> 
+>>> rp = RORect(9,10)                 # here is a pure, untouched RORect
+>>> sametype = (type(ro) is type(rp)) # True, even though rp has no 'z' attribute
+>>> print("ro and rp have the same type? {}".format(sametype))
+ro and rp have the same type? True
+>>> 
+>>> # __getattribute__ was not overwritten for RORect, so object.__setattr__ can hurt you!
+... object.__setattr__(ro, "area", "Yes!")          
+>>> print("ro.area got zapped: {}".format(ro.area))
+ro.area got zapped: Yes!
+
+</pre>
+
+See [`readonly_attributes.term.py`](examples/readonly_attributes.term.py) for this example's code.
+
+No one can stop you from clobbering `ro` if you really want to, but you have to do some pretty
+fancy footwork to do so, as what I had to do to set `ro.area` to `"Yes!"` shows.  It's a useful
+exercise to implement `RORect` directly, without using `Rect`.  How do you get the area and
+perimeter methods to be read-only? The bottom line here is that, in Python, read-only attributes
+are not for the faint of heart. I'll have a lot more to say about it in the code for
+[delegation](delegator.html).
+
+### Containers and the "<code>[]</code>" operator ###
+
+The square-brackets operator provides access to the members of collections like lists and
+dictionaries. These two are representative of the two sorts of collections: ordered and
+associative -- called *sequence types* and *mapping types* in the Python argot. `list` and
+`tuple` are sequence types. Values are accessed by an integer index. `dict` is an example of a
+mapping type. Values are usually accessed by integer or string keys, but more generally any
+[hashable type](#hashes) type may be used for the keys.
+
+As with dot operator for attributes, the expression `obj[x]` is just a shorthand for a method
+call.  In this case, the methods are `__getitem__()` and `__setitem__()`.  The upshot is that any
+class can define its own square-bracket operator.  Here is a simple "delegate" pattern:
+
+<pre class="exampleCode">
+
+   >>> class Foo:
+   ...   def __init__(self, name, value):
+   ...     self._a = {}                 # _xxx conventionally names a private field.
+   ...     self._a[name] = value        # the class instance initializer can use it, of course.
+   ...   def __getitem__(self, name):   # called to fetch _a[name]
+   ...     return self._a[name]   
+   ...   def __setitem__(self, name, value): # called to implement _a[name] = value
+   ...     self._a[name] = value
+   ... 
+   >>> f = Foo("x", "y")   
+   >>> f['d'] = 34        # if all goes as it should, f._a['d'] should be 34
+   >>> f._a               # so let's look at f._a...
+   {'d': 34, 'x': 'y'}    #    and sure enough, there's 'd'
+   >>> f['d']             # fetching from _a via [] works as it should
+   34
+
+</pre>
+
+In practice, this sort of delegation gets used to vet data on the way into, and to recast it on
+the way out of, the real repository&ndash;which is `self._a` here.  Even in this simple case,
+there are some complications.  See the discussion of indexing in
+[the delegator module](delegator.html#delegate_indexingdelegator-delegate_name-excludedset)
+
+##A couple of types: numbers and hashes ##
+
+A complete discussion of the built-in types for Python may be found in
+[https://docs.python.org/3/library/stdtypes.html](https://docs.python.org/3/library/stdtypes.html).
+This is the URL for Python 3.x.  There will undoubtedly be a Python 4.x, in which case, change the
+`3` in the URL to a `4`.  I'll restrict my remarks here to a few things that I thought might not
+leap off those pages.
+
+###Numeric Types### 
+
+All numeric types are immutable objects.  This is not a vacuous assertion.  Numbers are objects
+like any other in Python.  The attribute `__add__` of any object is used by the runtime to
+implement addition, and there is nothing special about the numeric types like `int`.   So, `5`
+is a perfectly good object. You have to be a little careful though with literal numbers:
+
+<pre class="exampleCode">
+
+   >>> 5.__add__(1)
+   File "<stdin>", line 1
+      5.__add__(1)
+               ^
+   SyntaxError: invalid syntax
+
+</pre>
+
+`5.__add__` blows up because Python tokenization binds the dot in "`5.`" to the `5`, so it reads
+`5.__add__` as "a number followed by an id", which is an error. But putting a space before the
+dot undoes the damage. "`5 .`" is treated as three tokens: a number, whitespace, then a dot.
+Since  numbers are just objects, the expression '` 5 .__add__`' looks like a binary dot operator
+whose left hand side is `5` and right hand side is `__add__`, and the result is to look up the
+attribute named by the right hand side.
+
+<pre class="exampleCode">
+
+   >>> 5 .__add__(1)
+   6
+
+</pre>
+
+Python is consistent this way. If you try to evaluate "`5 .3`", the tokenizer will see "a number,
+whitespace and another number".  The whitespace is discarded, and we are left with two adjacent
+numbers, which is not legal syntax.
+
+<pre class="exampleCode">
+
+   >>> 5. 3
+      File "<stdin>", line 1
+         5 .3
+            ^
+      SyntaxError: invalid syntax
+
+</pre>
+
+It is worth taking a moment to run a Python terminal session and execute
+<pre class="exampleCode">
+
+      print("\n".join(dir(1)))
+
+</pre>
+to see the wealth of methods used by Python to implement both prefix and infix operators.
+
+###Hashes###
+
+There are two ways you can compare two variables `a` and `b` for equality: by object identity
+(`a is b`) or by value (`a == b`):
+
+<pre class="exampleCode">
+
+      >>> c = (1,2);  d = (1,2) # () creates a new tuple each time
+      >>> c is d                # different ids, so this should be False
+      False
+      >>> c == d                # same entries, so this should be True
+      True
+
+</pre>
+
+The "`==`" operator is implemented by a method call: `a==b` is just a shorthand for
+`a.__eq__(b)`. Hashing gives yet another way of grouping objects you wish to treat as "the same"
+in some sense.
+
+Python's builtin function `hash()` has a default implementation for all objects that are
+instances of classes, namely, it returns the object's id.  As the tuple example above shows,
+even for constants, this is not always what you might want.  You override the default by
+providing the class with a value for the attribute `__hash__()`, which must be a method whose
+only argument is the instance.  (You really have to make this an attribute of the class:
+assigning it to instances will not do what you want.)
+
+In Python, an object `obj` is called "_hashable_" if 
+
+> `hash(obj)` never changes during `obj`'s lifetime,\
+`obj`'s class has an `__eq__()` method, and\
+if `obj2` is another object of the same class, `obj==obj2` implies `hash(obj2)==hash(obj)`
+
+Hashability for a class makes its object usable as an index into all of Python's builtin
+containers. All of Python’s immutable built-in objects are hashable, while no mutable containers
+(such as lists or dictionaries) are. Objects which are instances of user-defined classes are
+hashable by default, because they all compare unequal (except with themselves), and their hash
+value is derived from their id.
+
+Call an object *constant* if its state cannot be modified once its constructor returns.  _It is
+not sufficient for the object to be immutable for it to be constant,_ because immutable objects
+may have attributes whose values are containers, and hence mutable, or objects with read-write
+attributes. Why care? Because restricting oneself to constant object types for keys in maps or
+members of sets means that one is guaranteed that any function of the state, _and the state
+alone_, will satisfy the conditions for a hash.
+
+A modest modification of the read-only rectangle class, adding a `__hash__()` method, allows you
+to create a hashable notion of rectangle.  Here is the extended
+[`RORect`](examples/hashable_rectangle.term.py):
+
+<pre class="exampleCode">
+
+      >>> class RORect(Rect):
+      ...    def __init__(self, x, y):
+      ...       object.__setattr__(self, "_r", Rect(x,y))
+      ...    def __setattr__(self, name, value):
+      ...       if name in ("x", "y"):
+      ...          raise AttributeError("RORect.{0} is read-only".format(name))
+      ...       else:  
+      ...          object.__getattribute__(self, "_r").__setattr__(name, value)
+      ...    def __getattribute__(self, name):
+      ...       return object.__getattribute__(self, "_r").__getattribute__(name)
+      ...    def __hash__(self):
+      ...       return hash((self.x, self.y))
+      ...
+      >>> ro = RORect(7,8)
+      >>> [ro.x, ro.y, hash(ro)] 
+      [7, 8, 8000031]
+      >>> 
+      >>> ro2 = RORect(7,8)
+      >>> [ro2.x, ro2.y, hash(ro2)] 
+      [7, 8, 8000031]
+      >>> 
+      >>> ro2 == ro
+      True
+      >>> ro2 is ro
+      False
+      >>> # Now that we have hashable rectangles, we can use them as keys:
+      >>> stuff = {}
+      >>> stuff[ro] = "rot" # assignment allowed, because ro is hashable
+      >>> stuff[ro]         # ... and the result is what we expect
+      'rot'
+
+</pre>
+
+## Attribute and Item Management Code ##
+
+Python supports multiple inheritance.  In Python's argot, a class may extend a number of base
+classes (or simply, "bases").  Each of the bases has its own attribute dictionary.
+If you want to know the order in which these dictionaries are searched for a particular object
+`obj`, the starting point is [`getmro`](https://docs.python.org/3.5/library/inspect.html) in the
+Python standard library's `inspect` module. ("getmro" is short for "get method resolution order",
+namely the set of bases listed in the order they will be searched to resolve attribute names.) Here
+is a variation on that theme:
+
+#### <code>hierarchyFor(objOrType)</code> ####
+
+is a very thin wrapper around `inspect.getmro`.  If the argument is a class, the return value
+is the tuple of that type's base classes, including itself, in
+["method resolution order"](https://en.wikipedia.org/wiki/C3_linearization).  No class appears more
+than once in this tuple. In all but the rarest of cases, the argument itself will be the first
+element of the tuple.  If the argument is an object that is not itself a class, the return value is
+the tuple in method resolution order for the classes from which the argument's class inherits.
+
+####<code>owndir(value)</code>####
+
+returns an array of the non-primitive attributes of its first argument.  Those are the attributes
+whose name does not both begin and end with a pair of underscores.  The primitive attributes are
+reserved by Python for its own use.
+
+The "own" in `owndir` is meant to be up front about these being the object's own attributes, as
+opposed to the freebies inherited from the Python language definition.
+
+####<code>pubdir(value)</code>####
+
+returns only the values "public" attributes, those attributes whose names do not begin with an
+underscore.  By convention, any attribute whose name has a leading underscore is "private" in the
+sense that while it is visible, it is not generally meant to be used directly or reset, except under
+special circumstances.  `pubdir` returns a subset of the attribute names returned by `owndir`.
+
+"""
+
+def hierarchyFor(objOrType):
+   if isinstance(objOrType, type):
+      return getmro(objOrType)
+   else:
+      return getmro(type(objOrType))
+
+def owndir(aValue):
+   return [s for s in dir(aValue) if not re.match("^__.*__$", s)]
+
+def pubdir(aValue):
+   return [s for s in dir(aValue) if not re.match("^_.*", s)]
+
+""" <md>
+
+####<code>mergepairs(tgt, src, clone=False)</code>####
+
+Copy into `tgt` the key-value pairs in `src` *whose keys are* not *already in* `tgt`.  If
+`clone` is `True`, and `tgt` has a `copy` method, it is used to create a new object into which
+to do the merge. Otherwise, if `clone` is `True`, it is assumed that `type(tgt)` has a zero-
+argument constructor call that can be used to create an empty object into which to copy both
+`tgt` and `src`.
+
+`list` and `dict` are examples of classes that have `copy` methods. This seems to be telling one
+that it is good manners for a Python designer to include a `copy` method as the way to clone an
+existing object that is an aggregator.
+
+_WARNING:_ `copy` here means "shallow copy".
+
+""" # </md>
+
+from copy import copy
+def mergepairs(tgt, src, clone=False):
+   if not clone:
+      actualTgt = tgt
+   else:
+      try:
+         actualTgt = copy(tgt)
+      except:
+         actualTgt = type(tgt)()
+         for key in tgt: actualTgt[key] = tgt[key]
+   for key in src:
+      if key not in actualTgt: actualTgt[key] = src[key]
+   return actualTgt
+
+""" <md>
+
+#### <code>getattribute(owner, string, defaultValue=None)</code> ####
+
+returns the value of the attribute named by `string` for the object `owner`, if there is such;
+otherwise return `defaultValue`.  This is just a wrapper for the built-in `getattr` that
+eliminates the need for supplying a default value when `None` will do.  The built-in `hasattr`
+is there to check whether the owner has such an attribute.
+
+#### <code>getitem(owner, key, defaultValue=None)</code> ####
+ 
+is the analogue for the square-bracket operator of `getattribute`.  It returns the value of the
+`key` for the object `owner`, if there is such; otherwise it returns `defaultValue`.  The idea
+here is to have a method analogous to `getattribute` that provides a default in the absence of
+an assigned value.
+
+#### <code>getvalue(owner, string, defaultValue=None)</code> ####
+
+returns the value of an attribute _or key_ named by `string` for the object `owner`, if there is
+such. Otherwise, it returns `defaultValue`.  Beware of objects that have an attribute name in
+common with a key (why not?): the attribute wins!  Long live the attributes!  The point here is
+that, in rare circumstances, you have run-time lookup where the owning object may be one of many
+types, and one object's attribute may be another collection-like object's key.
+
+#### <code>isindexable(anObject, anIndex=None)</code> ####
+
+checks whether `anObject[anIndex]` raises a `TypeError`.  By default, no attempt is made to
+check any index to see what happens--remember that indexability has to do with whether the
+object implements the appropriate magic methods.  If you want a simple type check for the kind
+of index accepted, supply a (reasonable) index of the appropriate type for the second argument.
+
+#### <code>isiterable(anObject)</code> ####
+
+checks whether the built-in function `iter()` can be successfully called with `anObject` as its
+argument.  As with `isindexable`, the purpose is make it easy to write a clean piece of code for
+enforcing an API in which an object must implement the `in` operator.
+
+#### <code>reverse_lookup(mapping)</code>
+
+returns a `dict` whose keys are the values of `mapping`, and whose values are the  corresponding
+keys.  Duplicate values will raise a `ValueError`.  Thus the requirement for `mapping` is that
+mapping implement `[]` and that `key->mapping[key]` be a one-to-one mapping of keys to values.
+
+#### <code>harden(anObject, publicOnly=True, nonCallable=True, cleanup=False)</code> ####
+
+`anObject` is an instance of some `class`.  The function returns a read-only tuple whose
+attributes are the public or own attributes of `anObject`. The actual type of the return value
+is [`namedtuple`](docs.python.org/3/library/collections.html#collections.namedtuple).  The idea
+is to freeze the values that make up the current state of the object.  The default is to keep
+only the public attributes that are not callable.  If `publicOnly` is `False`, then the own
+attributes are all included.  If `nonCallable` is `False`, all of the attributes are kept,
+callable or not.  It can happen that `anObject` has attribute names that are not valid Python
+identifiers.  If `cleanup` is `False`, a `ValueError` will be raised that shows the offending
+attributes.  If it is `True`, the offending attributes are simply stripped from the list.
+
+The intention here is to turn a mutable object like a
+[`SimpleNamespace`](https://docs.python.org/3.5/library/types.html) into a read-only equivalent.
+
+""" # </md>
+
+def getattribute(owner, string, defaultValue=None):
+   return getattr(owner, string, defaultValue)
+
+def getitem(owner, key, defaultValue=None):
+   return owner[key] if key in owner else defaultValue
+
+def getvalue(owner, string, defaultValue=None):
+   try: 
+      return owner.__getattribute__(string) 
+   except AttributeError: 
+      try:
+         return owner.__getitem__(string)
+      except:
+         return defaultValue
+
+def isindexable(anObject, anIndex=None):
+   try:
+      anObject.__class__.__getattribute__("__getitem__")
+   except AttributeError:
+      return False
+   if anIndex is None:
+      return True
+   try: # check that the index type is acceptable
+      dummy = anObject[anIndex]
+      return True
+   except TypeError:
+      return False
+   except:
+      return True
+
+def isiterable(anObject):
+   try:
+      dummy = iter(anObject)
+      return True
+   except TypeError:
+      try:
+         dummy = iter(anObject, None)
+         return True
+      except TypeError:
+         return False
+   except:
+      return False
+
+def reverse_lookup(mapping):
+   reverse = {}
+   for key in mapping:
+      reverse[mapping[key]] = key 
+   return reverse
+
+def harden(anObject, publicOnly=True, nonCallable=True, cleanup=False):
+   rawAttrList = pubdir(anObject) if publicOnly else owndir(anObject)
+   if nonCallable:
+      rawAttrList = list(filter(lambda name: not callable(anObject.__dict__[name]), rawAttrList))
+   badList = list(filter(lambda x: not x.isidentifier(), rawAttrList))
+   if len(badList) == 0:
+      attrList = rawAttrList
+   elif cleanup:
+      attrList = list(filter(lambda x: x.isidentifier(), rawAttrList))
+   else:
+      raise ValueError("Attribute names found that are not identifiers:\n  {}".format(badList))
+   attrNames = ",".join(attrList)
+   attrValues = [anObject.__dict__[name] for name in attrList]
+   classname = anObject.__class__.__name__
+   typeName = classname+"_obj"
+   tupleType = namedtuple(typeName, attrNames)
+   return tupleType(*attrValues)
+
+""" <md>
+
+## Filling in some gaps in the built-ins ##
+
+### <code>float</code> support
+
+#### <code>float_components(aNumber)</code>
+
+returns a pair `(mantissa, exponent)` which yields the factorization  `aNumber ==` `mantissa *
+10**exponent`. The mantissa is a number `r` in the range `1 <= r < 10`, and the exponent is an
+integer.  The return value for 0 is (0, 0).
+
+If Python were a truly consistent dynamic language, this would (of course) be a method for
+`float`, but you cannot seem to add attributes to that class.
+
+### Working with complex numbers {#complex_numbers}
+
+#### <code>cabs(z)</code>
+
+returns the absolute value of the integer, float, or complex value `z`.
+
+### `int` and `time` to `str` conversions ###
+
+#### <code>str2int(raw)</code> ####
+
+Converts a raw string to an integer using the appropriate radix.  The raw string is lower-cased,
+a leading minus, if present, stripped off, and then the radix is determined: a leading 0x, 0b, or
+just 0 yield hex, binary, and octal conversions.  If the string ends with r_nn_, where _nn_ is the
+decimal representation of an integer in the range from 2 to 36, _nn_ is used as the radix.
+
+#### <code>int2str(n, base=10)</code> ####
+
+converts an integer `n` to a string written in the given base, `2 <= base <= 36`.  The default base
+is 10.  If you never need anything but base 10, just call the global function __`str()`__.
+
+
+#### <code>time2IntLiteral(time, base=10, placesToSave=0)</code> ####
+
+returns a string written in the given base (default 10). "`placesToSave`" determines the units
+to use:
+
+For OS X (and I assume other "..nix" systems), the `time_` value is a float, in seconds that
+have elapsed since the "epoch", with a fractional part that gives the time accurate to
+microseconds.  I personally wouldn't want to trust that last place.  To take advantage of the
+added precision, the argument `placesToSave` is the number of places after the decimal point to
+save.  The default is 0: you get the time in seconds. Use 3 to get the time in milliseconds and
+6 for microseconds.  Any integer in the range from 0 to 6, inclusive, will do.  The base can be
+any integer from 2 to 36 (again, inclusive).
+
+#### <code>time_units(placesToSave)</code> ####
+
+returns a string giving the units in which time is expressed: `"secs"`, `"msecs"`,  and
+`"mcrsecs"` for the common cases. The argument is an integer in the range from 0 to 6,
+inclusive.  Where no common name for the unit exists, as for example, in the case of hundredths
+of a second, the string returned describes how the value was converted from seconds--_e.g._ for
+hundredths of a second, `"secs*100"` is returned.
+
+#### <code>now2IntLiteral(base=10, placesToSave=0)</code> ####
+
+returns the time now as a string, using the conventions for `time2IntLiteral`.   This is most
+useful, I think, for creating unique names--file names in particular.  To keep the file names
+short, use base 36.
+
+For example, as this is being written, 
+<pre class="exampleCode">
+
+      >>> now2IntLiteral()
+      '1458347270'             # base 10--not terribly useful, probably
+      >>> now2IntLiteral(36)
+      'o49e93'                 # legal as a file name in just about anyone's file system
+      >>> now2IntLiteral(20)
+      '12fed2g1'               # still okay, even for MS-DOS 8.3 file names
+      >>> now2IntLiteral(36,3)
+      'ilyd4kbp'               # time now in milliseconds since the epoch
+      >>> now2IntLiteral(36,6)
+      'ecxulx7cpl'             # time now in microseconds since the epoch
+
+</pre>
+
+Sometimes you want a little more readable time that sorts reasonably.  One approach:
+
+#### <code>now4FileName(dayOnly=False)</code> ####
+
+returns Greenwich mean day (and optionally, time) in the format _`yyyymmdd.hhmmss`_.  By default,
+both date and time are included.  If you want just the date, pass `True` as the argument.
+
+""" # </md>
+
+from math import floor
+
+def float_components(aNumber):
+   if aNumber == 0: return (1,0,0)
+   if aNumber < 0:
+      sign = -1; aNumber = -aNumber
+   else:
+      sign = 1
+   rest = aNumber
+   order = 0
+   while rest >= 10.0:
+      order += 1
+      rest /= 10.0
+   while rest < 1:
+      order -= 1
+      rest *= 10.0
+   return(sign*rest, order)
+
+_BASE36_DIGITS = '0123456789abcdefghijklmnopqrstuvwxyz'
+def str2int(raw, radix=None):
+   lowered = raw.lower()
+   if lowered[0] == "-":
+      positive = False
+      lowered = lowered[1:]
+   else:
+      positive = True
+   if lowered[0] == '0':
+      if lowered[1] == 'x':
+         answer = int(lowered[2:], 16)
+      elif lowered[1] == 'b':
+         answer = int(lowered[2:], 2)
+      else:
+         answer = int(lowered[1:], 8)
+   elif 'r' in lowered and radix==None: # eg "xyzr36"
+      finalr = lowered.rfind("r")
+      value = lowered[0:finalr]
+      radix  = int(lowered[finalr+1:])
+      answer = int(value, radix)
+   else:
+      answer = int(lowered, 10 if radix==None else radix)
+   return answer if positive else -answer
+
+def int2str(n, base=10):
+   if base is 10:
+      return str(n)
+   elif type(base) is not int or base < 2 or base > 36:
+      raise Exception("Illegal base, "+str(base)+". Only 2 <= base <= 36 is implemented.")
+   elif type(n) is not int:
+      if type(n) is not float:
+         raise Exception("int2str expects n to be an integer, but got {0}".format(type(n)))
+      elif n == floor(n): n = int(n)
+      else: raise Exception("int2str expects n to be an integer, but got "+str(n)) 
+   sign = (n < 0)
+   answer = []
+   while n > 0:           
+      # floor, called in the loop below, returns a float. To play safe, convert to int explicitly:
+      answer.append(_BASE36_DIGITS[int(n) % base])
+      n = floor(n / base)
+   if sign: answer.append('-')
+   answer.reverse()       # does not return answer... because the reversal is done in place. 
+   # Python asks the separator string to create the join so that the argument can be any kind of
+   # iterator that yields str values.  
+   return ''.join(answer) 
+
+def time2IntLiteral(time_, base=10, placesToSave=0):
+   scaleFactor = [1.0,10.0,100.0,1000.0,10000.0,100000.0,1000000.0][placesToSave]
+   scaledTime = int(floor(time_ * scaleFactor))
+   return int2str(scaledTime, base)
+
+def time_units(placesToSave):
+   return [
+      "secs", "secs/10", "secs*100", "msecs", "secs*10000", "secs*100000", "mcrsecs"
+   ][placesToSave]
+
+def now2IntLiteral(base=10, placesToSave=0):
+   return time2IntLiteral(time.time(), base=base, placesToSave=placesToSave)
+
+def now4FileName(dayOnly=False):
+   gmt = time.gmtime()
+   pad = lambda x: str(x) if x > 9 else "0"+str(x)
+   gmtdate = str(gmt.tm_year) + pad(gmt.tm_mon) + pad(gmt.tm_mday)
+   if dayOnly:
+      return gmtdate
+   else:
+      gmttime = pad(gmt.tm_hour)+pad(gmt.tm_min)+pad(gmt.tm_sec)
+      return gmtdate + "." + gmttime
+
+""" <md>
+
+### Some String Functions ###
+
+The first three methods are mostly useful for handling errors.  The main use case is when one has a
+class `c` whose name is not known at compile time and want to say something like `"A "+`_`c's
+name`_`"+ is not trammable."`. That's okay, unless `c`'s name begins with a consonant, but if 
+it begins with a vowel, you are in trouble.  
+
+#### <code>aOrAn(string)</code> ####
+
+Handle the choice of 'a' or 'an' to preceed an arbitrary string. It is very naive. It does not
+attempt to be aware of  words beginning with a silent 'H', let alone knowing whether it is 'a
+homage' or 'an homage', the latter being pronounced "an oooh mahj". Also, think "uniformed" versus
+"uninformed".
+
+#### <code>a_classname(objectOrClass)</code> ####
+#### <code>A_classname(objectOrClass)</code> ####
+
+Use the `aOrAn` to prefix a class name, or the class name of an object, with "a " or "an ", as
+apropriate. They add a lower case or upper case prefix, respectively, as you might guess from the
+method names:
+<pre class="exampleCode">
+
+      >>> from sysutils import *
+      >>> d = dict()
+      >>> a_classname(d)     # get class name of an instance, then add the prefix
+      'a dict'
+      >>> A_classname(dict)  # if what is passed is a class, just add the prefix
+      'A dict'
+
+</pre>
+#### <code>uncompileRegExp(aRegExp)</code> ####
+
+Try to tease out from the usual string representation of a compiled regular expression the text of
+the regular expression that was compiled.  Example:
+<pre class="exampleCode">
+
+      >>> theRegExp = re.compile('a.b?')
+      >>> uncompileRegExp(theRegExp)
+      'a.b?'
+ 
+</pre>
+This relies on the current (3.5.1) implementation of `re.__str__()`.
+
+#### <code>quote_if_str(value)</code> ####
+
+Once again, this is a mainly a tool for generating error and debugging messages in which you wish to
+reproduce an expression like `array["value"]` with the quotation marks visible if `value` is a
+string, but not otherwise.  The return value here is `value` itself unless `value` is a string, in
+which case `repr(value)` is returned.  The point here is not to worry about integer indexed lists
+versus string indexed dictionaries in situations where either can occur.
+
+""" # </md>
+
+def aOrAn(string, capitalize=False):
+   if len(string) == 0: 
+      return ""
+   else:
+      first = string[0].lower()
+      if len(string) == 1:
+         firstImpliesAn = first in set(['a', 'e', 'f', 'h', 'i', 'm', 'n', 'o', 'r', 's', 'x'])
+      elif first in "aiou":
+         firstImpliesAn = True 
+      elif first == 'e':
+         firstImpliesAn = string[1].lower() != 'u'
+      else: firstImpliesAn = False
+   return [['a ','an '],['A ','An ']][capitalize][firstImpliesAn] + string
+
+def a_classname(aClassOrInstance):
+   theClass = aClassOrInstance if type(aClassOrInstance) is type else aClassOrInstance.__class__
+   return aOrAn(theClass.__name__, False)
+
+def A_classname(aClassOrInstance): 
+   theClass = aClassOrInstance if type(aClassOrInstance) is type else aClassOrInstance.__class__
+   return aOrAn(theClass.__name__, True)
+
+def quote_if_str(value):
+   if not isinstance(value, str):
+      return value
+   else:
+      return repr(value)
+
+REG_EXP_STR_AS_RE = re.compile("^re.compile\(.(.*).\)$")
+def uncompileRegExp(aRegExp):
+   return REG_EXP_STR_AS_RE.match(str(aRegExp)).group(1)
+
+""" <md>
+
+### Slices versus Ranges ###
+
+#### <code>slice2range(s, min=0, max=None)</code> ####
+
+converts a [slice](https://docs.python.org/3/library/functions.html#slice) of a 0-based indexed
+Python object into range.  Negative start and stop values are assumed to be offsets from 1 beyond
+the last index, which is the interpretation given `max` here.  `min` is the first valid index,
+normally 0, but specifiable should you need to.
+
+#### <code>firstMlastN(alist, m, n)</code> ####
+
+converts the first `m` and last `n` elements of a collection `alist` to strings and returns a string
+representation of the truncated collection showing the first `m` entries, an ellipsis (`"..."`), and
+then the last `n` entries.  If `m+n` is greater than or equal to the list size, `repr(alist)` is
+returned.  The leading an trailing parts in the general case are also computed by calling `repr`
+on the appropriate slice of the collection.
+
+""" # </md>
+
+def slice2range(s, min=0, max=None):
+   if int is type(s.start):
+      start =  s.start if s.start >= 0 else max + s.start
+   else:
+      start = min
+   if int is type(s.stop):
+      stop  = s.stop if s.stop >= 0 else max + s.stop
+   else:
+      stop = max
+   step  = s.step if int is type(s.step) else 1
+   # print("range is {0} and max was {1}".format(range(start, stop, step), max))
+   return range(start, stop, step)
+
+def firstMlastN(alist, m, n):
+   all = m + n
+   if len(alist) <= m + n:
+      return repr(alist)
+   left = repr(alist[0:m])[:-1]
+   right = repr(alist[-n:])[1:]
+   return left+", ..., "+right
+
+
+""" <md>
+
+### Truth or Consequences: Boolean "Literals" ###
+
+#### <code>asboolean(value)</code> ####
+#### <code>addBooleanTerms(trueOrFalse, &ast;terms)(value)</code> ####
+#### <code>delBooleanTerms(&ast;terms)</code> ####
+
+`asboolean` transforms `value` into either `True` or `False`.  The idea here is to make natural
+language input for Boolean values easy to use interchangeably with the actual boolean literals
+`True` and `False`: eg. "yes" means `True`, "off" means `False`, etc. This is intended for use in
+processing options like command-line options and config files, where `"on"` and `"off"` are
+sometimes more natural values than `"true"` and `"false"`.  I didn't shoot for universality, but I
+did add some other common Western European synonyms: `"oui"` and `"falsch"` from French and German,
+for example.  Try your favorite and see what happens.  No Eastern European or Asian ...sorry, I
+just didn't want to worry about Unicode. You can add them yourself, though.
+
+_Just being a "True-ish" sort of value is_ not _the test._  There are two sets of literals, one for
+`True` and one for `False`.  The test is for membership in one of these lists. String values are
+converted to lower case before being looked up.   The values `True` and `False` themselves are, of
+course, accepted and returned untouched.  The only numeric values that are recognized are 0 and 1.
+
+Values not found in either list cause `asboolean` to raise a `ValueError`.
+
+The lists are mutable.  You may add or remove values from them using the methods `addBooleanTerms`
+and `delBooleanTerms`.  The former's first argument is a `bool` that determines which of the two
+lists to add to, and its remaining arguments are the values to add. Those values that are strings
+are lower-cased before adding.  Non-string values are added "as is". `delBooleanTerms` has the terms
+to be removed as its arguments, and once again, strings are lower-cased before being deleted.  For
+example, to replace "falso" with "fatso" in the false list,
+
+<pre class="exampleCode">
+
+      >>> addBooleanTerms(False, "fatso")
+      >>> asboolean("FatSo")
+      False
+      >>> asboolean("falso")
+      False
+      >>> delBooleanTerms("FALSO")
+      >>> asboolean("falso")
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in <module>
+        File "<stdin>", line 14, in asboolean
+      ValueError: 'falso' is not a recognized Boolean literal
+
+</pre>
+
+#### <code>sameboolean(this, that)</code> ####
+
+Return `True` if both `this` and `that` are acceptable as input to `asboolean`, and when converted
+to booleans by `asboolean`, have the same value: _e.g._ `sameboolean(True,` `"yes")` returns `True`.
+If either is _not_ acceptable to `asboolean`, `False` is returned.
+
+""" # </md>
+
+_TRUE_ = set(
+   ("yes", "si", "oui", "ja", "true", "vrai", "wahr", "cierto", "vero", "ok", "on", "1", 1, True)
+)
+_FALSE_ = set(
+   ("no", "non", "nein", "false", "faux", "falsch", "falso", "off", "0", 0, None, False)
+)
+
+def asboolean(value):
+   global _TRUE_, _FALSE_
+   if value in _TRUE_:
+      return True
+   elif value in _FALSE_:
+      return False
+   elif type(value) == str:
+      lowered = value.lower()
+      if lowered in _TRUE_:
+         return True
+      elif lowered in _FALSE_:
+         return False
+      else:
+         raise ValueError("'{0}' is not a recognized Boolean literal".format(value))
+   else:
+      msg = "argument type, '{0}', is not legal : use str or bool, or values None, 0, or 1"
+      raise ValueError(msg.format(valuetype))
+
+def sameboolean(this, that):
+   try:
+      left = asboolean(this)
+      right = asboolean(that)
+      return left is right
+   except ValueError:
+      return False
+         
+def addBooleanTerms(trueOrFalse, *terms):
+   global _TRUE_, _FALSE_
+   lowered = set([((isinstance(x,str) and x.lower()) or x) for x in terms])
+   if trueOrFalse:
+      _TRUE_ |= lowered
+   else:
+      _FALSE_ |= lowered
+
+def delBooleanTerms(*terms):
+   global _TRUE_, _FALSE_
+   lowered = set([((isinstance(x,str) and x.lower()) or x) for x in terms])
+   _TRUE_ -= lowered
+   _FALSE_ -= lowered
+
+""" <md>
+
+#### <code>flatten(a_list, &ast;, depth=1, types=None)</code> {#flatten}
+
+loops over the items in `a_list` at most `depth` times.  If `depth` is `None`, there is no limit on
+the number of traversals.  Nota bene: `None` and not `0` for "no limit"!  `0` depth means just that:
+a `0` depth recursion, which in plain English means "do nothing."
+
+`types` is a collection of types.  On each traversal, any entry that is
+an instance of one of the entries in `types` is expanded and replaced with the items in it.
+Travesals stop when one reveals no items to expand.  
+
+If `types` is `None` on entry, the default value is the type of `a_list` itself, together with the
+built-ins `(list, set, tuple)` and all of the types  in  the `blist` module.
+
+Why have the `types` collection as an argument, then? Suppose that `valid` is a `blist` of integers
+or integer ranges. The call
+
+<pre class="exampleCode">
+
+      flatten(valid, types=[range])
+
+</pre>
+
+replaces the ranges with the integers in them.  If you specify a collection for `type`, that 
+collection is what you get, and in particular, there is no special treatment for the the type
+of `a_list`, whatever it may be.
+
+The argument `a_list` can be any collection, such as a `blist`, that is indexed by integers, and
+that has an `insert` method like that for `list`.  The limitation to indexed collections is due
+to wanting to do the flattening in place.  The loop works from the end of the list back, growing
+the list by replacing the entry at `n` with 0 or more items, beginning at `n`, so that the 
+earlier segment of the collection is unaffected.
+
+""" # </md>
+
+from blist import *
+_collection_types = set((blist, btuple, list, set, sortedlist, sortedset, tuple))
+
+def flatten(a_list, *, depth=1, types=None):
+   global _collection_types
+   if types is None:
+      types = _collection_types
+      arg_type = type(a_list)
+      if not (arg_type in types):
+         types.add(arg_type)
+   do_not_stop = True # true ==> we may still have some lists to expand
+   if depth is None: depth = sys.maxsize
+   while depth > 0 and do_not_stop:
+      do_not_stop = False
+      n = len(a_list) - 1
+      while n >= 0:
+         item = a_list[n]
+         if type(item) in types:
+            del a_list[n]
+            m = n
+            for stuff in item:
+               a_list.insert(m, stuff)
+               m += 1
+            do_not_stop = True
+         n -= 1
+      depth -= 1
+
+""" <md>
+
+### Raising some common errors ###
+
+Some common situations where a class should implement something, but does not.  The Python
+convention is to raise a 
+[`NotImplementedError`.](https://docs.python.org/3/library/exceptions.html#concrete-exceptions)
+
+#### <code>DOES&lowbar;NOT&lowbar;IMPLEMENT&lowbar;ASSIGNMENT(obj)</code> ####
+
+Raise a `NotImplementedError` when an illegal attempt has been made to alter the state of the
+object by assigning a value to an attribute or property.
+
+#### <code>DOES&lowbar;NOT&lowbar;IMPLEMENT&lowbar;DELETIONS(obj)</code> ####
+
+Raise `NotImplementedError` when an illegal attempt has
+been made to alter the state of the object by removing an attribute or property.
+
+#### <code>SUBCLASS&lowbar;MUST&lowbar;IMPLEMENT(offendingClassOrObject, methodName)</code> ####
+
+Raise a `NotImplementedError` telling the world that this class failed to implement a method
+required by an interface it claims to support.
+
+#### <code>class IllegalOpError</code> {#IllegalOpError}
+
+This is a minimal wrapper around `Exception` in order to have our very own recognizable error
+type for attempts to write into read-only storage and other proscribed operations.  Here the
+question is not whether the data type supports the operation, but whether the operation, which
+might well be supported in other contexts, is forbidden in this one.
+
+""" # </md>
+
+def DOES_NOT_IMPLEMENT_ASSIGNMENT(obj):
+   msg = A_classname(obj) + " is read-only. It does not implement any form of assignment"
+   raise NotImplementedError(msg)
+
+def DOES_NOT_IMPLEMENT_DELETIONS(obj):
+   msg = A_classname(obj) + " is read-only.  It does not implement any form of deletion"
+   raise NotImplementedError(msg)
+
+def SUBCLASS_MUST_IMPLEMENT(offendingClassOrObject, methodName):
+   raisersName = A_classname(offendingClassOrObject)
+   raise NotImplementedError("{0} must implement {1}()".format(raisersName, methodName))
+
+class IllegalOpError(Exception):
+   pass
+

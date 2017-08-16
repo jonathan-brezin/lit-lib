@@ -1,0 +1,807 @@
+""" <head> 
+Title: <span class="titleCode">Inifile</span> Property Lists
+Author: Jonathan Brezin
+Date: November, 2015
+Show source: yes
+""" # </head>
+
+from collections import namedtuple, defaultdict
+import idbg
+import math
+from fileutils import expandPathList, fopen
+import os
+import re
+import sys
+import sysutils as su
+
+""" <md>
+[python_config]: https://docs.python.org/3/library/configparser.html
+[python_config_read]: https://docs.python.org/3/library/configparser.html#configparser-objects
+[wiki_config]: https://en.wikipedia.org/wiki/Configuration_file
+
+## Raison d'etre ##
+
+I'm going to assume that you are familiar with "ini files" or "config files"--if you are not,
+[Wikipedia][wiki_config] will tell you what you need to know.  Python has long since had code to
+read and write such files. For their documentation, see
+[docs.python.org/3/library/configparser.html][python_config].  
+
+Because an ini file is just a text file that represents a collection of dictionaries, all of the fun
+is in describing the format of that text file.  Originally, the format was: just one dictionary,
+keys on the left, values on the right, whitespace in between.  This is easy to read and easy to
+parse, but for all kinds of reasons, it is not adequate as a general configuration specification.
+The next step in the evolution was to partition the ini file into named "sections", and then to give
+each section its own dictionary.  To give just one trivial example, one might have sections for
+"model", "view" and "controller". One can then have "cart" as a key both in "model" and "view"
+without any confusion.  Of course, once you start down the slippery slope of partitioning, you can
+go hog wild and implement collections of collections of ... to your heart's content.  Java property
+lists have been known to implement this by using dotted names like "`sys.boom.bah`" for the
+sections, so that one has an implied hierarchy of sections.
+
+You may well ask: why not use Python's module?  The answer is, configurable though it is, it does
+not solve one problem of mine: I don't want to require sections to be contiguous in the input file.
+Among other things, I want to be able to merge two config _files_ simply by concatenating those two
+text files.  As of the time I wrote this, the Python code got very unhappy if all of the keys for a
+given section were not contiguous in the input file.
+
+Another major issue is how one should handle duplicate keys. The Python library's module leaves this
+open--presumably last in wins or the values are just concatenated, but the important point here is
+not what it does, but that there are no guarantees.  See the description of the `read()` methods in
+the [Python documentation][python_config_read].  I give the caller complete control over this
+situation when merging `Inifile` objects, but within a single file, I am strict: if a (section, key)
+pair appears twice in a single file, and if the two values differ, it is an error. Period.
+
+> My approach may seem to be inconsistent, but the reason for the difference between one file and
+many is simple.  As I said in the previous paragraph, I want to be able to "cat" a bunch of ini
+files and get a valid ini file.  Once these files get at all large (and inevitably they do), it is
+just too easy when looking at the final file yourself not to notice a conflict in the values
+assigned to a given key, particularly because the entries for a given section need not be
+contiguous.  The last thing you want, then, is for the ini file reader to "do you a favor" and pick
+a winner for you.
+
+## The section dictionaries class: <code>SectionDict</code>
+
+In a better world, we could use a plain `dict` for each section's key/data pairs.  That turns out to
+be a little inconvenient, though, because one would like to be able to write code for our `Inifile`
+instance "`ini`" like:
+
+<pre class="exampleCode">
+
+view_keys = ini["view"]
+# ... and then some time later, we execute 
+width = view_keys.getint("width", 1080)
+
+</pre>
+
+That is, we pass around a section's dictionary to all who need it, and they can extract values of
+the type they need--int, float, boolean...  The charm of this "get" call is that we can provide a
+default value, "`1080`".  It doesn't have to be constant, as I showed it here for simplicity, but
+something computed in real time that may be different in different parts of the code or at different
+times--in this example, it may happen that we have different width displays alive at once, and this
+is just one of them we are dealing with when control reaches here, so it is not just a matter of
+tinkering with `ini` to provide a sensible default.
+
+If I had used an ordinary `dict`, then to get the value, one needs to execute 
+
+<pre class="exampleCode">
+
+int(view_keys.get("width", 1080))
+
+</pre>
+
+This seems to me unnecessarily clumsy.
+
+In addition to the "typed getters" being desirable, there are two conventions one should like to
+enforce in a section dictionary.  The first has to do with keys, and the second with values.
+
+> _Key lookup is __not__ case-sensitive._  In practice, the keys are lower-cased.  This is not my
+convention.  It seems to have a long history and to be enforced by Python.  Not to be consistent
+with Python would be to invite some really hard to detect errors.  _Be careful, though, because this
+convention is __not__ the case for section names, which are case-sensitive._  One reason for the
+difference is that it has become common nowadays to use class names as section names, and class
+names are case sensitive.  
+
+> _The value assigned to a key must be a string._  There are two ways I could enforce that: blow you
+out of the water if you pass anything else in, or simply use `str(value)` to get a string.  I chose
+the latter.  Thus if you try to set some key to the boolean value `True`, what will be assigned is
+the string `"True"`, but `getboolean` will get the value back for you as `True`.
+
+#### The constructor <code>SectionDict(mapping={})</code>
+
+The argument must map string keys to values that are either strings or convert naturally to strings
+(as numbers or booleans do) via a call to `str()`.  The instance is initialized from the mapping
+by lower-casing its keys and applying `str()` to its values. 
+
+#### <code>get(key, default=None)</code>
+
+returns the value associated with the key if it is found.  Otherwise `default` is return "as is".
+
+#### <code>getint(key, default=None)</code> 
+
+If the key is found, its value is converted to an `int` and returned; otherwise, `default` is
+returned "as is".
+
+#### <code>getfloat(key, default=None)</code> 
+
+If the key is found, its value is converted to a `float` and returned; otherwise, `default` is
+returned "as is".
+
+#### <code>getboolean(key, default=None)</code> 
+
+If the key is found, its value is converted to a `boolean` and returned; otherwise, `default` is
+returned "as is".
+
+#### <code>getlist(key, separator=SectionDict.LIST_SEPARATOR, default=[])</code>
+
+If the key is found, its value is converted to a `list` and returned; otherwise, `default` is
+returned "as is".  The string value is converted to a list whose items are separated by the
+string or regular expression passed in as `separator`.  By default, the separator is a comma,
+possibly followed by some whitespace.
+
+#### <code>getstr(key, default=None)</code>
+
+is a synonym for `get()`, for situations where you want to underline that it is a string you really
+want.
+
+""" # </md>
+
+class SectionDict(dict):
+   LIST_SEPARATOR = re.compile(",\s*")
+   def __init__(self, mapping = {}):
+      dict.__init__(self)
+      for key in mapping: self[key.lower()] = mapping[key]
+   def __setitem__(self, key, value):
+      dict.__setitem__(self, key.lower(), str(value))
+   def get(self, key, default = None):
+      if key in self:
+         return self[key]
+      else:
+         return default
+   def getint(self, key, default=None):
+      if key in self:
+         return su.str2int(self[key])
+      else:
+         return default
+   def getfloat(self, key, default=None):
+      if key in self:
+         return float(self[key])
+      else:
+         return default
+   def getboolean(self, key, default=None):
+      if key in self:
+         return su.asboolean(self[key])
+      else:
+         return default
+   def getlist(key, separator=LIST_SEPARATOR, default=[]):
+      if key in self:
+         return separator.split(self[key])
+      else:
+         return default
+   def getstr(self, key, default = None):
+      if key in self:
+         return self[key]
+      else:
+         return default
+
+""" <md>
+## <code>Inifile</code> class methods: reading and combining sets of inifiles ##
+
+As I have been saying, there are often situations in which a number of configuration files must be
+merged together to get the full context for an application. It would be nice if one could just "cat"
+them all into a single file once and for all and be done with things, but that turns out not to be
+practical in general.  For one thing, the individual files may change over time.   In addition,
+there may be several possible directories to look at where the file might be found, such as the
+current directory, the user’s home directory, and some system-wide directory.  If you "cat'd" the
+system-wide version in, you may have missed some local modifications or additions that are essential
+to your application in its actual run-time environment.  Rather than try to make the constructor
+general enough to handle this, as Python's `configparser` does, I decided to add several class
+methods.
+
+> Not only may a single config file be in one of several places, some config files may be required,
+and some not.  For example: it could be that some system file should always be there, but the local
+version of that file--in the user's home directory, say--may be optional.  When both are available,
+you need to make sure that conflicting keys are correctly resolved.  Sometimes the local file is
+the only one to read, other times it just fleshes out the system file.
+
+The first class two class methods worry about a set of files with single "base name" that may occur
+in one of several places.
+
+#### <code>readOne(baseName, *paths)</code>
+
+handles the situation where a single file might be found in one of several directories.  The first
+argument is the base name for the file, and the remaining arguments are either directory paths or
+"paths" in the sense of OS environment variables: a string that is list of directory paths separated
+by the operating-system dependent path separator (":" or ";"). The first match for
+_`directory/base`_ is opened and read into an `Inifile` instance.  An `IOError` is raised if no
+match is found.
+
+#### <code>readAll(baseName, *paths, ondup=raiseError)</code>
+
+is like `readOne`, except that _all_ of the matches are read and merged into a single `Inifile`
+instance in the order read.  The final argument, `ondup`, is function whose signature is
+`ondup(section, key, source, target)`. The "`source`" is an `Inifile` instance which we are merging
+into another `Inifile` instance "`target`".   The first two arguments pin down a key that appears in
+both the `source` and the `target`.  I provide four class methods that you can use for `ondup`,
+`raiseError` being the default.
+
+#### <code>firstWins(section, key, source, target)</code>
+#### <code>lastWins(section, key, source, target)</code>
+#### <code>keepBoth(section, key, source, target, separator=", ")</code>
+#### <code>raiseError(section, key, source, target)</code>
+
+Each handles a duplicate key, `key`, in section, `section`.  "First wins" means that the value
+already in the target is kept, and the new value is discarded.  "Last wins" is, of course, the
+opposite: the source's value is kept.  "Keep both" appends of the value of `separator` to the source
+value and then apppends the target's value.  And you know what `raiseError` does.
+
+#### <code>readOptional(baseName, *paths, defaults=Inifile())</code>
+
+is like `readOne`, but uses an `Inifile` "`defaults`" (which is an empty `Inifile` by default) for
+all of the values if no match is found, as well as to supply any values missing from the file when
+it _is_ found.
+ 
+#### <code>read(all=[],  one=[], optional=[], ondup=raiseError, defaults=Inifile())</code>
+
+is the omnibus call.  Each of the arguments is an iterable (list or tuple) each of whose members is
+a list or tuple that used as the `(baseName, *paths)` arguments for the corresponding read function:
+`readAll`, `readOne`, or `readOptional`  For the `readAll`, the `ondup` provided here is used for
+its `ondup` argument. For `readOptional`, an empty defaults `Inifile` is used, but, once all the
+files have been read, the `defaults` argument here is merged in, "first wins",  so that any default
+values are added, but only when their keys are not already present.
+
+Each file is read into an `Inifile` and the results are merged together into a single `Inifile`.
+The merge is done in the order in which the files appear in the argument lists: first the "all",
+etc.  The return value is the result of these merges.
+
+I wish I could tell you I found a less clumsy signature, but the truth is that the complexity here
+is probably real.  
+
+""" # </md>
+
+class Inifile(defaultdict, idbg.DbgClient):
+   comment_start = "^[#;]"
+   key_end = "\s*[:=]\s*"
+   no_trailing_whitespace = True
+   idbg.DbgClient.start_debugging()
+
+   def firstWins(section, key, source, target):
+      # do nothing, so the target remains as it was
+      pass
+
+   def lastWins(section, key, source, target):
+      # the source being merged into the target overwrites the target's value
+      target[key] = source[key]
+
+   def keepBoth(section, key, source, target, separator=", "):
+      # the values are always strings, so we can just concatenate with a separator 
+      target[key] += separator+source[key]
+
+   def raiseError(section, key, source, target):
+      msg = "Conflicting duplicate entries for key [{0}]{1} in {2}."
+      raise ValueError(msg.format(section, key, source.path))
+
+   @classmethod
+   def readOne(self, baseName, *paths):
+      if len(paths) is 0:
+         (abspath, baseName) = os.path.split(os.path.abspath(baseName))
+         paths = [abspath]
+      for path in expandPathList(paths):
+         inipath = os.path.join(path, baseName)
+         self.dbg_write("ini_read", "Try {0}.".format(inipath))
+         if os.path.exists(inipath):
+            self.dbg_write("ini_read", "Use {0}.".format(inipath))
+            return Inifile(inipath)
+      raise IOError("File not found, {0} in any of {1}", baseName, paths)
+
+   @classmethod
+   def readAll(self, baseName, *paths, ondup=raiseError):
+      if len(paths) is 0:
+         (abspath, baseName) = os.path.split(os.path.abspath(baseName))
+         paths = [abspath]
+      inifiles = []
+      for path in expandPathList(paths):
+         inipath = os.path.join(path, baseName)
+         if os.path.exists(inipath):
+            self.dbg_write("ini_read", "Use {0}.".format(inipath))
+            inifiles.append(Inifile(inipath))
+         else:
+            self.dbg_write("ini_read", "No {0}.".format(inipath))
+      if len(inifiles) is 0:
+         return Inifile()
+      else:
+         answer = inifiles[0]
+         for ini in inifiles[1:]:
+            answer.merge(ini, ondup)
+         return answer
+
+   @classmethod
+   def readOptional(self, baseName, *paths, defaults=None):
+      if defaults is None:
+         defaults = Inifile()
+      if len(paths) is 0:
+         (abspath, baseName) = os.path.split(os.path.abspath(baseName))
+         paths = [abspath]
+      for path in expandPathList(paths):
+         inipath = os.path.join(path, baseName)
+         self.dbg_write("ini_read", "Try {0}.".format(inipath))
+         if os.path.exists(inipath):
+            self.dbg_write("ini_read", "Use {0}.".format(inipath))
+            return Inifile(inipath)
+      self.dbg_write("ini_read", "Use {0}.".format(defaults))
+      return defaults
+
+   @classmethod
+   def read(self, all=[], one=[], optional=[], ondup=raiseError, defaults=None):
+      if defaults is None:
+         defaults = Inifile()
+      final = Inifile()
+      for args in all:
+         final.merge(self.readAll(*args, ondup=ondup), ondup)
+      for args in one:
+         final.merge(self.readOne(*args), ondup)
+      for args in optional:
+         final.merge(self.readOptional(*args), ondup)
+      final.mergeTargetWins(defaults)
+      return final
+
+""" <md>
+
+## The <code>Inifile</code> constructor ##
+
+#### <code>Inifile(path, cmnt_re="&Hat;[#;]", keyend_re="&bsol;s&ast;[;=]&bsol;s&ast;", no_tws=True)</code>
+
+constructs an inifile whose data is provided by the file named by its first argument, `path`.  The
+remaining arguments guide the syntax to be used.
+
+> __`cmnt_re`__ is a regular expression used to recognize the beginning of a  comment,\
+__`keyend_re`__ is a regular expression used to recognize the end of the key and\
+__`no_tws`__ is a Boolean: `True` means "strip off any trailing whitespace on a line"
+
+The input file is read a line at a time.  A legal line has one of four types:
+
+1) _A comment:_ a line whose beginning matches the `Inifile.comment_start` regular expression, which
+by default is "`[#;]`"  Be careful here: "beginning" means just that: no leading whitespace.
+
+2) _A section header:_ a line that, in plain English, consists of an essentially arbitrary piece of
+text enclosed in square brackets, or, to be precise, matches the regular expression
+"`^\[([^[\]\n]*)\]$`".  The bracketed text names the section and may itself contain no opening or
+closing square brackets.  One could insist that section names be legal identifiers, but I suppose I
+would say that is more a matter of good taste than necessity. Thus
+
+> `[this is a section name]`
+
+> is a valid section name line.  Whether it is a useful one is not so obvious.  By the way, key
+definitions that appear _before the first section header line_ are treated as being in the section
+whose name is the empty string.  You can continue that section later in the input file in the
+obvious way: use a section header line consisting of `[]` and nothing else.
+
+3) A key definition: a line that, in plain English, is 
+
+>> a key name (any string not containing a match for the key-ending reg-exp,\
+followed by a match for the key ending reg-exp,\
+followed by the beginning of, or all of, the key's value.
+
+> You may provide your own key-ending regular expression by setting `Inifile.key_end`.
+
+4) _A key definition continuation:_ a line that immediately follows a key definition or another key
+definition continuation _and is indented._  The value is any text left after stripping the leading
+whitespace.  It is appended, following a single newline, to the key's value.  _Trailing whitespace
+is stripped  by default._  Truth be told, I think that if you really need whitespace, you should
+quote the value to make that whitespace visible.  Also, _some IDEs silently truncate trailing
+whitespace._  You have been warned.
+
+> You are permitted to have comment lines in the middle of a set of key continuations, but you are
+apt to create problems for yourself if you do, if only should you need to use other inifile parsers.
+
+As should be clear, there are problems about how to handle whitespace.  I've talked about trailing
+whitespace.  The other place there is a problem is whitespace surrounding the key terminator: how
+should I handle "`x = 3`"?  How often do you really want the key to be "`x`&nbsp;" and not "`x`"? Or
+the value to be "&nbsp;`3`" and not "`3`"?  Almost never, right?  For that reason, the default
+regular expression for the key end allows for whitespace around the the actual ender, which is
+either "`:`" or "`=`".  The effect is that "`x=3`" and "`x = 3`" will both produce a key "`x`" with
+value "`3`". You can quote the value if it begins with whitespace and strip the surrounding
+quotation marks when you use the value--that is, make the value a _string literal value_, not just a
+string value.  Alternatively, you can replace my regular expression with one that does not match
+whitespace before or after the ender.
+
+""" # </md>
+
+   def _debug_key(self, msg, section, key, lineno):
+      if self.dbg_is_active("ini_key"):
+         leader = "Line {}: [{}]".format(lineno, section)
+         if key:
+            leader += "[{}]".format(key)
+         self.debug_output("ini_key", "{} {}".format(leader, msg))
+
+   def __init__(self, path=None, 
+         cmnt_re=comment_start, keyend_re=key_end, no_tws=no_trailing_whitespace
+   ):
+      defaultdict.__init__(self, SectionDict) # that is: super.__init__(...)
+      idbg.DbgClient.__init__(self)
+      self.path = path
+      if path is None:
+         return
+      commentRe = re.compile(cmnt_re)
+      keyendRe = re.compile(keyend_re)
+      # a section name is a square-bracket-free string in square brackets:
+      sectionNameRe = re.compile("^\[([^[\]]*)\]$") 
+      # capture leading whitespace and "the rest", except for the trailing newline:
+      lws_re = re.compile("^(\s*)([^\n]*)")
+      # we begin in the "anonymous" section
+      sectionName = ""
+       # a dict for the current section's key/data pairs
+      currentDictionary = self[sectionName] 
+      with open(path, 'r') as f:
+         linenowidth = 3
+         justify = lambda x: repr(x).rjust(linenowidth)
+         lineno = 0
+         line = ''
+         def nextLine():
+            nonlocal f, line, lineno, commentRe, no_tws, lws_re
+            line = f.readline()
+            if len(line) == 0:
+               return (-1, None)
+            lineno += 1
+            self.debug_output("ini_all", "Line {0}: {1}".format(justify(lineno), line))
+            if commentRe.match(line):
+               return nextLine()
+            (whitespace, rest) = lws_re.match(line).groups()
+            if rest == '':  # it is a blank line
+               return nextLine()
+            if no_tws:
+               rest = rest.rstrip() # the initial match left trailing spaces and tabs on the right
+            return((len(whitespace) > 0), rest)
+         (indented, rest) = nextLine()
+         while rest is not None:
+            # this is either a section name line or the start of a key/data pair: no indent!
+            if indented: 
+               raise SyntaxError("Line {0} should not be indented!".format(lineno)) 
+            if rest[0] == '[': # the line names a section and must end with  a ']'
+               if rest[-1] != "]": 
+                  msg = "Line {0}: missing ']' in section start, \"{1}\""
+                  raise SyntaxError(msg.format(justify(lineno), rest))
+               match = sectionNameRe.match(rest)
+               if match is None:
+                  msg = "Line {0}: illegal character, '[' or ']', in the section name '{1}'"
+                  raise SyntaxError(msg.format(justify(lineno), rest[1 : -1]))
+               sectionName = rest[1 : -1]
+               self._debug_key("change section.", sectionName, None, lineno)
+               currentDictionary = self[sectionName]
+               (indented, rest) = nextLine()
+            else: # the line begins a key/data pair 
+               match = keyendRe.search(rest)
+               if match is None:
+                  raise SyntaxError("line {0}: missing key terminator".format(lineno))
+               key  = rest[0:match.start()] 
+               data = rest[match.end():] 
+               key_start = lineno
+               (indented, rest) = nextLine()
+               while indented and rest is not None:
+                  data += "\n" + rest # 'rest' has no leading whitespace!            
+                  (indented, rest) = nextLine()
+               if len(data) is 0:
+                  msg = "line {0}: no data after the key terminator"
+                  raise SyntaxError(msg.format(lineno))
+               if key in currentDictionary:
+                  oldValue = currentDictionary[key]
+                  # both data and oldValue are strings.  If they are unequal as strings,
+                  # they may still imply the same Boolean value: e.g. "yes" and "on", or
+                  # 'no' and 'off'. I assume that if both name Booleans and have the
+                  # same value as Booleans, then there is no conflict.
+                  if data != oldValue and not su.sameboolean(data, oldValue):
+                     msg = "line {0}: duplicate key '{1}' with differing values"
+                     raise ValueError(msg.format(key_start, key))
+                  else:
+                     msg = "== {} dup'd".format(oldValue)
+                     self._debug_key(msg, sectionName, key, key_start)
+               else:
+                  currentDictionary[key] = data
+                  self._debug_key("== {}.".format(data), sectionName, key, key_start)
+
+""" <md>
+
+## The `Inifile` API ##
+
+`Inifile` extends the builtin class `dict`.  The dictionary maps a section name to another 
+dictionary that maps keys to values. Section names and keys must be strings, as must the value,
+because what I am constructing is just a view onto a (human readable) text file.  The view knows
+nothing about the semantics or intended use of the values.
+
+#### The <code>[]</code> operator ####
+
+Let `ini` be an `Inifile`.  Because `ini` inherits from `dict`, you can use `ini[x]` to get the
+dictionary for the section that is named by the value of `x`.  Taking that one step further,
+`ini[x][key]` gives you the value associated with key named by the value of `key`.  Of course, this
+shorthand has the same limitation as the original in `dict`: if either `x` or `key` has a value that
+is not present, an exception is raised.  You may also use `ini["[`_`xxx`_`]`_`yyy`_`"]` for what
+would otherwise be written `ini["`_`xxx`_`"]["`_`yyy`_`"]`.  Some folks find the former more
+suggestive than the latter.
+
+#### <code>get(*args)</code>
+
+may be called with one, two or three arguments.  If only one argument is passed, it must be a full
+section-key name.  The default value will be taken to be `None`.  If two arguments are passed, there
+are two cases.   The first argument is the full section-key name, in which case the second argument
+is the default value to use, or the first argument is the section name (no square brackets), and the
+second is the key.  Since no default is provided in this last case, `None` will be used.  Finally,
+if three arguments are passed, they are expected to be the section name (no square brackets), the
+key, and the default value.  I remind you that the section name may be the empty string.
+
+Examples:
+
+<table>
+<tr><td><pre><code>ini.get("[sec]k")
+ini.get("sec", "k")
+ini.get("sec", "k", None)</code></pre></td><td>&nbsp;all return the value found or `None`</td></tr>
+<tr><td><pre><code>ini.get("[sec]k", stuff)
+ini.get("sec", "k", stuff)</code></pre></td><td>&nbsp;both return the value found or `stuff`</td></tr>
+</table>
+
+The "`get...`" calls that follow here use the same argument conventions for `*args` as `get()`.
+
+#### <code>getint(*args)</code>
+
+If the key is found, its value is converted to an `int` and returned; otherwise, `default` is
+returned "as is".
+
+#### <code>getfloat(*args)</code> 
+
+If the key is found, its value is converted to a `float` and returned; otherwise, `default` is
+returned "as is".
+
+#### <code>getboolean(*args)</code> 
+
+If the key is found, its value is converted to a `boolean` and returned; otherwise, `default` is
+returned "as is".
+
+#### <code>getlist(*args, separator=SectionDict.LIST_SEPARATOR)</code> 
+
+If the key is found, its value is converted to a `list` and returned; otherwise, `default` is
+returned "as is".  The string value is converted to a list whose items are separated by the
+string or regular expression passed in as `separator`.  By default, the separator is a comma,
+possibly followed by some whitespace.
+
+#### <code>getstr(*args)</code>
+
+is a synonym for `get()`, for situations where you want to underline that it is a string you really
+want.
+
+#### <code>hassection(s)</code>
+
+returns `True` if `s` names a section and `False` otherwise.
+
+#### <code>haskey(s, k='')</code>
+
+If called with a single argument `s`, the argument must be a full key name: `"[sec]key"`.  `sec` may
+be the empty string. The default value for the second argument `k` will be ignored.  If both `s` and
+`k` are passed, `s` must be the section name (no brackets), and `k` the key.  `True` will be
+returned if there is an entry with the given section name and key; otherwise, `False` will be
+returned.
+
+#### <code>getsection(s, default = SectionDict())</code>
+
+returns a clone of the `SectionDict` associated with the section named by its argument, `s`.  If
+there is no such section, the value `default` is returned. By default, `default` is an empty
+`SectionDict`.
+
+#### <code>addsection(name)</code>
+
+creates a dictionary for the section named `name`, if one does not already exist.
+
+#### <code>addentry(section, key, value)</code>
+
+adds the entry with key `key` and value `value` to the section `section`.  All three _must_ be
+strings.  The section name may be the empty string (that is the default section in an inifile).  It
+_must_ be a key in `self`, otherwise an error is raised.  No conversions are done to any of the
+parameters.  The only advantage of this over simply using the assignment `ini[section][key]` `=`
+`value` is the type checking and section-name spelling check.
+
+#### <code>merge(other, ondup=raiseError)</code>
+
+copies all of an `Inifile` `other`'s data into itself.  
+
+If there are duplicate keys with different values, the default is to raise an exception, but you may
+provide a function 
+
+<blockquote><pre>
+   ondup(section, key, sourceSection, targetSection)
+</pre></blockquote>
+
+See the [discussion above](#class-methods-reading-and-combining-sets-if-inifiles) of the `read...`
+methods for more about `ondup()`.
+
+I provide three instance methods that wrap `merge()` in order to handle the most common situations.
+In each, `self` is the target being updated, and `source` is an `Inifile` being merged into the
+target:
+
+#### <code>mergeTargetWins(source)</code>
+
+the target entry wins, and the source entry is ignored.
+
+#### <code>mergeSourceWins(source)</code>
+
+the source entry replaces the target's.
+
+#### <code>mergeKeepBoth(self, source, separator=',')</code>
+
+keeps both by appending first the value of `separator` and then the target's value to the source's
+value.  The separator string may be the empty string.
+
+Finally, although I think this will be a relatively rare method to use, I provide methods for
+writing an `Inifile` instance to your favorite output stream.
+
+#### <code>write_to_f_out(f_out, keyend=": ", indent="   ")</code>
+
+does exactly what its name says: writes the `Inifile` out to the output stream `f_out`.
+
+The other two parameters for this method are the string to use to separate the keys from their
+values and the indentation string to use to begin continuation lines.
+
+Sections are written out in lexicographic order, and within each section, keys are written out in
+lexicographic order.  This is of no particular importance, but it should make it easier for a 
+human reader to scan.  There is no provision for writing comments into the output stream.
+
+#### <code>write(path=None, keyend=": ", indent="   ", backups = 0)</code>
+
+writes the `Inifile` out to the path (or output stream) that is its argument.  If `path` is `None`,
+and `self.path` is neither `None` nor the empty string, the path used will be `self.path`, which is
+normally the path used to initialize the `Inifile` instance. Otherwise, when `path` is `None`, the
+output will be written to `stdout`.
+
+The file is opened for writing when a path is given, which means that if there is an existing
+file, that file will be overwritten.  If the keyword argument `backups` is given a positive value,
+a backup will be made to the "bak" subdirectory of the directory where `path` will put the new file.
+The value of `backups` is the maximum number of copies to keep.  By default it is `0`, which means:
+"don't back up the file."  Use `backups=1` to keep a single copy.  Once the limit on backups is
+reached, the earliest backup will be deleted.  So: keeping 1 backup does what you usually want: you
+can recover the version in play immediately before this "write".
+
+When `path` is a stream, it is _not_ closed once the write completes.  
+
+""" # </md> 
+
+   def _get_args(self, args, default=None):
+      arg0 = args[0]
+      if arg0.startswith('['):
+         sectionend = arg0.index(']')
+         s = arg0[1:sectionend-1]
+         k = arg0[sectionend+1:]
+      else:
+         s = arg0
+         k = None
+      argcount = len(args)
+      if argcount is 1:
+         if k is None:
+            raise ValueError("No key specified in the argument, '{0}'".format(s))
+      elif argcount is 2:
+         if k is None:
+            k = args[1]
+         else:
+            default = args[1]
+      elif argcount > 3 or k is not None:
+         raise Exception("Too many arguments: {0}".format(args))
+      else: # argcount is 3 and all we need is k and default
+         k = args[1]
+         default = args[2]
+      return (s, k, default)
+
+   def get(self, *args):
+      (s, k, default) = self._get_args(args)
+      return self[s][k] if s in self and k in self[s] else default
+
+   def getboolean(self, *args):
+      return su.asboolean(self.get(*args))
+
+   def getfloat(self, *args):
+      raw = self.get(*args)
+      if raw is None:
+         return math.nan
+      else:
+         return float(raw)
+    
+   def getint(self, *args):
+      raw = self.get(*args).lower()
+      if raw is None:
+         return None
+      else:
+         return su.str2int(raw)
+
+   def getlist(self, *args, separator=SectionDict.LIST_SEPARATOR):
+      (s, k, default) = self._get_args(args, default=[])
+      return separator.split(self[s][k]) if s in self and k in self[s] else default
+
+   def getstr(self, *args):
+      return self.get(*args)
+   
+   def hassection(self, aString):
+      return s in self
+
+   def haskey(self, s, k=''):
+      if s.startswith('['):
+         (s, k) = s[1:].split(']')
+      return s in self and k in self[s]
+
+   def sectionswithkey(key):
+      answer = []
+      for s in self:
+         if key in self[s]:
+            answer.append(s)
+      return answer
+    
+   def getsection(self, s, default = SectionDict()): 
+      return dict(self[s]) if s in self else default
+
+   def getsectionkeys(self):
+      if s in self:
+         asList = list(self[s].keys())
+         asList.sort()
+         return asList
+
+   def getsections(self):
+      asList = list(self.keys())
+      asList.sort()
+      return asList
+
+   def addsection(self, name):
+      if not name in self:
+         self[name] = {}
+
+   def badType(name, theType):
+      msg = "Expected a string for the {0}, but was passed a {1}"
+      raise TypeError(msg.format(name, su.aOrAn(str(theType))))
+
+   def addentry(self, section="", key="", value=""):
+      if type(section) is not str:
+         badType("section", type(section))
+      elif section not in self:
+         raise ValueError("Section {0} not found.".format(section))
+      elif type(key) is not str:
+         badType("key", type(key))
+      elif type(value) != str:
+         badType("value", type(value))
+      else:
+         self[section][key] = value
+
+   def merge(self, anInifile, ondup=raiseError):
+      for section in anInifile:
+         if section not in self:
+            self[section] = anInifile.getsection(section)
+         else:
+            source = anInifile[section]
+            target = self[section]
+            for key in source:
+               if key not in target: target[key] = source[key]
+               elif target[key] != source[key]:
+                  ondup(section, key, source, target)
+
+   def mergeTargetWins(self, anInifile):
+      self.merge(self, anInifile, firstWins) 
+
+   def mergeSourceWins(self, anInifile): 
+      self.merge(self, anInifile, lastWins)
+
+   def mergeKeepBoth(self, anInifile, separator=','): 
+      self.merge(self, anInifile, keepBoth) 
+
+   def write_to_f_out(self, f_out, keyend=": ", indent="   "):
+      section_names = list(self)
+      section_names.sort()
+      for name in section_names:
+         if len(name) > 0:
+            f_out.write("[{0}]\n".format(name))
+         sectionDict = self[name]
+         keys = list(sectionDict)
+         keys.sort()
+         line_end = "\n"+indent
+         for key in keys:
+            value = sectionDict[key].replace("\n",line_end)
+            f_out.write("{0}{2}{1}\n".format(key, value, keyend))
+
+   def write(self, path=None, keyend=": ", indent="   ", backups=0):
+      if path is None:
+         path = self.path if self.path else sys.stdout
+      if type(path) is str: # it is a real path: use "with" to guaranty closure
+         with fopen(path, mode="w", encoding="utf-8", where="bak", toKeep=backups) as f_out:
+            self.write_to_f_out(f_out, keyend, indent)
+      else: # "path" must be a stream: do NOT close it, as a "with" would
+         self.write_to_f_out(path, keyend, indent)

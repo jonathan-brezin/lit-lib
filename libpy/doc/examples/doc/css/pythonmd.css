@@ -1,0 +1,38 @@
+
+@media print { 
+   body { font-size: 11pt; }
+   pre { font-family: Courier; font-size: smaller; }
+   .exampleCode {
+      background-color: blanchedalmond !important;
+      -webkit-print-color-adjust: exact; 
+      font-family: Monaco; 
+      font-size: 9pt;
+   }
+   .sourceCode  { 
+      background-color: lightgray !important;
+      -webkit-print-color-adjust: exact; 
+      font-family: Courier; 
+      font-size: 9pt; ]
+    }
+}
+.author { text-align: center; font-size: 12pt; font-weight: bold; }
+.date { text-align: center; font-size: smaller; }
+code { font-family: Monaco; font-size: smaller; }
+pre {
+    -moz-tab-size:    3;
+    -o-tab-size:      3;
+    -webkit-tab-size: 3;
+    -ms-tab-size:     3;
+    tab-size:         3;
+    line-height: 1.125em
+}
+@media screen {
+   h4 { text-decoration: underline; }
+   .exampleCode { background-color: blanchedalmond; font-family: Monaco; font-size: 9pt; }
+   .sourceCode  { background-color: lightgray; font-family: Courier; font-size: 11pt;  }
+}
+.h1Code { font-family:Courier; font-size: 20pt; font-weight: normal; }
+.h2Code { font-family:Courier; font-size: 18pt; font-weight: normal; }
+.h3Code { font-family:Courier; font-size: 14pt; }
+.title     { text-align: center;  font-size: 17pt; font-weight: bold;}}
+.titleCode { font-family: Courier; font-size: 17pt; font-weight: normal; }

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>The ReadonlyDictAPI class</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">The <span class="titleCode">ReadonlyDictAPI</span> class</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">November, 2015</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#the-abstract-base-class-readonlydictapi">The abstract base class <code>ReadonlyDictAPI</code></a><ul>
+<li><a href="#the-class-method-isimplementedbyanobject">The class method <code>isimplementedby(anObject)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> delegator <span class="ch">import</span> *
+<span class="ch">from</span> copy <span class="ch">import</span> copy
+<span class="ch">import</span> sysutils <span class="ch">as</span> su
+</code></pre>
+<h2 id="the-abstract-base-class-readonlydictapi">The abstract base class <code>ReadonlyDictAPI</code></h2>
+<p><code>ReadonlyDictAPI</code> defines the minimal API for an object that can serve as a proxy for a read-only <code>dict</code>. This is an abstract class, which is why I called it “<code>ReadonlyDictAPI</code>” and not just “<code>ReadonlyDict</code>”.</p>
+<p>To qualify as a implementing the <code>ReadonlyDictAPI</code>, an object must implement</p>
+<blockquote><table>
+<tr><td>  
+<strong><code>[]</code></strong> ,
+<td>
+maps a key to its value
+</td></tr>
+<tr><td>
+<strong><code>copy()</code></strong>
+</td><td> 
+creates a shallow copy of the instance,
+</td></tr>
+<tr><td>
+<strong><code>__iter__()</code></strong>
+</td><td> 
+makes <code>for</code>…<code>in</code> looping available,
+</td></tr>
+<tr><td>
+<strong><code>keys()</code></strong>
+</td><td> 
+creates an iterator yielding the instance’s keys,
+</td></tr>
+<tr><td>
+<strong><code>items()</code></strong>
+</td><td> 
+creates an iterator yielding the instance’s (key, value) pairs,
+</td></tr>
+<tr><td>
+<strong><code>values()</code></strong>
+</td><td> 
+creates an iterator yielding the instance’s values,
+</td></tr>
+</table></blockquote>
+
+<p>Default implementations delegating <code>__iter__()</code> and <code>get()</code> are provided and should suffice for most purposes. Rather than override them, I think you will normally be better served by inventing new method names. For <code>dict</code>’s API, see <a href="https://docs.python.org/3/library/stdtypes.html#mapping-types-dict">the Python Reference</a>.</p>
+<p>All of <code>dict</code>s methods may be present, but those that update the store, when called, should raise a <a href="https://docs.python.org/3/library/exceptions.html"><em><code>NotImplementedError</code></em></a>. Again, defaults have been supplied for all of them that do just that, but if you need more control to handle the error, by all means override, but it is good manners to exit the override by raising a <code>NotImplementedError</code>.</p>
+<p>Classes that extend <code>ReadonlyDictAPI</code> should normally also have their own versions of two other important methods: <code>__repr__()</code> and <code>__str__()</code>, but this is more a debugging and good taste issue than a requirement.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> ReadonlyDictAPI():
+   <span class="co"># The required methods not implemented here:</span>
+   <span class="kw">def</span> <span class="ot">__contains__</span>(<span class="ot">self</span>, key): su.SUBCLASS_MUST_IMPLEMENT(<span class="ot">self</span>, <span class="st">&quot;__contains__&quot;</span>)
+   <span class="kw">def</span> <span class="ot">__getitem__</span>(<span class="ot">self</span>, key): su.SUBCLASS_MUST_IMPLEMENT(<span class="ot">self</span>, <span class="st">&quot;__getitem__&quot;</span>)
+   <span class="kw">def</span> <span class="ot">__len__</span>(<span class="ot">self</span>):  su.SUBCLASS_MUST_IMPLEMENT(<span class="ot">self</span>, <span class="st">&quot;__getitem__&quot;</span>)
+   <span class="kw">def</span> copy(): su.SUBCLASS_MUST_IMPLEMENT(<span class="ot">self</span>, <span class="st">&quot;copy&quot;</span>)
+   <span class="kw">def</span> items(<span class="ot">self</span>): su.SUBCLASS_MUST_IMPLEMENT(<span class="ot">self</span>, <span class="st">&quot;items&quot;</span>)
+   <span class="kw">def</span> keys(<span class="ot">self</span>): su.SUBCLASS_MUST_IMPLEMENT(<span class="ot">self</span>, <span class="st">&quot;keys&quot;</span>)
+   <span class="kw">def</span> values(<span class="ot">self</span>): su.SUBCLASS_MUST_IMPLEMENT(<span class="ot">self</span>, <span class="st">&quot;values&quot;</span>)
+   <span class="co"># required methods that can be implemented in terms of those above:</span>
+   <span class="kw">def</span> <span class="ot">__iter__</span>(<span class="ot">self</span>): <span class="kw">return</span> <span class="dt">iter</span>(<span class="ot">self</span>.keys())
+   <span class="kw">def</span> get(<span class="ot">self</span>, key, default=<span class="ot">None</span>):
+      <span class="co">'''Return the value for `key` if present, `default` otherwise.'''</span>
+      <span class="kw">try</span>:
+         <span class="kw">return</span> <span class="ot">self</span>[key]
+      <span class="kw">except</span>:
+         <span class="kw">return</span> default
+   <span class="co"># methods that enforce the read-only discipline:</span>
+   <span class="kw">def</span> <span class="ot">__setitem__</span>(<span class="ot">self</span>, key, value): su.DOES_NOT_IMPLEMENT_ASSIGNMENT(<span class="ot">self</span>)
+   <span class="kw">def</span> <span class="ot">__delitem__</span>(<span class="ot">self</span>, key): su.DOES_NOT_IMPLEMENT_DELETIONS(<span class="ot">self</span>)
+   <span class="kw">def</span> clear(<span class="ot">self</span>): su.DOES_NOT_IMPLEMENT_DELETIONS(<span class="ot">self</span>)
+   <span class="kw">def</span> pop(<span class="ot">self</span>, key, default = <span class="ot">None</span>): su.DOES_NOT_IMPLEMENT_DELETIONS(<span class="ot">self</span>)
+   <span class="kw">def</span> popkey(<span class="ot">self</span>): su.DOES_NOT_IMPLEMENT_DELETIONS(<span class="ot">self</span>)
+   <span class="kw">def</span> setdefault(<span class="ot">self</span>, key, default=<span class="ot">None</span>): su.DOES_NOT_IMPLEMENT_ASSIGNMENT(<span class="ot">self</span>)
+   <span class="kw">def</span> update(<span class="ot">self</span>, other): su.DOES_NOT_IMPLEMENT_ASSIGNMENT(<span class="ot">self</span>)
+</code></pre>
+<h3 id="the-class-method-isimplementedbyanobject">The class method <code>isimplementedby(anObject)</code></h3>
+<p><code>isimplementedby</code> returns <code>True</code> if <code>anObject</code> either extends <code>ReadonlyDictAPI</code>, or has the appropriate method attributes for the positive part of the API; otherwise, it returns <code>False</code>. The reason for not simply demanding that the object be an instance of <code>ReadonlyDictAPI</code> is that the object’s class may be part of a foreign library, so the user has no control over its declaration, but may wish to extend it by adding this class to the library class’s bases.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> isimplementedby(anObject):
+      <span class="kw">if</span> su.<span class="dt">isinstance</span>(anObject, ReadonlyDictAPI):
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">elif</span> not su.implements(anObject, (
+         <span class="st">&quot;__getitem__&quot;</span>, <span class="st">&quot;__contains__&quot;</span>, <span class="st">&quot;__len__&quot;</span>, <span class="st">&quot;copy&quot;</span>, <span class="st">&quot;get&quot;</span>, <span class="st">&quot;items&quot;</span>, <span class="st">&quot;keys&quot;</span>, <span class="st">&quot;values&quot;</span>
+      )):
+         <span class="kw">return</span> <span class="ot">False</span>
+      <span class="kw">else</span>:
+         <span class="kw">return</span> (
+            su.isindexable(anObject) and 
+            su.isiterable(anObject.items()) and 
+            su.isiterable(anObject.keys()) and 
+            su.isiterable(anObject.values())
+         ) </code></pre>
+</body>
+</html>

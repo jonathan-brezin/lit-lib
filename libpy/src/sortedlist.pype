@@ -1,0 +1,1271 @@
+""" <head> 
+Title: Maintaining Sorted Lists and Sets
+Author: Jonathan Brezin
+Date: September, 2016
+Show source: yes
+""" # </head>
+
+from blist import blist
+import sysutils as su
+
+""" <md>
+
+## A rose by any other name ##
+
+I know it is a sad abuse of language, but to have a consistent vocabulary that I can use throughout
+these notes, I am going to use "_items_" to mean "values that I want to track and keep ordered", and
+I am going to use "_key_" for a value derived from an item that is used to compute the ordering of
+the items.  
+
+We have to be careful about what "ordered" means in the context of a list sorted by key.  If there
+may be more than one item with a given key, those items may appear in any order.  It may happen that
+they appear in the order they were inserted into the list, and probably will, but that is not part
+of the contract.  The order of the items with given key is arbitrary.
+
+While we're on the subject of terminology, "list" is commonly used to describe a collection of items
+laid out in a sequence.  Sometimes the order in which the items appear is important, sometimes not.
+When the order is not important, what you have is commonly called a "multiset".  If you wanted to be
+a bit more precise  than I have been, not to say more finicky, you would call what I am implementing
+here a "sorted list of multisets", one multiset per key.  You will pardon me, I hope, for using just
+`SortedList` as the class name, rather than the more accurate `SortedMultisetList`.
+
+## The raison d'etre for <code>SortedList</code> ##
+
+### The "why" ###
+
+Surprise! It is all about efficiency, which, in this case, means the cost to
+
+<blockquote> initialize the list\
+insert and remove entries from an existing list,\
+search for a particular entry,\
+retrieve the entry in a particular position,\
+iterate over some or all of the entries, or\
+iterate over some or all of the keys
+</blockquote>
+
+For iterating, the best bet is to just string out the values linearly in memory.  That's not too bad
+for initialization (cost, in terms of the list size `N`, is `O(Nlog(N))`) and searching (cost is
+`O(log(N))`).  It is a real loser for insertion or deletion, since room must be made for the
+inserted entry at the appropriate index, and the gap created on deletion has to be compressed out,
+so the cost is `O(N)`. If, however, the list can be initialized in one shot (or just a few) and then
+does not have too many additions or deletions, one can still live with this simple approach: no
+metadata needed.
+
+If you anticipate the average number `A` of occurrences for a given value to be much bigger than 1,
+putting only the distinct values in the sorted array and keeping track of the counts for each value
+lowers the insert/deletion cost to `N/A`.  Finding an element by position, though, is expensive,
+unless you also keep a cumulative count for each value.  For `N/A` in the range of tens of
+thousands, keeping the counts and cumulative counts is probably not so bad, but it definitely does
+_not_ scale. It suffers from dramatic overkill for metadata.  [B+
+trees](https://en.wikipedia.org/wiki/B-tree) with a count at each interior node for the size of its
+subtree will do the job with much less metadata, although at the cost (of course?) of much more
+complex code.
+
+The [`blist` module](http://stutzbachenterprises.com/blist/blist.html) on which this code is based
+uses the B+ tree approach and achieves `O(log(N))` times for modifying the list as well as indexing
+into it and searching it.
+
+The `blist` module includes a `sortedlist` class that does exactly what `SortedList` does, but it
+suffers from maintaining the list in sorted order as it is built initially.  If the app grows the
+list from scratch, this should not normally be a problem, but if your starting point is a large
+list, the cost is real.   One timing I ran on an otherwise idle Mac desktop showed the following
+times (in seconds) to initialize a sorted list of 1,000,000 pairs of random integers:
+
+> 3.6 for a `list`,  5.4 for a `blist`,  20.8 for a `sortedlist`
+
+The cost of being sorted at all times is evident.  The big reason for creating this intermediate
+step between `blist` and `sortedlist` is exactly to deal with the case that I need most, where the
+bulk of the list is available at the time the `SortedList` is created.  Why use 20 seconds when 5
+will do?
+
+### The "how" ###
+
+Rather than maintain the list in sorted order at all times, I mark the list as "dirty" when items
+are added to it, and only sort when an attempt to read the list is made.  The disadvantage of this
+approach is that, if implemented clumsily, the cost of a read can vary greatly from one access to
+the next, depending on the pattern of adds versus reads.  One can smooth this out by setting a
+threshold for the number of additions to allow before the list is sorted.  The appropriate kind of
+threshold, absolute or relative,  depends on the list size, and to some extent, on the cost of
+comparing two keys.  
+
+Another consideration is where to buffer the items added while we wait to do the sorting. There are
+two obvious strategies: add at the end of the one true list, then just sort the whole list, or keep
+a separate "added" list, sort it, and merge it into the original.  If `A` items are added to a list
+of `N` items, the former should cost some constant `C1` times`(N+A)log(N+A)`, and the latter some
+constant `C2` times `Alog(N+A)` to do the `A` insertions. So it all comes down to the relative sizes
+of `A` and `N` and of the constants `C1` and `C2`.  The current implementation uses a single
+`blist`.
+
+The method "`restore_sorted_order`" drives home any pending additions.  I have made it public, but
+there should not be any reason, under normal conditions, for an application to call it directly. All
+of the methods here that access the list and require the list to be 100% sorted will make the call
+themselves.
+
+### The "what" ###
+
+The public API for `blist` the same as that for `list`:
+
+> `append, clear, copy, count, extend, index, insert, pop, remove, reverse, sort`
+
+Of these, only `reverse` and `sort` have no analogue for `SortedList`s.  Both of these methods
+shuffle the items in the list _in place_.  For a `blist`, this is perfectly reasonable, since the
+ordering of the items you want can vary even within the needs of a single application, so providing
+a method that accepts the comparison function as an argument makes a lot of sense.  For a
+`SortedList`, the ordering must be consistent with the key supplied (and its `__lt__()` method).
+
+`blist` also has the same operators as `list`:
+
+> [], [:], in, +, *, <, <=, ==, !=, >=, >
+
+For unsorted lists, this is pretty much all one's heart could desire.  Once you have a sorted list,
+there is more you might want.  `blist.sortedlist` adds the bare minimum.
+
+> `add, bisect, bisect_left, bisect_right, discard, update`
+
+The `sortedlist` API discourages the direct use of keys.  For example, `index()` finds the position
+of the first occurence of an _item_, but API does not provide the analogous method for a key, even
+though the key for an item is an essential part of the contract to maintain the sort. I have added
+methods
+
+> `find_key, find_key_range, remove_key, key_counts, keys`
+
+in order to fill that gap.
+
+Then there are the "`bisect...`" methods.  I'm far from the first to have worried about this API.
+In fact, my whole approach to sorted lists was inspired by  [Raymond Hettinger's
+code](http://code.activestate.com/recipes/577197-sortedcollection/). In particular, the extension
+for the `bisect` API is his (method names slightly changed):
+
+> `last_lt, last_le, first_gt, first_ge`
+
+Hettinger uses "find_" rather than "first_" and "last_"--in order, I assume, to be consistent with
+other index locating calls in the standard libraries.  Also, "find" is a verb, and method names
+ought to be verbs.  I thought that "first" and "last" were more suggestive, though, in this context,
+but  `find_first_gt` was just toooooo long.   The bottom line: Hettinger's approach is what counts:
+delivering the item nearest a given item on one side of it or the other.  My hat's off to Hettinger
+for an elegant, clean interface.
+
+There is also an
+[`OrderedDict`](https://docs.python.org/3/library/collections.html#collections.OrderedDict) class in
+the Python standard library.  It "almost" does what I think the world really needs, but if you
+compare the API there with Hettinger's (which I again commend to your attention), I think you will
+agree that the library code has a comparatively thin public API.
+
+## The <code>SortedList</code> class
+
+### The constructor: <code>SortedList(iterable=(), key=None)</code> ###
+
+The first argument is an iterable that is used to populate the list.  By default, it is the empty
+tuple, and nothing is added.  The second argument is either `None`, or is a function of a single
+argument that maps an item to its key.  The key's value may or may not be immediately visible as an
+attribute or property of the item in the usual Python sense of those terms.
+
+ _`threshold`_ is the only attribute of a `SortedList` that is a public data field.  It is a virtual
+field.  See the documentation for [`set_threshold`](#set_threshold) below for its use.
+
+""" # </md>
+
+class _threshold_data:
+   def __init__(self, fraction=0.5, absolute=64*1024):
+      if 0.0 <= fraction <= 1.0:
+         self.fraction = fraction
+      else:
+         msg = "Threshold fraction {} is illegal: it must be between 0 and 1"
+         raise ValueError(msg.format(fraction))
+      self.absolute = int(absolute)
+   def __repr__(self):
+      return "_threshold_data({:.3f},{})".format(self.fraction, self.absolute)
+   def is_met_by(self, entries_in_sorted_part,  new_entries):
+      # there must be more new entries than some fraction of the old size
+      if new_entries >= entries_in_sorted_part * self.fraction:
+         # and there must be at least some minimum number, independent of the old size
+         return new_entries >= self.absolute
+      else:
+         return False
+
+class _threshold:
+   def __get__(self, obj, type=None):
+      return obj._threshold
+   def __set__(self, obj, new_value):
+      if isinstance(new_value, _threshold_data):
+         obj._threshold = new_value 
+      else:
+         msg = "The new value, {}, is not a _threshold_data instance, as required."
+         raise ValueError(msg.format(su.a_classname(new_value)))
+   def __delete__(self, obj):
+      raise AttributeError("The threshold attribute cannot be deleted.")
+
+class SortedList(blist):
+   threshold = _threshold()
+   def __init__(self, iterable=(), key=None):
+      blist.__init__(self, iterable)
+      blist.sort(self, key=key)
+
+      # The following attributes are used to implement the lazy sorting.  I track the
+      # two extreme key values so that when an item is added that at either extreme
+      # (or beyond), it can be immediately inserted without worrying about locating
+      # the appropriate insertion index. Items that belong in the interior of the list
+      # are initially added at the end of the list and put into their correct positions
+      # only when an attempt to access the list items is made.
+      object.__setattr__(self, "_key", key if key is not None else lambda x: x)
+      self._threshold = _threshold_data() # criterion for when to restore sorted order
+      self._pending = 0 # how many items at the end of the list need to be relocated
+      self._set_firstkey()
+      self._set_lastkey()
+
+      # turn on and off debugging aids--see __str__
+      self._noRestore = False # allow slicing without restoring the sorted order?
+      self._debug = False     # should __str__ special show debugging output?
+
+   def _set_firstkey(self, byIndex=True, value=None):
+      if byIndex:
+         try:
+            value = self._key(blist.__getitem__(self,0))
+         except:
+            pass
+      object.__setattr__(self, "_firstkey", value)
+
+   def _set_lastkey(self, byIndex=True, value=None):
+      if byIndex:
+         try:
+            value = self._key(blist.__getitem__(self,-1))
+         except:
+            pass
+      object.__setattr__(self, "_lastkey", value)
+
+
+""" <md>
+
+### Some basic core methods ###
+
+#### String conversions ####
+
+`__str__` is the same as `__repr__`, and both just wrap their `blist` originals to substitute the
+new class name. 
+
+#### <code style="text-decoration: underline;">set_threshold(&ast;, fraction=None, absolute=None)</code> {#set_threshold}
+
+When an item is added to the list, it may or may not be immediately inserted into the slot where it
+belongs in slotted order.  If enough additions occur, the sorted order will be restored.
+The threshold for doing so depends on two numbers:
+
+> __`fraction`__: a number betweeen 0 and 1 (inclusive).  If `N` is the current list size,
+`fraction*N` is the minimum number of insertions pending before a restore is forced.  The default
+value is `0.5`.
+
+> __`absolute`__ is a non-negative integer.  The number of pending items to be inserted must be
+at least as big as `absolute` to meet the threshold, whether the "fraction test" is met or not.
+
+By default, the fraction is 1/2 and the absolute minimum number to insert is 64K.  Once the 
+fraction `fraction*N` is greater than `absolute`, the fraction is the number that counts.  The
+point of keeping `absolute` around is not to do too many restorations when the list is still small.
+
+#### <code style="text-decoration: underline;">restore_sorted_order()</code> ####
+
+If there are any pending additions, insert them into the list where they belong.  The return value
+is the number of items inserted.  This is a public call, but you should not normally need to 
+invoke it: if I've done my job correctly, any call that requires the list to be sorted will call
+this to make sure it is.  
+
+#### <code style="text-decoration: underline;">sort()</code> ####
+
+We have to override the `blist` in-place `sort` method so that it does exactly what we need: assure
+that any pending additions are inserted where they belong.  This is done by calling
+`restore_sorted_order`.  The call does not return any value.
+
+Notice that `sort` does not have the keyword parameter `key`.  For a `SortedList`, that function is
+set by the constructor.  The `blist` `sort` also has a parameter `reverse` that makes no sense for a
+`SortedList`, whose ordering is defined by its key function.  You _cannot_ do a reverse sort in
+place on a `SortedList`.  What you can do is to create iterators to traverse the sorted list in any
+order your heart desires.
+
+""" # </md>
+
+   def __setattr__(self, name, value):
+      if name in ["_firstkey", "_key", "_lastkey"]:
+         raise AttributeError(name+" is a read-only attribute")
+      else:
+         object.__setattr__(self, name, value) # use SortedList.__... to avoid recursion
+
+   def __delattr__(self, name):
+      if name in ["_firstkey", "_key", "_lastkey", "_pending"]:
+         raise AttributeError("the "+name+" attribute may not be deleted.")
+      else:
+         object.__delattr__(self, name)
+
+   def __repr__(self):
+      self.restore_sorted_order()
+      old = blist.__repr__(self)
+      tail = old[old.index("("):]
+      return self.__class__.__name__+ tail
+
+   def __str__(self):
+      if not self._debug:
+         return self.__repr__()
+      else:
+         try:
+            # I want to use blist's lazy slicing, but only on the list as it is RIGHT NOW, not
+            # after it has the sort restored.  Therefore, I need a Boolean to forestall the
+            # restore that would occur when the slice is computed.
+            self._noRestore = True
+            unsortedLength = len(self)-self._pending
+            old = blist.__repr__(self[0:unsortedLength]) # this part is in order (or should be!)
+            tail = old[old.index("("):]
+            pending = str(list(self[unsortedLength:]))   # these are the pending insertions
+            self._noRestore = False
+            return self.__class__.__name__+"("+str(self.threshold)+")"+tail+pending
+         except Exception as e:
+            self._noRestore = False
+            raise e
+
+   def set_threshold(self, *, fraction=None, absolute=None):
+      old = self.threshold
+      if fraction is None:
+         fraction = old.fraction
+      if absolute is None:
+         absolute = old.absolute
+      self.threshold = _threshold_data(fraction, absolute)
+
+   def sort(self):
+      self.restore_sorted_order()
+
+   def restore_sorted_order(self):
+      numberPending = self._pending
+      if numberPending > 0:
+         blist.sort(self, key = self._key)
+         self._pending = 0
+         self._set_lastkey()
+         self._set_firstkey()
+      return numberPending
+
+""" <md>
+
+### Inserting and removing items ###
+
+`sortedlist` provides methods `insert`, `update`, `discard`, `pop` and `remove` for these
+operations.  `SortedList` adds a few others.
+
+#### <code style="text-decoration: underline;">add(item)</code> and <code style="text-decoration: underline;">append(item)</code> ####
+
+#### <code style="text-decoration: underline;">insert(item)</code> ####
+
+`add` and `append` are synonyms.  Both add the given item to the list, but do not immediately resort
+the list.  This is an efficiency hack.  Any operation that really needs the list to be sorted, such
+as getting an iterator over it, checks to make sure the list is sorted before doing any real work.
+
+`insert` also adds the item to the list, but unlike the other two calls, this one immediately puts
+the new item into the list exactly where it belongs.
+
+
+####<code style="text-decoration: underline;">merge(iterable)</code> and <code style="text-decoration: underline;">extend(iterable)</code> ####
+
+`merge` does exactly that: merges the items yielded by its argument into the list.   In keeping with
+Python conventions, since this update is _in place_, no return value is supplied.  See the opening
+comments for a discussion of the lazy approach here to doing the actual insertions.
+
+`extend` is a synonym for `merge` that overrides the `blist` method of the same name. The reason for
+adding `merge` as an alternative to `extend` is that "extend" implies "add to the end", whereas in
+this sorted world, what we are doing is merging the new list into the existing one.
+
+#### <code style="text-decoration: underline;">pop(index=-1) </code> and <code style="text-decoration: underline;">pop_orelse(index=-1, orelse=None) </code>
+
+Remove and return the item at the given (integer) index, the last item by default. If the list is
+empty, `pop` raises an `IndexError`, but `pop_orelse` returns `orelse`.  The default value for
+`orelse` is `None`, which (given that we are sorting by key) is rarely a valid list item.  
+
+The usual caveat: deleting by index in this context is, with the obvious exceptions of 0 and -1, a
+dangerous way to do business.
+
+#### <code style="text-decoration: underline;">remove(item, sameIdOnly=False, failHard=True)</code> #### 
+
+Remove the first instance of `item` in the list.  If `sameIdOnly` is `True`, "`is`", rather than
+"`==`", is used for the comparison to `item` .  If the item is not found and `failHard` is `True`, a
+`ValueError` is raised.  This is the default and is consistent with the `blist` API.  If `failHard`
+is `False`, and the item is not found, this is a no-op. 
+
+#### <code style="text-decoration: underline;">discard(item, sameIdOnly=False)</code> #### 
+
+This is a synonym for the "fail soft" call: "`self.remove(item, sameIdOnly, False)`".  It is
+provided to be consistent with the API provided by `blist.sortedlist`.
+
+#### <code style="text-decoration: underline;">replace(olditem, newitem, sameIdOnly=False)</code> ####
+
+Replace all occurrences of `olditem` with `newitem`.  "`is`", rather than "`==`", is used for the
+comparison to `olditem` if `sameIdOnly` is `True`.  The number of replacements made is returned.
+
+#### <code style="text-decoration: underline;">remove_all(item, sameIdOnly=False)</code> #### 
+
+Remove _all_ occurrences of `item`.  "`is`", rather than "`==`", is used for the comparison to
+`item` if `sameIdOnly` is `True`.  The number found--possibly zero!--is returned.
+
+#### <code style="text-decoration: underline;">remove_key(key)</code> #### 
+
+Remove _all_ items with the given and return the count of the number found, again, possibly zero.
+
+### Set operations ###
+
+In the following set operations, the return value is a new sorted list by default.  If the
+second argument, `clone` is `False`, the operation is done in place.  The operator forms, `a+b`,
+`a&b`, `a-b` and `a^b`, all create a new list.
+
+#### <code style="text-decoration: underline;">union(other, &ast;, clone=True)</code> and <code>self + other</code> #### 
+
+This is analogous to `merge`, but if `clone` is `True`, creates a new `SortedList`.  If an item
+occurs in both, its count in the union is the sum of its two counts.  The new `SortedList` is
+returned.
+
+#### <code style="text-decoration: underline;">intersection(other, &ast;, clone=True)</code>  and <code>self &amp; other</code>####
+
+Create and return a (new) `SortedList` whose items appear both in the caller and in `other`.  If an
+item appears `m` times in the caller and `n` times in `other`, it will appear `min(m,n)` times in
+the intersection.  
+
+#### <code style="text-decoration: underline;">diff(other, &ast;, clone=True)</code> and <code>self - other</code> #### 
+
+Create and return a (new) `SortedList` whose items appear in the caller, but not in `other`.  If an
+item appears `m` times in the caller and `n` times in `other`, it will appear `max(m-n,` `0)` times
+in the difference.
+
+#### <code style="text-decoration: underline;">xor(other, &ast;, clone=True)</code> and <code>self ^ other</code>#### 
+
+Create and return a (new) `SortedList` whose items appear in the caller or in `other`, but not in
+both.  If an item appears `m` times in the caller and `n` times in `other`, it will appear
+`m+n` `-` `min(m,n)` in the "xor", _aka_ the symmetric difference.  This is a synonym for
+<pre class="exampleCode">
+
+        self.union(other,clone=clone).diff(self.intersection(other,clone=True),False)
+
+</pre>
+
+#### <code style="text-decoration: underline;">clear()</code> ####
+
+Delete all of the items in the list and return the number of items deleted.
+
+""" # </md>
+   def merge(self, iterable):
+      for item in iterable:
+         self.add(item)
+
+   def extend(self, iterable):
+      self.merge(iterable)
+ 
+   def add(self, item):  
+      newkey = self._key(item)
+      if len(self) is 0:
+         self._set_lastkey(byIndex=False, value=newkey)
+         self._set_firstkey(byIndex=False, value=newkey)
+         blist.append(self,item)
+      elif newkey >= self._lastkey:
+         self._set_lastkey(byIndex=False, value=newkey) 
+         blist.append(self,item)   
+      elif newkey <= self._firstkey:
+         self._set_firstkey(byIndex=False, value=newkey)
+         blist.insert(self, 0, item)
+      else:
+         blist.append(self,item)   
+         self._pending += 1
+         if self.threshold.is_met_by(len(self), self._pending):
+            self.restore_sorted_order()
+
+   def append(self, item):
+      self.add(item)
+ 
+   def insert(self, item): 
+      newkey = self._key(item)
+      if len(self) is 0 or newkey>=self._lastkey or newkey<=self._firstkey:
+         self.add(item) # add() takes care of the extreme cases without finding a range
+      else:             # I need to find where to put the new item in the interior
+         r = self._find_key_range(newkey, False) # False means "don't restore first"
+         n = r.stop     # n is the first index of an item having key > newkey
+         blist.insert(self, n, item) # shifts self[n:] to the right one slot and inserts the item
+                                     # into the now empty n-th slot
+
+   def pop(self, index=-1):
+      if len(self) is 0:
+         raise IndexError("Attempt to pop from an empty list")
+      self.restore_sorted_order()
+      answer = blist.pop(self, index)
+      if len(self) is 0:
+         self._set_lastkey(None)
+         self._set_firstkey(value = None)
+      else:
+         last = self._key(self[-1])
+         if last < self._lastkey:
+            self._set_lastkey(value = last)
+      return answer
+
+   def pop_orelse(self, index=-1, orelse=None):
+      try:
+         return self.pop(index)
+      except IndexError:
+         return orelse
+
+   def remove(self, item, sameIdOnly=False, failHard=True):
+      r = self.find_item_key_range(item) 
+      for n in r:
+         item_n = blist.__getitem__(self, n)
+         if item_n == item:
+            if not sameIdOnly or item_n is item:
+               blist.__delitem__(self, n)
+               remaining = len(self)
+               if remaining is 0:
+                  self._set_lastkey(value = None)
+                  self._set_firstkey(value = None)
+               elif n == remaining: # the last item was deleted, the first is unchanged
+                  self._set_lastkey()
+               elif n == 0:         # the first item was deleted, the last is unchanged
+                  self._set_firstkey()
+               return
+      if failHard:  # we only get here if nothing was removed
+         raise ValueError("{} could not be found to remove".format(item))
+
+   def discard(self, item, sameIdOnly=False):
+      self.remove(item, sameIdOnly)
+
+   def replace(self, olditem, newitem, sameIdOnly=False):
+      r = self.find_item_key_range(olditem)
+      count = self.remove_all(olditem, sameIdOnly=sameIdOnly)
+      if count > 0:
+         self.merge([newitem]*count)
+      return count
+
+   def remove_all(self, item, sameIdOnly = False):
+      itemkey = self._key(item)
+      r = self.find_key_range(itemkey)
+      rreversed = range(r.stop-1, r.start-1, -1)
+      count = 0
+      for n in rreversed:
+         item_n = blist.__getitem__(self, n)
+         if item_n == item:
+            if not sameIdOnly or (blist.__getitem__(self, n) is item):
+               blist.__delitem__(self, n)
+               count += 1
+      if count > 0: # we could have changed the low and high keys
+         if len(self) is 0:
+            self._set_lastkey(byIndex=False, value = None)
+            self._set_firstkey(byIndex=False, value = None)
+         else:
+            if itemkey == self._lastkey:
+               self._set_lastkey()
+            if itemkey == self._firstkey:
+               self._set_firstkey()
+      return count
+
+   def remove_key(self, key):
+      r = self.find_key_range(key) 
+      rreversed = range(r.stop-1, r.start-1, -1)
+      for n in rreversed:
+         blist.__delitem__(self, n)
+      if r.stop > r.start: # at least one item was removed
+         if len(self) is 0:
+            self._set_lastkey(byIndex=False, value = None)
+            self._set_firstkey(byIndex=False, value = None)
+         else:
+            # since at least one item remains and "key" is gone, "key" could not have equalled both
+            # the smallest AND the largest key in the list before it was deleted.  It could have
+            # been either one of them, though.
+            if key == self._lastkey:
+               self._set_lastkey()
+            elif key == self._firstkey:
+               self._set_firstkey()
+      return r.stop - r.start
+
+   def __copy__(self):
+      self.restore_sorted_order()
+      answer = SortedList(self, self._key)
+      answer._debug = self._debug
+      answer.threshold = self.threshold
+
+   def copy(self):
+      return self.__copy__()
+
+   def union(self, other):
+      target = self.copy()
+      target.merge(other)
+      return target
+
+   def __add__(self, other):
+      return self.union(other)
+
+   def __iadd__(self, other):
+      self.merge(other)
+      return self
+
+   def intersection(self, other, *, clone=True):
+      self.restore_sorted_order()
+      if isinstance(other, SortedList): other.restore_sorted_order()
+      common = set(self).intersection(set(other))
+      target = self.copy() if clone else self
+      for item in common:
+         ours = self.count(item)
+         theirs = other.count(item)
+         both = min(ours, theirs)
+         toss = ours - both
+         while toss > 0:
+            target.remove(item)
+            toss -= 1
+      return target
+
+   def __and__(self, other):
+      return self.intersection(other)
+
+   def __iand__(self, other):
+      return self.intersection(other, clone=False)
+
+   def diff(self, other, *, clone=True):
+      target = self.copy() if clone else self
+      common = self.intersection(other)
+      for item in common:
+         toss = common.count(item)
+         while toss > 0:
+            target.remove(item)
+            toss -= 1
+      return target
+
+   def __sub__(self, other):
+      return self.diff(other)
+
+   def __isub__(self, other):
+      return self.diff(other, clone=False)
+
+   def xor(self, other, *, clone=True):
+      in_one = self.union(other, clone)
+      in_both = self.intersection(other)
+      return in_one.diff(in_both, clone=False)
+
+   def __xor_(self, other):
+      return self.xor(other)
+
+   def __ixor__(self, other):
+      return self.xor(other, clone=False)
+
+   def clear(self):
+      sizenow = len(self)
+      del self[0 : ]
+      self._set_firstkey(byIndex=False, value = None)
+      self._set_lastkey(byIndex=False, value = None)
+      self._pending = 0 # should have been cleared when the slice was taken... but just in case...
+      return sizenow
+
+""" <md>
+
+### Accessing items and counts ###
+
+While indexing into a `SortedList` is supported, it is not the recommended way of doing business. To
+begin with,  there is nothing static about the position of an item in a list.  As the list is
+updated, the position changes, so keeping the index as a persistent address for the item is at best
+dangerous, sorted list or not. Also, it is slow as a way of iterating over the list.  My timings for
+the two loops
+
+<pre class="exampleCode">
+
+for item in a_sorted_list:
+   do_something_with(a_sorted_list[k])
+
+for k in range(0, len(a_sorted_list)):
+   do_something_with(a_sorted_list[k])
+
+</pre>
+
+consistently show overhead for the indexed version to be about 4 times that for the item-wise 
+version.  
+
+A final comment: I do support forming a slice `sl[m:n]` of a `SortedList`, but be aware that the
+value is again a `SortedList`, not a `list` or `blist`.  
+
+#### <code style="text-decoration: underline;">index(item)</code>####
+
+If all you want is to know whether a given item is in the list, and if so where the first occurrence
+is, this method does what you want.  It is a bit clumsy, in the sense that it fails by raising an
+`ValueError` when the item is not found, which if fine if that is not easily handleable where the
+failed call occurs, but it does little for the readability of the calling code otherwise.
+
+#### <code style="text-decoration: underline;">bisect_left(item)</code> and <code style="text-decoration: underline;">bisect_right(item)</code>####
+
+`bisect_left` returns the largest index `i` such that all items in the initial segment `sl[:i]` of a
+`SortedList` `sl` have key _less than_ `item`'s.  All items in the trailing segment `sl[i:]` must
+then have key at least as large as `item`'s. If `item`'s key is present in the list, `i` indexes its
+leftmost occurrence.  _Remember, though:_ the items with given key appear in arbitrary order and are
+not guaranteed to remain in the same order over time.
+
+####  <code style="text-decoration: underline;">bisect_right(item)</code>####
+
+`bisect_right` returns the value `i` is such that all items in the initial segment `sl[:i]` of a
+`SortedList` `sl` have key at most as large `item`'s key, and items in the trailing segment `sl[i:]`
+have key greater than `key`. If an item's key is present in the list, `i` points just beyond the
+rightmost item with that key.  Thus, `i` is the "natural" index at which to insert `item`: at the
+end of those with the same key, or between those keys that are the new key's "nearest neighbors."
+
+A good way to think about the `bisect_...` methods is in terms of the slice they define.  If
+`left` and `right` are two items in the `SortedList` `sl`, and
+
+<pre class="exampleCode">
+
+      start = sl.bisect_left(left)
+      stop  = sl.bisect_right(right)
+      
+</pre>
+
+Then `sl[start:stop]` is the slice of `sl` consisting of those items whose key satisfies
+
+<pre class="exampleCode">
+
+      key(left) <= key <= key(right)
+
+</pre>
+
+Compare this with the method `find_slice_range` below.  
+
+#### <code style="text-decoration: underline;">last_lt(item, orelse=None)</code>####
+
+#### <code style="text-decoration: underline;">last_le(item, orelse=None)</code>####
+
+#### <code style="text-decoration: underline;">first_ge(item, orelse=None)</code>####
+
+#### <code style="text-decoration: underline;">first_gt(item, orelse=None)</code>####
+
+These methods are [Hettinger's](http://code.activestate.com/recipes/577197-sortedcollection/) take
+on a more natural--and probably less error-prone--interface than the `bisect_...`s.
+
+`last_lt` returns the largest _item_ less than the given one.  If there is none, the default is to
+return `None`. If `orelse` is not `None`, it must be a function of two arguments, `self` and `item`.
+The function can either raise an error or return a value.  If it does return a value, that value
+will be returned by `last_lt` as well.  Notice how much simpler the explanation of the call is
+than, for instance, that of `bisect_right`.
+
+The other three methods are the obvious variations on `last_lt`.  `first_ge`, for example, returns
+the smallest entry greater than or equal to its argument. 
+
+#### <code style="text-decoration: underline;">find_key_range(key)</code>####
+
+Return the range `(low,` `high)` of indices for which
+
+> all items with index `n < low` have key `< key`, and\
+all items with index `n >= high` have key > `key`.
+
+Items in the slice defined by the range will all have key equal to `key`.  This is one of the very
+few places where the input is a key value and _not_ an item.  Be careful about the boundary cases.
+
+> (0, 0) means either "all items have keys greater than `key`, or the list is empty", and\
+if the list is not empty, (len(self), len(self)) means "all items have keys less than `key`".
+
+I seriously debated not making this method public for the obvious reason that, as I've said above, I
+think working with the positions of items directly when manipulating lists is not generally a great
+idea.  It is not even particularly efficient in this kind of setup, where the position of an item
+has to be computed using the B-tree's metadata.  Lists are not arrays!
+
+#### <code style="text-decoration: underline;">find_key(key)</code>####
+
+The call returns the index of the first item in the list with the given key.  The return value is -1
+if the key is not found.
+
+#### <code style="text-decoration: underline;">find_slice_range(start=None, stop=None, *, inclusive=True, reversed=False)</code>
+
+The arguments `start` and `stop` are items.  The return value is the range for a traversal that
+starts at the items whose key is the same as `start`'s' and goes up to (and possibly including)
+those whose key is `stop`'s.  
+
+If `start` is `None`, it is taken to be the first item in the list, and if `stop` is `None`, it is
+taken to be the last item.
+
+The keyword parameter `inclusive` is a boolean whose value determines whether the range is to
+include elements whose key is the same as `stop`'s.  By default, it is `True`, which is a little at
+odds with Python conventions.  It is ignored if `stop` is `None`.
+
+The keyword parameter `reversed` is also a boolean.  If it is `True`, the range return yields the
+items in reverse sorted order. The default is traversal in sorted order.
+
+__IMPORTANT__: In slicing and iterating methods that follow here, the arguments all have the same
+interpretation as those for `find_slice_range`.  Indeed, those methods are all based on calls to 
+`find_slice_range`.
+
+#### <code style="text-decoration: underline;">find_item_key_range(item)</code>####
+
+This is just a short-hand for `self.find_key_range(self._key(item))`.
+
+#### <code style="text-decoration: underline;">slice(start=None, stop=None, &ast;, inclusive=True)</code>####
+
+The return value is a `SortedList` whose items are those whose keys place them in the range
+described by the items `start` and `stop`.  This is implemented on top of `blist`'s slice code,
+which is pretty efficient (and tries to avoid making unnecessary copies).  Nonetheless, if all you
+really need is to traverse the slice, call `slice_generator`, not `slice`.
+
+#### <code style="text-decoration: underline;">slice_generator(start=None,stop=None,&ast;,inclusive=True,reversed=False)</code>####
+
+Return a generator that yields, in sorted or reverse sorted order, the items in the slice that would
+be computed from the same argument values.
+
+#### <code style="text-decoration: underline;">key_counts(start=None,stop=None,&ast;,inclusive=True,reversed=False)</code> ####
+
+This traversal yields 2-tuples `(key,` `count)` in which each key appears in sorted (or reverse)
+order together with the number of items having that key.
+
+#### <code style="text-decoration: underline;">keys(start=None,stop=None,&ast;,inclusive=True,reversed=False)</code>####
+
+This traversal yields, in sorted order, all of the _distinct_ keys.
+
+#### <code style="text-decoration: underline;">items(start=None,stop=None,&ast;,inclusive=True,reversed=False)</code>####
+
+This traversal yields the _distinct_ items.
+
+""" # </md>
+
+   def __getitem__(self, n):
+      # Fetching is by integer index here, not by key or item, so we must drive home all additions
+      self.restore_sorted_order()
+      if isinstance(n, int):
+         return blist.__getitem__(self, n)
+      else:
+         return SortedList(blist.__getitem__(self, n))
+
+   def __setitem__(self, n, newvalue):
+      # You should not be setting the "n-th" item in a sorted list unless you KNOW that the list 
+      # will remain sorted after you modify the entry? 
+      msg = """Assigning an item to a given position is not supported in sorted lists.
+      Use replace(olditem, newitem) to update an item"""
+      raise su.IllegalOpError(msg)
+
+   def __delitem__(self, n):
+      self.restore_sorted_order()
+      blist.__delitem__(self, n)
+
+   def __contains__(self, item):
+      self.restore_sorted_order()
+      return blist.__contains__(self, item) 
+
+   def __iter__(self):
+      self.restore_sorted_order()
+      return blist.__iter__(self)
+
+   def __reversed__(self):
+      raise su.IllegalOpError("SortedList uses the key's native '<', so reversing one makes no sense.")
+
+   def index(self, item):
+      self.restore_sorted_order()
+      return blist.index(self, item)
+
+   def bisect_left(self, item):
+      r = self.find_key_range(self._key(item))
+      return r.start
+
+   def bisect_right(self, item):
+      r = self.find_key_range(self._key(item))
+      return r.stop
+
+   def last_lt(self, item, orelse = None):
+      n = self.bisect_left(self, item) # index of first item with key >= argument's key
+      return self[n-1] if n > 0 else (
+         None if orelse is None else orelse(self, item))
+
+   def last_le(self, item, orelse = None):
+      n = self.bisect_right(self, item) # index of first item with key > argument's key
+      return self[n-1] if n > 0 else (
+         None if orelse is None else orelse(self, item))
+
+   def first_ge(self, item, orelse = None):
+      n = self.bisect_left(self, item) 
+      return blist.__getitem__(self, n) if n < len(self) else (
+         None if orelse is None else orelse(self, item))
+      
+   def first_gt(self, item, orelse = None):
+      n = self.bisect_right(self, item)
+      return blist.__getitem__(self, n) if n < len(self) else (
+         None if orelse is None else orelse(self, item))
+
+   def find_slice_range(self, start=None, stop=None, *, inclusive = True, reversed=False):
+      self.restore_sorted_order()
+      startx = 0  if start is None else self.bisect_left(start)
+      stopx  = len(self) if stop is None else (
+         self.bisect_right(stop) if inclusive else self.bisect_left(stop))
+      if not reversed:
+         return range(startx, stopx, 1)
+      else:
+         startr = stopx - 1 if stopx > 0 else 0
+         stopr  = startx - 1 if startx > 0 else 0
+         return range(startr, stopr, -1)
+
+   def _find_key_range(self, key, restore):
+      if restore:
+         self.restore_sorted_order()
+      start = None
+      stop = None
+      high = self.__len__() - 1
+      if high < 0:
+         return range(0, 0)
+      highkey = self._key(blist.__getitem__(self, high))
+      if highkey < key:
+         return range(self.__len__(), self.__len__()) # everything comes before `key`
+      low = 0
+      lowkey = self._key(blist.__getitem__(self, low))
+      if key < lowkey:
+         return range(0, 0) # everything comes after `key`
+      # From this point on, we know that key will lie in the interval
+      #    self._key(self[low]) <= key <= self._key(self[high])
+      mid = (low + high) // 2
+      # inside the loop, low < mid < high will hold
+      midkey = self._key(blist.__getitem__(self, mid))
+      while low < mid and key != midkey:  # let the binary search begin
+         if midkey > key:
+            high = mid
+         else: # must have midkey > key because midkey != key
+            low = mid
+         mid = (low + high)//2
+         midkey = self._key(blist.__getitem__(self, mid))
+      for m in range(mid, -1, -1): # find the leftmost item with key < key
+         key_m = self._key(blist.__getitem__(self, m))
+         if key_m < key: 
+            break
+      for n in range(mid, high+1, 1): # find the rightmost item with key > key
+         key_n = self._key(blist.__getitem__(self, n))
+         if key_n > key: 
+            break
+         start = m if key == key_m else m+1
+         stop = n+1 if key == key_n else n
+      return range(start, stop) if start is not None else None
+
+   def find_key_range(self, key):
+      return self._find_key_range(key, True)
+
+   def find_key(self, key):
+      r = self.find_key_range(key)
+      if r.start < r.stop and self._key(blist.__getitem__(self, r.start)) == key:
+         return r.start
+      else:
+         return -1
+
+   def find_item_key_range(self, item):
+      return self.find_key_range(self._key(item))
+
+   def slice(start=None, stop=None, inclusive = True):
+      if self.__len__() == 0:
+         return self.SortedList(key=self._key)
+      sg = self.slice_generator(start, stop, inclusive)
+      return SortedList(iterable=sg, key=self._key)
+
+   def slice_generator(start=None, stop=None, *, inclusive = True, reversed = False):
+      # get the starting item index and eliminate some more boundary cases
+      r = self.find_slice_range(start, stop, inclusive=inclusive, reversed=reversed)
+      return (blist.__getitem__(self, n) for n in r)
+
+   def count(self, item):
+      self.restore_sorted_order()
+      return blist.count(self, item)
+
+   def reverse(self):
+      raise su.IllegalOpError("You cannot reverse a SortedList in place")
+
+   class _CountIter:
+      def __init__(self, sl, start=None, stop=None, *, inclusive = True, reversed = False, both=True):
+         r = sl.find_slice_range(start, stop, inclusive=inclusive,reversed=reversed)
+         self.source = sl
+         self.startx = r.start
+         self.stopx  = r.stop
+         self.step   = r.step
+         self.both   = both
+      def __next__(self):
+         if self.startx >= self.stopx:
+            raise StopIteration()
+         item = blist.__getitem__(self.source,self.startx)
+         stop = self.startx + self.step
+         while stop < self.stopx and self._key(item) == self._key(blist.__getitem__(sl, stop)):
+            stop += 1
+         count = stop - self.startx
+         self.startx = stop
+         return (self._key(item), count) if both else self._key(item)
+
+   def key_counts(self, start=None, stop=None, *, inclusive = True, reversed = False):
+      return self._CountIter(self, start, stop, inclusive=inclusive, reversed=reversed)
+
+   def keys(self, start=None, stop=None, *, inclusive = True, reversed = False):
+      return self._CountIter(self, start, stop, inclusive=inclusive, reversed=reversed, both=False)
+
+   class _ItemIter:
+      def __init__(self, sl, start=None, stop=None, *, inclusive = True, reversed = False):
+         r = sl.find_slice_range(start, stop, inclusive=inclusive,reversed=reversed)
+         self.itemset = set()
+         self.currentkey = None
+         self.source = sl
+         self.startx = r.start
+         self.stopx  = r.stop
+      def __next__(self):
+         if self.startx >= self.stopx:
+            raise StopIteration()
+         item = blist.__getitem__(self, self.startx)
+         self.startx += self.step
+         key = self._key(item)
+         if key == self.currentkey:
+            if item in self.itemset:
+               return self.__next__()
+            else:
+               set.itemset.add(item)
+               return item
+         else:
+            self.currentkey = key
+            self.itemset.clear()
+            self.itemset.add(item)
+            return item
+
+   def items(self, start=None, stop=None, *, inclusive = True, reversed = False):
+      return self._ItemIter(self, start, stop, inclusive=inclusive, reversed=reversed)
+
+""" <md>
+
+## The class <code>CheckedSortedList(SortedList)</code> ##
+
+A `CheckedSortedList` is a `SortedList` together with a vetter that raises an exception whenever an
+attempt is made to add inappropriate items to the list.
+
+### <code style="text-decoration: underline;">CheckedSortedList(iterable=[], key=None, vetter=lambda x: x)</code> ###
+
+`asAType`. `asAType`, if it is not `None`, must be callable (a function or constructor). If the
+pushed data does _not_ have type `aType`, `asAType` will be called with the pushed data as its only
+argument.  Its job is to transform the data into an instance of `aType`. It should return the
+transformed value when it succeeds; otherwise, it should raise an appropriate exception. 
+
+The remaining arguments are simply passed through "as is" to `Stack`'s constructor.
+
+""" # </md>
+
+class CheckedSortedList(SortedList):
+
+   def __init__(self, iterable=[], key=None, vetter=lambda x: x):
+      self.itemtype = aType
+      object.__setattr__(self, "vetter", vetter)
+      SortedList.__init__(self, (vetter(item) for item in iterable), key=key)
+
+   def __setattr__(self, name, value):
+      if name is "vetter":
+         raise AttributeError(name+" is a read-only attribute")
+      else:
+         SortedList.__setattr__(self, name, value) # use SortedList.__... to avoid recursion
+
+   def __delattr__(self, name):
+      if name is "vetter":
+         raise AttributeError(name+" may not be deleted.")
+      else:
+         SortedList.__delattr__(self, name)
+
+   def add(self, item):
+      SortedList.add(self, self.vetter(item))
+
+   def insert(self, item):
+      SortedList.insert(self, self.vetter(item))
+      
+""" <md>
+
+## The class <code>SortedTypedList(SortedList)</code> ##
+
+### The constructor, <code style="text-decoration: underline;">iterable=[], key=None, aType=int, asAType=None)</code> ##
+
+`SortedTypedList` returns a `Stack` with a vetter that raises an exception whenever an attempt is made to
+push data onto the stack whose type is not "aType", or at least is convertible to that type via
+`asAType`. `asAType`, if it is not `None`, must be callable (a function or constructor). If the
+pushed data does _not_ have type `aType`, `asAType` will be called with the pushed data as its only
+argument.  Its job is to transform the data into an instance of `aType`. It should return the
+transformed value when it succeeds; otherwise, it should raise an appropriate exception. 
+
+The remaining arguments are simply passed through "as is" to `Stack`'s constructor.
+
+""" # </md>
+
+class TypedSortedList(CheckedSortedList):
+
+   def __init__(self, iterable=[], key=None, aType=str, asAType=str):
+      self.itemtype = aType
+      def vetter(data):
+         if isinstance(data, aType):
+            return data
+         elif asAType is not None:
+            try:
+               return asAType(data)
+            except:
+               pass
+         msg = "{0} was pushed, but {1} is expected."
+         raise TypeError(msg.format(su.A_classname(data), su.a_classname(aType)))
+      CheckedSortedList.__init__(self, (vetter(item) for item in iterable), key=key, vetter=vetter)
+
+   def __setattr__(self, name, value):
+      if name is "itemtype":
+         raise AttributeError(name+" is a read-only attribute")
+      else:
+         CheckedSortedList.__setattr__(self, name, value) # use CheckedSortedList to avoid recursion
+
+   def __delattr__(self, name):
+      if name is "itemtype":
+         raise AttributeError(name+" may not be deleted.")
+      else:
+         CheckedSortedList.__delattr__(self, name)
+
+
+""" <md>
+
+## The class <code>SortedSet([SortedList](sortedlist.html))</code>##
+
+An instance is a set of items that has a "natural" order.  The order is taken to be that implied by
+`__lt__()` method for the items and realized by the `<` operator.  It is a special case of a sorted
+list in which an item is its own key and may only appear once in the list.
+
+### The constructor SortedSet(iterable=(), failondup=False) ###
+
+This is a very modest wrapper around the `SortedList` constructor.  The two parameters are: 
+
+> __`iterable`__ is by default an empty tuple.  It must be an iterable that yields items to be
+inserted initially.
+
+> __`failondup`__ is a Boolean.  If it is `True`, attempts to insert a value into the set that is
+already there will raise a `ValueError`.  Otherwise, such attempts will simply be ignored: start in
+wins.  The default, as you might guess is: "ignore duplicates".
+
+Very few of `SortedList`'s methods need changing here.  They apply equally well to `SortedSet`s.
+One has to be careful about `copy` and `slice`, because both want to return a `SortedSet` rather
+than a `SortedList`.  Also, adding an item has to take into account the need to police for
+duplicates.
+
+""" # </md>
+
+class SortedSet(SortedList):
+   def __init__(self, iterable = (), failondup = False):
+      SortedList.__init__(self)
+      self.failondup = failondup
+      for x in iterable:
+         self.add(x)
+
+   def __copy__(self):
+      return SortedSet(iterable=self, failondup=self.failondup)
+
+   def add(self, item):  
+      if failondup and item in self:
+         raise ValueError("duplicate item {} not added.".format(item))
+      sortedlist.add(self, item)
+
+   def insert(self, item):  
+      if failondup and item in self:
+         raise ValueError("duplicate item {} not added.".format(item))
+      sortedlist.insert(self, item)
+
+   def slice(start=None, stop=None, inclusive = True):
+      if self.__len__() == 0:
+         return self.SortedSet(failondup=self.failondup)
+      sg = self.slice_generator(start, stop, inclusive)
+      return SortedSet(iterable=sg, failondup=self.failondup)
+
+""" <md>
+
+## The class <code>SortedKeyedSet([SortedList](sortedlist.html))</code>##
+
+An instance is a set of items that have a key with a "natural" order.  The order is taken to be that
+implied by `__lt__()` method for the keys.  It is a special case of a sorted list in which only one
+item with a given key can be present.  It differs from a `SortedSet` in how one might want to treat
+updates that involve keys already present in the set.
+
+### The constructor SortedKeyedSet(iterable=(), key=None, ondup="new") ###
+
+Like `SortedSet`, this is essentially just the `SortedList` constructor.  The three parameters are: 
+
+> __`iterable`__ is by default an empty tuple.  It must be an iterable that yields items to be
+inserted initially.
+
+> __`key`__ is either `None` or a function of a single argument that maps an item to its key.
+
+> __`ondup`__ is one of the strings _`"fail"`_,  _`"same"`_,  _`"value"`_, _`"new"`_, and
+_`"old"`_. The value determines what should happen when an item `newitem` is added to a set that
+already contains an entry `olditem` with the same key.  Because there are two values at stake,
+namely the item's value and the key's value, there are a number of possiblities:
+
+>> __`"fail"`__ is the strictest possible check: there is no case in which the same key should appear
+more than once, so _fail_. 
+
+>> __`"same"`__ is the next strictest possible check: if `newitem` is not the very _same_ item as
+`olditem`, it is an error.  In other words, if the expression _`newitem` `is` `olditem`_ evaluates
+to `False`, a `ValueError` is raised .  The object _reference_ is required to be unique to the key,
+not just the object value.  This is probably rarely what you want, but I provide it just to make
+sure that users are reminded that it _may_ be the right thing to do.
+    
+>> __`"value"`__ : if `newitem` and `olditem` do not have the same _value_, it is an error.  In other
+words, if the expression `newitem` `==` `olditem`  evaluates to `False`, a `ValueError` is raised.
+The key is expected to determine the item's value, but not its identity.  This might seem a bit on
+the strict side, too, but consider the use case in which the items are catalogue entries, the keys
+are item-number code, and the catalogue is known not be mutable in the course of building this set.
+Two different values with the same key would definitely signal a problem. You might well get two
+different object references with the same value, if, for example, the set consists for e-books  that
+a shopper has selected, the shopper mistakenly selects the same book twice.
+
+>> __`"new"`__ is the default: the _new_ item replaces the old one.  A natural use case to keep in
+mind is that of database records that may be updated over time.  This allows you to update a record
+in any way that does not affect the record's key and then plop it into the set.  No comparison of
+`olditem` versus `newitem` is made.
+
+>> __`"old"`__: the _old_ item remains and the new one is discarded.  This makes sense when there
+are no differences among the various possible values with a given key that are important insofar as
+this application is concerned.  All that matters is what keys appear, so we get all we need from the
+first item we see, end of story.
+
+`ondup` is actually a virtual field (or "property", if you prefer).  It may be set at any time
+during the propgram's execution.  The value to be assigned will be lower-cased and, if the result is
+a prefix of one of the expected values,  will update the field's value accordingly.
+
+
+""" # </md>
+
+class _ondup_value:
+   tags = set(("fail", "old", "new", "same", "value"))
+   value2tag = {"e": "error", "f": "fail", "o": "old", "n": "new", "s": "same", "v": "value"}
+   def __init__(self):
+       "e"
+   def __get__(self, obj, type=None):      
+      return self.ondup
+   def __set__(self, obj, value):
+      lowered = value.lower()
+      initial = lowered[0]
+      full_name = self.value2tag[initial]
+      if full_name.startswith(lowered):
+         self.ondup = initial
+      else:
+         self.ondup = "e" # as in "error"
+         raise ValueError("Unexpected dup handler: '{0}'. Expected one of {1}".format(value,tags))
+   def __delete__(self, obj):
+      raise AttributeError("The dup handler's strategy tag may not be deleted")
+   def __repr__(self):
+      return "ondup('{}')".format(self.value2tag[self.ondup])
+   def __str__(self):
+      return "'{}'".format(self.value2tag[self.ondup])
+
+class SortedKeyedSet(SortedList):
+   ondup = _ondup_value()
+   def __init__(self, iterable = (), key=None, ondup="new"):
+      SortedList.__init__(self, key)
+      self.ondup = ondup
+      for x in iterable:
+         self.add(x)
+
+   def __copy__(self):
+      return SortedKeyedSet(self.failondup, self)
+
+   def _fail(self, item, prior, key):
+      msg = "duplicate item, {}, with key '{}' cannot replace {}."
+      raise ValueError(msg.format(item, key, prior))
+
+   def add(self, item):
+      itemkey = self._key(item) 
+      prior = self.last_le(item)
+      priorkey = self._key(prior)
+      if priorkey != itemkey: # new key, new item, no problems
+         sortedlist.add(self, item)
+      elif self.ondup == 'f': # same key, must fail
+         self._fail(item, prior, priorkey)
+      elif self.ondup == 's': # fail only if new object id
+         if item is not prior:
+            self._fail(item, prior, priorkey)
+      elif self.ondup == 'v': # fail only if new value
+         if item != prior:
+            self._fail(item, prior, priorkey)
+      elif self.ondup == 'n': # new item wins: out with the old, in with the new
+         if item != prior:
+            self.remove(prior)
+            sortedlist.add(self, item)
+
+   def slice(start=None, stop=None, inclusive = True):
+      if self.__len__() == 0:
+         return self.SortedKeyedSet(key=self._key, ondup=self.ondup)
+      sg = self.slice_generator(start, stop, inclusive)
+      return SortedKeyedSet(iterable=sg, key=self._key, ondup=self.ondup)

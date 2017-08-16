@@ -1,0 +1,443 @@
+""" <head> 
+
+Title: Client for the <code>DbgMgr</code> debugging output server
+Author: Jonathan Brezin
+Date: May, 2017
+Show source: True
+
+"""
+
+""" <md>
+
+## General Remarks
+
+This module came about in large part because of my being unaccustomed to managing imports with
+circular dependencies.  I had a situation where two modules, `dbg` and `fileutils`, were mutually
+dependent and coded in such a way that the loader deadlocked on the imports.  Looking at `dbg`, I
+decided that most modules importing it really only need a small part of its interface and, in
+particular, classes importing it would be more cleanly written if they could just extend the
+interface they needed, rather than constantly delegating to the debugging manager as a class or
+instance attribute value.  The upshot was the realization that I had was not a "manager", but a
+server and some clients, and it made sense to have a clean client independent of the server.
+Force of habit keeps me calling the server the manager.  I hope you'll forgive me.
+
+That said, __this interface is really intended for modules and classes that use the debugging
+manager's buffered output.__  If all you need is a dictionary of active patterns to guard debugging
+code, either use [dbg.getDbgMgr](dbg.html#getdbgmgr) to get the manager and use it as a wildcard
+dictionary, or (although I do not think that it is a good idea) use your own [wild-card
+dictionary](wildcardlookup.html).
+
+## Class methods for <code>DbgClient</code>
+
+### Administration
+
+#### <code>configure_debugging(key, pattern=key, active=True)</code> {#configure}
+
+is meant to be called before any of the other methods here are invoked. It sets the default key for
+ordinary debugging output to the value of `key`, and sets the default pattern against which to match
+keys to be the value of `pattern`.  It does _not_ register the default pattern or any other pattern
+with the  debugging manager: it merely initializes some defaults.  The final argument, `active` is a
+boolean that determines whether debugging is active initially for the class, and whether the
+default state for new instances is "active".  Any "true-ish" value, in the sense of  [`sysutils`
+`asboolean` method](sysutils.html#asbooleanvalue) activates debugging, and any "false-ish" value
+leaves it inactive.
+
+This method also sets a private class attribute, `_dbgmgr`, to be the unique debugging manager
+object.  While this is a nominally private attribute, it is still accessible to the extending class
+and its instances.  All of the manager's API is therefore available to instances, although the
+intention is that the methods here should suffice in almost all cases.
+
+#### <code>start_debugging(&ast;patterns, styles={})</code> {#start_debugging}
+
+sets the default for new instances to "active", and if any are provided, registers the patterns
+and styles with the manager.  If no patterns are supplied, the default pattern is registered.
+
+See the [commentary on `dbg`](dbg.html#getdbgmgr) for how `patterns` may be supplied.
+
+#### <code>pause_debugging(&ast;patterns)</code> {#pause_debugging}
+
+turns off debugging for the class itself and sets the default for all new instances to be
+_"inactive"_.  Currently alive instance variables that were explicitly made active by calling the
+instance method `dbg_activate` are not affected.  Their state will be left "as is".  The
+patterns supplied will be de-registered; if none are supplied, the default pattern will be de-
+registered.  If debugging is restarted, these patterns will not be active: you must re-register
+them.
+
+#### <code>stop_debugging(final_msg=""))</code> {#stop_debugging}
+
+calls the debug manager's "close" method with the argument "`final_msg`" as the ["after"
+message](dbg.html#flush).  _This is strictly a desperation call._  The debugging manager will turn
+off keyed output completely and close the log file to which it was being written.  All requests to
+raise errors occuring after this call will not be logged in the debugging stream.  They will just be
+raised.
+
+This action is normally the responsibility of a method very close to the application's main, not the
+sort of library code this class is intended to support.
+
+#### <code>dbg_class_is_active()</code> {#class_dbg_is_active}
+
+returns `True` if the class itself as an object wants to log stuff.  It returns `False` otherwise.
+The default is to begin with logging turned on, or in other words, "active"--see
+[`configure_debugging`](#configure) above.
+
+#### <code>dbg_activate_class(active=False)</code>
+#### <code>dbg_deactivate_class(active=False)</code>
+
+override the current state to render the class active or inactive, as you require.  
+
+
+The next two methods get and set the state:
+
+#### <code>dbg_default_is_active()</code>
+
+returns `True` or `False`, depending on whether the current default for instances is "active".
+The initial state is set by the call to [`configure_debugging`](#configure).
+
+#### <code>dbg_set_default_active_state(active = True)</code>
+
+turns the default state on and off as you require.
+
+### Streaming output
+
+There are three class methods for streaming debugging output and three analogous methods for
+instances.  Why not just the class methods?  The sticking point here is that if `C` is a class, if
+`c` is an instance of `C`, and if `do_it` is a class method of `C`, then, while it is true that you
+can execute the call `c.do_it()`, you will find that in the body of the call, the value of `self`
+will be `c.__class__`, not `c`.  Thus, both `C.do_it()` and `c.do_it()` do exactly the same thing.
+This would be fine, except for the fact that I've tried to separate whether a given instance is
+streaming output from whether the class itself is.  One could add a parameter to the
+class method, so that it knows what instance, if any, requested the output, but it struck me as
+unnecessarily clumsier. Here are the two calls, each guarded by the default key. First, a generic
+class method:
+
+<pre class="exampleCode">
+
+   c.dbg_write("more news", sender=c) # needs to say caller is instance 'c'
+
+</pre>
+
+ and second, an instance method:
+
+<pre class="exampleCode">
+
+   c.dbg_write("more news")  # 'self' is 'c' in the body
+
+</pre>
+
+I really pefer being able to shorten things to the second format, the more so because instance calls 
+are overwhelmingly the most common.
+
+In all three methods, there is a boolean keyword parameter "`esc`".  It governs whether the text of
+the output is HTML-encoded before being packaged in a `td` table cell.  The default is _not_ to
+encode it.  You have been warned.  
+
+The two methods for errors and warnings also take a boolean keyword parameter "`bail_out`".  It
+comes into play only if the class is actively streaming  debugging output.  If it is `True`, the
+effect is to raise some sort of `Exception`; otherwise, the output request simply returns.  If a
+class or instance is not "active", the calls that deal with errors simply raise the error, and 
+warnings are sent to `STDERR`.
+
+The first (and only positional) argument to both the error and warning methods may be either a
+`String` or an instance of a subclass of `Exception`.  If it is a `String`, and if we are asked to
+bail out, a `RuntimeError` is raised with the `String` as message.
+
+Here are the method signatures.  In all three cases, the first signature is the class method, and
+the second is the instance method:
+
+#### <code>raise_an_error(anError, &ast;, bail_out=True, esc=False)</code> {#class_error}
+#### <code>raise_error(anError, &ast;, bail_out=True, esc=False)</code> {#instance_error}
+
+Note that the default for `bail_out` is "yes! bail out!".  
+
+#### <code>issue_a_warning(aWarning, &ast;, bail_out=False, esc=False)</code> {#class_warning}
+#### <code>issue_warning(aWarning, &ast;, bail_out=False, esc=False)</code> {#instance_warning}
+
+Note that the default for `bail_out` is "do not bail! this's just a slap on the wrist"
+
+#### <code>dbg_write_msg(msg, &ast;, key=None, pre=False, now=False)</code> {#class_output}
+#### <code>dbg_write(msg, &ast;, key=None, pre=False, now=False)</code> {#instance_output}
+
+If debugging is not active for the caller, the call is a no-op.; otherwise, the effect is to call
+either the debug manager's `pre` or `dbg` method to buffer the message, depending on whether the
+value of `pre` is `True` or not.  The default is not to assume pre-formatted output.  `key` is the
+guard, and if none is provided, the classwide default established by `configure_debugging` is used.
+
+If `now` is `True` and the message was in fact streamed out, the debug manager will also flush its
+buffer, and if `now` is a "true-ish" (_i.e._ non- empty) `String`, that value will be used for the
+flush's ["after" message](dbg.html#flush).
+
+__Warning__: If `now` is `True`, the flush will also append an HTML "horizontal rule" tag.  I remind
+you that the buffered output stream is HTML.
+
+## Admin instance methods for <code>DbgClient</code> 
+
+One of the insights I had when I started to think of debugging output as a client-server operation
+was that individual instances of a class might want to turn on logging, even if not not all do.
+Suppose the default is "inactive", but some instance encounters an unexpected situation, for
+example, an attribute value that is not necessarily wrong, but unexpectedly large.  It might want to
+turn debugging on just for itself, not the whole world.  This is a different sort of filtering from
+that which I had imagined when I wrote the early versions of `dbg`, where what was at stake was
+an action that one wanted to track: I/O, particular sets of updates, like adding to and 
+removing from shopping carts.  
+
+There is a subtle implementation issue here.  Normally, an instance is active if its class's default
+is "active".   To mark an instance as going against the default, I need to add an boolean instance
+attribute.  I don't want to add that attribute, though, unless I really have to: you have to tell me
+that you want this particular instance to be either "active" or "inactive", whatever the current
+default is.  The reason for being so ungenerous is that I can imagine situations where there
+millions of instances, in an array perhaps, and only a small fraction of them need to be looked at
+to debug the program.   Adding an extra attribute is of little consequence when you are talking
+about a single instance, but if you are dealing with a collection of millions, the footprint of the
+collection is materially larger.  So I trade some slightly clumsier code for a some space saving.
+
+#### <code>dbg_is_active()</code>
+
+returns `True` it this instance is logging output to the manager:  if the instance's state has been
+explicitly set by calling `dbg_activate` or `dbg_deactivate`, that value is returned; otherwise, the
+return value is the current default for the class's instances.
+
+#### <code>dbg_activate(&ast;patterns, default_also=False )</code> {#dbg_activate}
+#### <code>dbg_deactivate(default_also=False )</code> {#dbg_deactivate}
+
+`dbg_activate` adds an attribute to the instance, if need be, that marks it as "active for
+debugging".  If `default_also` is `True`, the default state for the class's instances will be set to
+"active".  If some patterns are provided, they will be registered with the manager--it is harmless
+to register a registered pattern!
+
+The companion method, `dbg_deactivate`, turns off logging for the instance and, if you ask for it, 
+for the default for new instances.
+
+
+""" # </md>
+
+import dbg
+import inspect
+import sys
+from sysutils import asboolean
+
+class DbgClient:
+
+   @staticmethod
+   def mycallersname(): 
+      return inspect.currentframe().f_back.f_back.f_code.co_name
+
+   @classmethod
+   def configure_debugging(self, key, pattern=None, active=False):
+      self._dbgmgr = dbg.getDbgMgr()
+      if (getattr(self, "_dbg_default_key", None) is not None) and ('dbgmgr' in self._dbgmgr):
+         if key != self._dbg_default_key or pattern != self._dbg_default_pattern:
+            fmt = "Debugging {} reconfigured {}=>{} and {}=>{}"
+            msg = fmt.format(
+               self, self._dbg_default_key, key, self._dbg_default_pattern, pattern
+            )
+            self._dbgmgr.warn(msg)
+      active = asboolean(active)
+      self._dbg_class_active = active     # the class is ready to stream
+      self._dbg_default_active = active   # by default, so are all new instances
+      self._dbg_default_key = key         # use this key by default in requests
+      self._dbg_default_pattern = key if pattern is None else key # match against this 
+
+   @classmethod
+   def start_debugging(self, *patterns, styles={}):
+      self._dbg_default_active = True
+      self._dbg_class_active = True
+      if len(patterns) is 0:
+         self._dbgmgr.add_patterns(self._dbg_default_pattern)
+      else:
+         self._dbgmgr.add_patterns(patterns)
+      for name in styles:
+         self._dbgmgr.addstyleclass(name, styles[name])
+
+   @classmethod
+   def pause_debugging(self, *patterns):
+      self._dbg_default_active = False
+      self._dbg_class_active = False
+      if len(patterns) is 0:
+         self._dbgmgr.remove_patterns(self._dbg_default_pattern)
+      else:
+         self._dbgmgr_.remove_patterns(patterns)
+
+   @classmethod
+   def stop_debugging(self, final_msg=""):
+      self._dbgmgr.close(after=final_msg)
+      self._dbg_default_active  = False
+
+   @classmethod
+   def dbg_class_is_active(self):
+      return self._dbg_class_active
+
+   @classmethod
+   def dbg_activate_class(self):
+      self._dbg_class_active = True
+   
+   @classmethod
+   def dbg_deactivate_class(self):
+      self._dbg_class_active = False
+   
+   @classmethod
+   def dbg_default_is_active(self):
+      return self._dbg_default_active
+
+   @classmethod
+   def dbg_set_default_active_state(self, active = True):
+      self._dbg_default_active = asboolean(active)
+      return self._dbg_default_active
+
+   @classmethod
+   def raise_an_error(self, anError, *, bail_out=True, esc=False):
+      if self._dbg_class_active:
+         self._dbgmgr.err(anError, src=DbgClient.mycallersname())
+      elif isinstance(anError, Exception):
+         raise anError
+      else:
+         raise RuntimeError(anError)
+
+   @classmethod
+   def issue_a_warning(self, aWarning, *, bail_out=True, esc=False):
+      if self._dbg_class_active:
+         self._dbgmgr.warn(aWarning, src=DbgClient.mycallersname())
+      elif bail_out:
+         if isinstance(aWarning, Exception):
+            raise aWarning
+         else:
+            raise RuntimeError(aWarning)
+      else:
+         print(aWarning, file=sys.stderr)
+
+   @classmethod
+   def dbg_write_msg(self, msg, *, 
+      key=None, src=None, pre=False, style=None, now=False, esc=False
+   ):
+      if self._dbg_class_active:
+         key = key or self._dbg_default_key
+         caller = src or self.mycallersname()
+         if pre:
+            self._dbgmgr.pre(key, msg, src=caller, style=style, now=now)
+         else:
+            self._dbgmgr.dbg(key, msg, src=caller, style=style, now=now)
+
+   ####### Instance Methods #######
+
+   def dbg_activate(self, *patterns, default_also=False):
+      if len(patterns) > 0:
+         self._dbgmgr.add_patterns(*patterns)
+      self._dbg_instance_active = True
+      if default_also:
+         self.__class__._dbg_default_active = True
+
+   def dbg_deactivate(self, default_also=False):
+      self._dbg_instance_active = False
+      if default_also:
+         self.__class__._dbg_default_active = False
+
+   def dbg_is_active(self):
+      return getattr(self, "_dbg_instance_active", self._dbg_default_active)
+
+   def raise_error(self, anError, *, bail_out=True, esc=False):
+      if self.dbg_is_active():
+         self._dbgmgr.err(anError, src=DbgClient.mycallersname(), bail_out=bail_out)
+      elif isinstance(anError, Exception):
+         raise anError
+      else:
+         raise RuntimeError(anError)
+  
+   def issue_warning(self, aWarning, *, bail_out=False, esc=False):
+      if self.dbg_is_active():
+         self._dbgmgr.warn(aWarning, src=DbgClient.mycallersname())
+      elif bail_out:
+         if isinstance(aWarning, Exception):
+            raise aWarning
+         else:
+            raise RuntimeError(aWarning)
+      else:
+         print(aWarning, file=sys.stderr)
+
+   def dbg_write(self, msg, *, 
+         key=None, src=None, pre=False, style=None, now=False, esc=False
+   ):
+      if not self.dbg_is_active():
+         return False
+      caller = src or self.mycallersname()
+      self.__class__.dbg_write_msg(msg,key=key,src=caller,pre=pre,style=style,now=now,esc=esc)
+      return True
+
+""" <md>
+
+## Introducing your own messages types
+
+Here is [an example](examples/dbgmsg.py) of how to add a new message output style to the debug
+manager's repertoire. Suppose I have a shopping cart as part of some grandiose "`amazin`" app, and I
+want the cart debugging output to stand out among the ton of other stuff that may have to be spit
+out.  I create the new style, and add it to the manager's list as part of initializing the 
+interface.  It will be there whenever I turn debugging on.  The actual output routine just wraps
+the interface's `dbg_write` in order to get `"cart"` as the message style.  
+
+<pre class="exampleCode">
+
+import dbg 
+from idbg import DbgClient
+
+class ShoppingCart(DbgClient):
+   @classmethod
+   def prepare_for_debugging(self):
+      configure_debugging("sc", "sc")
+      CART_STYLE = &quot;&quot;&quot;{color: #000000; background-color: #00FF00; font-weight: bold;
+         border: 2px solid green; margin-left: 1em;}
+         &quot;&quot;&quot;
+      self._dbgmgr.addstyleclass("cart", CART_STYLE) 
+
+   def cart_output(self, msg, *, key="sc", pre=False, src=None):
+      if not src: src = self.mycallersname()
+      self.dbg_write(msg, key=key, pre=pre, src=src, style="cart")
+
+dbg.openDbgMgr("sc")           # start buffered debugging output logging for the app
+ShoppingCart.start_debugging() # activate debugging for the class
+sc = ShoppingCart()            # debugging on with the default guard pattern "sc"
+
+sc.dbg_write("This should be logged as ordinary stuff")
+sc.cart_output("But this should look like 'cart' output")
+
+# ... do other stuff, and when you are done, close up shop:
+dbg.getDbgMgr().close(after="Good buy now") # flush and close the stream
+
+</pre>
+
+I probably wouldn't use that style spec in real life, but you get the idea! 
+
+## Other examples
+
+The Java part of me caused me to think of `DbgClient` as an interface originally.  Thanks to
+Python's supporting multiple inheritance, the interface can be realized as the class that implements
+it, avoiding some lines of more or less redundant code. You can see the  Python approach in action
+in [`vblist`](vblist.html#the-vblist-instance-api). This class inherits from three bases, one of
+which is `DbgClient`.  Check out how `DbgClient`'s `raise_error` is used throughout `vblist` to
+raise exceptions while also being able to capture the messages for the debugging stream, should that
+be desired. Meanwhile, `dbg_write` is called to spit out any debugging output.  That the real work
+is being delegated to some distant debugging manager is mercifully hidden.
+
+> Another thing to notice about `vblist` is the way `configure_debugging` is called by `vblist`
+immediately following the definition of `vblist`.  It is important _not_ to call
+`configure_debugging` using `DbgClient` directly from within an extending class's body, because
+it will be `DbgClient`'s copy of the state that will be affected, not `vblist`'s.
+
+`vblist`'s testing code, [vblist.test.py](examples/vblist.test.py), gives an illustration of a
+"main" managing what and when debugging is to be streamed.  Normal output for the test is `stdout`.
+With debugging on, exceptions that would be ignored (because "`dieOnFail`" is `False` for some list
+or queue operation) have their messages captured in the debugging output stream.
+
+The moral here is that while it may seem redundant to have `dbg` _and_ `idbg` when `dbg` alone would
+seem to do, I think it is better design.  It is very rare that a low-level module like `vblist` is a
+convenient place to put the responsibility for managing debugging output. Someone else a lot higher
+up the food chain, like the app's "main", will be in a better position to know when to do it and
+what to do. Low-level users need merely extend `DbgClient`, and if one does this consistently, one
+winds up with a consistent vocabulary for debugging chores across all of one's code.
+
+Modules cannot extend base classes and therefore require yet a different approach from classes.  I
+do not have a good general strategy for this.  An example can be found in [`fileutils`
+module](fileutils.html).  A private class in that module does inherit from `DbgClient` and is used
+to maintain state for the module as well as to provide the API for the debugging manager.  As you
+would expect, there are public module-level methods for starting, stopping, and ending debugging
+output.  I am not altogether happy with this code, but for the moment, I don't see a cleaner
+approach.
+
+""" # </md>

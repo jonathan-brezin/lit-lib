@@ -1,0 +1,311 @@
+""" <head> 
+Title: Inheritance dictionaries: a pure Python <span class="titleCode">mappingproxy</span>
+Author: Jonathan Brezin
+Date: November, 2015
+Show source: yes
+""" # </head>
+
+import sysutils as su
+from collections import UserList
+from delegator import *
+from copy import copy
+from itertools import chain
+from readonlydict import ReadonlyDictAPI
+import reprlib
+
+""" <md>
+
+##  Overview ##
+
+The intention is to mimic, in pure Python, the `mappingproxy` class that the Python runtime uses to
+implement attribute inheritance in the class hierarchy.  I call my class "`InheritanceDict`". This
+was an instructive exercise for several reasons, perhaps the most useful being that it forced me to
+understand how to write an abstract base class cleanly (easy enough to do, but there's a first time
+for everything).
+
+Simple, static inheritance can be implemented as a read-only tuple of read-only dictionaries.  The
+later a dictionary appears in the tuple, the higher it is in the inheritance chain, the object's own
+dictionary being the first entry.  Python allows multiple inheritance which it reduces to the same
+picture by having an algorithm for linearizing the class attribute dictionaries that are to be
+searched.  
+
+Python, being dynamic, allows the creation and deletion of attributes for a given class or object on
+the fly.  Thus, it requires both read-only access to a (short) sequence of dictionaries and read-
+write access to another dictionary that  represents the effect of runtime modifications to the
+class's (or object's) attributes.  Furthermore, the entries in the list of inherited dictionaries
+must be the read-write local dictionaries for the classes the object's class extends, because each
+class in the inheritance hierarchy can modify its own local dictionary.
+even though the extending class cannot modify them (nor even see
+them as separate objects) using the `InheritanceDict` API.
+
+## The read-only (aka "static") side of inheritance ##
+
+### The class <code>ReadOnlyInheritance</code> ###
+
+This implements  the read-only part of the `dict` API for accessing not one, but a tuple of
+dictionaries.  What is critical here is the use case for which this class was meant: a tuple of
+__`dict`__'s that implement multiple inheritance for attributes of a class or instance of a class.
+One expects that the number of entries in such a tuple is at most several tens, even in the most
+extreme cases. This allows me to implement key lookup by simply walking the members of the sequence
+in order and returning the first successful fetch.
+
+There is another subtlety here.  While the user of a `ReadOnlyInheritance` instance cannot use it
+itself to modify any of the dictionaries in the tuple, the dictionaries's actual owners certainly
+can. As I pointed out above, this is a necessary capability for implementing dynamic inheritance. It
+follows that it is more or less impossible to cache key/value pairs once found in order to avoid
+having always to work back through the dictionaries tuple.  Neither the location of the key nor its
+value need remain the same.  
+
+> One can easily create an extension of this class that copies each dictionary into a
+[`FrozenDict`](frozendict.html) before adding it to the tuple, and that, whenever a request for a
+key's value is made, caches the pair in an ordinary `dict`.  One had better be sure, though, that
+that sort of static behavior is correct.
+
+#### The constructor: <code>ReadOnlyInheritance(&lowast;args)</code> ####
+
+The arguments for `ReadOnlyInheritance`'s constructor are either iterables for an ordered collection
+of objects implementing the `ReadonlyDictAPI`, or are individual objects that implement it.  
+
+""" # </md>
+
+class ReadOnlyInheritance(ReadonlyDictAPI):
+   def __init__(self, *args):
+      theList = []
+      for arg in args:
+         if ReadonlyDictAPI.isimplementedby(arg):
+            theList.append(arg)
+         else:
+            for entry in arg:
+               if ReadonlyDictAPI.isimplementedby(arg):
+                  theList.append(entry)
+               else:
+                  msg ="A read-only dictionary was expected, but {0} was provided"
+                  raise TypeError(msg.format(su.a_classname(entry)))
+      self._all = tuple(theList)
+      self._size = None # computed lazily--may never be needed
+
+   def __len__(self):
+      if self._size is None:
+         keys = set()
+         for dcnry in self._all:
+            for key in dcnry: keys.add(key)
+         self._size = len(keys)
+      return self._size
+
+   def __getitem__(self, key):
+      for dcnry in self._all:
+         if key in dcnry: return dcnry[key]
+      raise KeyError("'{0}' was not found".format(key))
+
+   def __contains__(self, key):
+      for dcnry in self._all:
+         if key in dcnry: return True
+      return False
+
+   def __iter__(self):  # no, you cannot just chain the dcnry.iters for dcnry in self._all
+      return self.keys()
+
+   def __repr__(self):
+      return "{0}{1}".format(self.__class__.__name__, reprlib.repr(self._all))
+
+   def __str__(self): return str(self._all)
+
+   def get(self, key, default=None):
+      '''Return the value for `key` if present, `default` otherwise.'''
+      for dcnry in self._all:
+         if key in dcnry:
+            return dcnry[key]
+      return default
+
+   def copy(self):
+      return self.__class__(self._all)
+
+   def items(self):
+      keys = set()
+      for dcnry in self._all:
+         for key in dcnry: 
+            if not key in keys:
+               keys.add(key)
+               yield (key, dcnry[key]) 
+
+   def keys(self):
+      keys = set()
+      for dcnry in self._all:
+         for key in dcnry:
+            if not key in keys:
+               keys.add(key)
+               yield key  
+
+   def values(self):
+      keys = set()
+      for dcnry in self._all:
+         for key in dcnry: 
+            if not key in keys:
+               keys.add(key)
+               yield dcnry[key]
+
+""" <md>
+
+## Dynamic inheritance ##
+
+### The class <code>InheritanceDict</code> ###
+
+We come at last the _raison d'etre_ for this module, `InheritanceDict`s.  They are designed so that,
+in order to get the behavior of a class hierarchy inheritance chain, one can use an
+`InheritanceDict` for the `__dict__` attribute of a `class` or `class` instance.
+
+Python classes are objects like any other and may acquire (and lose) attributes at any time during a
+program's execution. Therefore, I need an implementation that is bullet-proof in tracking runtime
+changes to these keys and their values. This makes it a little slow to look up an attribute if it is
+buried in a dictionary that comes from a distant ancestor, which is to say, is buried deep in the
+list of superclasses. I count on the list size being of the order of several tens of superclasses.
+
+Computing the number of attributes is not only slow, it also uses space.  The reason is simple: you
+have to track the attributes you have seen, so that the same key is not counted twice.  Iterators
+like `keys()` aren't too slow, but they pay the same space penalty for the same reason.  _You have
+been warned._
+
+#### The constructor: <code>InheritanceDict(inherited=ReadOnlyInheritance(), keytype=str)</code> #### 
+
+The arguments for the constructor are 
+
+> `inherited`: a `ReadOnlyInheritance` instance that contains the inherited keys.  The default is
+an empty set.
+
+> `keytype`: the (Python) type of the key.  Any hashable type will do.  The default is the obvious
+one: `str`.
+
+In Python, inherited attributes are "copy on write".  This means that if an assignment is made to
+an inherited attribute, that attribute is added as a key to the local dictionary if it is not
+already there, and the new value is saved in the local copy, so that other objects inheriting the
+attribute do not see the modified value. 
+
+I remind you that if an attribute's value is a list, or some other mutable object, modifying the
+contents of the value does NOT create a local copy of the attribute. Modifying the state of an
+attribute's value is NOT necessarily the same as assigning the attribute a new value.
+
+The API is the same as that for [`dict`](https://docs.python.org/3/library/stdtypes.html#dict),
+except that `popkey()` is  not supported, and there is one additional public method:
+
+#### <code>isOwn(key)</code> ####
+
+The method returns `True` if the key is in the local dictionary; otherwise it returns `False`.
+Whether the key was inherited initially and only got into the local dictionary on being assigned a
+value is beside the point.  All that matters is that it is now in the local dictionary.  This notion
+is the analogue for Python of a JavaScript object's "own properties".
+ 
+""" # </md>
+class InheritanceDict:
+
+   def __init__(self, inherited=ReadOnlyInheritance(), keytype=str):
+      self.own = {}              # cf JavaScript's "own" versus "inherited" properties
+      self.inherited = inherited # read-only access to a set of keys
+      self.keytype = keytype     # I enforce this: a key must be an instance of keytype
+      self.overrides = 0         # used to speed up computing the size of the whole key set a bit
+
+   def __len__(self):
+      return len(self.own) + len(self.inherited) - self.overrides
+
+   def __getitem__(self, key):
+      self._vetkey(key)
+      return self.own.__getitem__(key) if key in self.own else self.inherited.__getitem__(key)
+
+   def __setitem__(self, key, value):
+      self._vetkey(key)
+      if key in self.inherited and not key in self.own:
+         self.overrides += 1
+      self.own.__setitem__(key, value)
+
+   def __delitem__(self, key):
+      self._vetkey(key)
+      value = self.own[key]     # should throw a KeyError is key is NOT present 
+      if key in self.inherited: # if the key is an override, make sure we keep that count correct
+         self.overrides -= 1
+      self.own.__delitem__(key)
+      return value
+
+   def __contains__(self, key):
+      self._vetkey(key)
+      if self.own.__contains__(key):
+         return True
+      else:
+         for table in self.inherited:
+            if table.__contains__(key):
+               return True
+         return False
+
+   def __iter__(self): return self.keys()
+
+   def __reversed__(self): DOES_NOT_IMPLEMENT_REVERSAL(self)
+
+   def __repr__(self):
+      return "{0} {1}".format(self.__class__.__name__, reprlib.repr(self.own))
+
+   def __str__(self): return str(self.own)
+
+   def _vetkey(self, key):
+      if not isinstance(key, self.keytype):
+         wanted = self.keytype
+         got = type(key)
+         raise TypeError(
+            "Key of type {0} expected, but {1} has type {2}".format(wanted, key, got)
+            )
+
+   def clear(self):
+      # remove all items from the local dictionary.  Inherited values are unaffected
+      self.own.clear()
+
+   def copy(self):
+      # Return a shallow copy as a InheritanceDict.
+      clone = InheritanceDict(self.inherited, self.keytype)
+      clone.own = self.own.copy()
+      clone.overrides = self.overrides
+      return clone
+
+   def get(self, key, default=None):
+      try:
+         return self[key]
+      except:
+         return default
+
+   def isOwn(self, key):
+      return key in self.own
+
+   def items(self):
+      ours = ((key, self.own[key]) for key in self.own)
+      theirs = ((key, self.inherited[key]) for key in self.inherited if not key in self.own)
+      return chain(ours, theirs)
+
+   def keys(self):
+      ours = iter(self.own)
+      theirs = (key for key in self.inherited if not key in self.own)
+      return chain(ours, theirs)
+
+   def pop(self, key, default = None):
+      if key not in self.own:
+         return default
+      else:
+         return self.__delitem__(key)
+
+   def popkey(self):
+      msg = "random key removal is not supported by {0}".format(su.a_classname(self))
+      raise NotImplementedError(msg)
+
+   def setdefault(self, key, default=None): 
+      if self.__contains__(key):
+         return self[key]
+      else:
+         self.__setitem__(key, default)
+         return default
+
+   def update(self, dictLike={}, **kwargs):
+      for key in dictLike:
+         self.__setitem__(key, dictLike[key])
+      for key in kwargs:
+         self.__setitem__(key, kwargs[key])
+
+   def values(self):
+      ours = (self.own[key] for key in self.own)
+      theirs = (self.inherited[key] for key in self.inherited if not key in self.own)
+      return chain(ours, theirs)
+

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Random Matrix and Vector Generation</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Random Matrix and Vector Generation</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">May, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#overview-the-class-randomdist">Overview: the class <code>RandomDist</code></a><ul>
+<li><a href="#the-constructor-randomdistoptions">The constructor <code>RandomDist(options)</code></a></li>
+<li><a href="#command-line-support">Command line support</a><ul>
+<li><a href="#setcmdlineargscmdlineparser-and-fromcmdline"><code>setCmdLineArgs(cmdlineparser)</code> and <code>fromCmdLine()</code></a></li>
+</ul></li>
+<li><a href="#vector-and-list-computations">Vector and list computations</a><ul>
+<li><a href="#listsize"><code>list(size)</code></a></li>
+<li><a href="#vectorsize-unit_vectorsize"><code>vector(size)</code><br /><code>unit_vector(size)</code></a></li>
+</ul></li>
+<li><a href="#matrix-output-formats">Matrix output formats</a><ul>
+<li><a href="#sparse_arrayshape-pct-tgt"><code>sparse_array(shape, pct, tgt)</code></a></li>
+<li><a href="#matrixshape-tgt-square_matrixself-dim-tgt"><code>matrix(shape, tgt)</code><br /><code>square_matrix(self, dim, tgt)</code></a></li>
+<li><a href="#diagonally_dominant_matrixself-dim-pct-tgt"><code>diagonally_dominant_matrix(self, dim, pct, tgt)</code></a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">import</span> cmdlineparser <span class="ch">as</span> clp
+<span class="ch">import</span> math
+<span class="ch">import</span> numpy <span class="ch">as</span> np
+<span class="ch">import</span> nputils <span class="ch">as</span> npu
+<span class="ch">import</span> os
+<span class="ch">import</span> random <span class="ch">as</span> rndm
+<span class="ch">import</span> sysutils <span class="ch">as</span> su
+</code></pre>
+<h2 id="overview-the-class-randomdist">Overview: the class <code>RandomDist</code></h2>
+<p><code>RandomDist</code> is intended to simplify using the command line to generate various kinds of random sequences and matrices. It works by using some simple wrappers around the Python standard library module <a href="https://docs.python.org/3/library/random.html"><code>random.py</code></a>.</p>
+<h4 id="the-constructor-randomdistoptions">The constructor <code>RandomDist(options)</code></h4>
+<p>The argument, <code>options</code>, may have its keys either as attributes or as keys accessible using the <code>[]</code> operator. The values will be looked up first as an attribute, and failing that, as key, so that the options can be supplied in whichever way is convenient.</p>
+<p>The constructor assigns to the field “<code>dist</code>” a zero-argument function which wraps an iterator for a random sequence of the desired type as specified in the options. The attributes for <code>options</code> relevant to the probability distributions, together with their default values, are:</p>
+<blockquote><table border="1">
+
+<tr><td>
+<code>dist</code>   
+</td><td>  
+probability distribution to use: either a zero-argument function or one of the strings {<code>&quot;uniform&quot;</code>, <code>&quot;triangular&quot;</code>, <code>&quot;exponential&quot;</code>, <code>&quot;gaussian&quot;</code>, <code>&quot;logNormal&quot;</code>, <code>&quot;normal&quot;</code>}. The default is <code>&quot;uniform&quot;</code>.
+</td></tr>
+
+<tr><td>
+<code>int</code>   
+</td><td> 
+if <code>True</code>, then random integer values only; the default is <code>False</code>.
+</td></tr>
+
+<tr><td>
+<code>lambd</code>   
+</td><td> 
+used by the exponential distribution: it is 1/(the mean) and defaults to <code>1.0</code>. Why ‘lambd’ and not ‘lambda’? Because ‘lambda’ is a Python reserved word.
+</td></tr>
+
+<tr><td>
+<code>max</code>   
+</td><td> 
+upper bound on values for those distributions where this is relevant. The default is <code>32767</code>–that is, small enough that a 16-bit int can be used for the value, should they be integers only.
+</td></tr>
+
+<tr><td>
+<code>min</code>   
+</td><td> 
+lower bound on values for those distributions where this is relevant. As for <code>max</code>, the default, <code>-32767</code>, is set to allow 16-bit ints to hold the values.
+</td></tr>
+
+<tr><td>
+<code>mode</code>   
+</td><td>
+for the triangular distribution only: its mode, default: <code>None</code>.
+</td></tr>
+
+<tr><td>
+<code>mu</code>   
+</td><td> 
+mean for the normal distribution and its relatives, the default being <code>0.0</code>.
+</td></tr>
+
+<tr><td>
+<code>sigma</code>   
+</td><td> 
+standard deviation for the normal distribution and its relatives, the default being <code>1.0</code>
+</td></tr>
+
+</table></blockquote>
+
+<p>The attributes relevant to NumPy matrix and Python list creation are:</p>
+<blockquote><table border="1">
+
+<tr><td>
+<code>dtype</code>   
+</td><td> 
+the name or the type, in the sense of NumPy numeric types, of the value desired. It is <code>float</code> by default, which gets you 64-bit floats. See the <a href="nputils.html"><code>nputils</code> module</a>.
+</td></tr>
+
+<tr><td>
+<code>pct</code>   
+</td><td> 
+when sparse arrays are desired, what percentage of the array (or vector) to fill. The default is to fill the whole matrix. You must specify a percentage if you want less than that.
+</td></tr>
+
+<tr><td>
+<code>shape</code>   
+</td><td> 
+for arrays, either an <code>int</code> <code>tuple</code> <code>(rrr,ccc)</code> or a string of the form <code>&quot;rrr,ccc&quot;</code> in which <code>rrr</code> and <code>ccc</code> are the number of rows and columns, respectively; and for vectors either an <code>int</code>, an <code>int</code> <code>tuple</code> with one entry, or a string that is the dimension of the vector. No blanks are allowed in the <code>rrr,ccc</code> value when passing it in as a command-line string parameter value. There is no reasonable default.
+</td></tr>
+
+<tr><td>
+<code>path</code>   
+</td><td> 
+locates a directory in which to save the any matrices that get generated, should “save” be requested. The default is the current working directory, <code>&quot;.&quot;</code>.
+</td></tr>
+
+<tr><td>
+<code>save</code>   
+</td><td>  
+<p>By default, any generated matrices are simply returned to the caller. If <code>save is specified, its value should be one of</code>“csv”<code>,</code>“npy”<code>,</code>“npz”<code>or</code>“txt”<code>.</code>“npy”<code>and</code>“npz” <code>use NumPy's  [</code>save<code>and</code>savez<code>methods](docs.scipy.org/doc/numpy/reference/routines.io.html). See [</code>nputils<code>](nputils.html#matrix-file-io) for the file-naming conventions and for the</code>write…<code>methods used to save</code>“csv”<code>and</code>“txt”` files.</p>
+<p>Saving to an <code>&quot;.npz&quot;</code> file uses NumPy’s default field names: <code>&quot;arr0</code>“, <code>&quot;arr1</code>”`, and so on.</p>
+</td></tr>
+
+</table></blockquote>
+
+<p>Finally, the inevitable <a href="dbg.html">debugging keys</a>:</p>
+<blockquote><table border="1">
+
+<tr><td>
+<code>dbg</code>      
+</td><td> 
+a comma-separated list of keys to filter debugging output. The default is no output.
+</td></tr>
+
+</table></blockquote>
+
+
+<pre class="sourceCode python"><code class="sourceCode python">
+_DEFAULTS = {
+   <span class="st">'dbg'</span>:    <span class="st">&quot;&quot;</span>,       <span class="co"># usual debugging output comma-separated list of keys</span>
+   <span class="co">'dist'</span>:  <span class="st">'uniform'</span>, <span class="co"># see https://docs.python.org/3.4/library/random.html for others</span>
+   <span class="co">'dtype'</span>:  np.<span class="dt">float</span>, <span class="co"># NumPy numeric type: see the NumPy.matrix documentation</span>
+   <span class="co">'int'</span>:    <span class="ot">False</span>,    <span class="co"># wants integer values only?</span>
+   <span class="co">'lambd'</span>:  <span class="fl">1.0</span>,      <span class="co"># in case dist is &quot;exponential&quot;</span>
+   <span class="co">'max'</span>:    <span class="dv">32767</span>,    <span class="co"># bound on the value of an individual entry that fits in 16 bits</span>
+   <span class="co">'mode'</span>:   <span class="ot">None</span>,     <span class="co"># for the triangular distribution: no obvious default</span>
+   <span class="co">'min'</span>:   -<span class="dv">32767</span>,    <span class="co"># lower bound on the value of an individual entry</span>
+   <span class="co">'mu'</span>:     <span class="fl">0.0</span>,      <span class="co"># the mean for the normal-like distributions</span>
+   <span class="co">'path'</span>:   <span class="st">'.'</span>,      <span class="co"># locates a directory where any generated files are stored</span>
+   <span class="co">'pct'</span>:    <span class="fl">100.0</span>,    <span class="co"># for random matrices: what percentage of the entries to fill in</span>
+   <span class="co">'save'</span>:   <span class="ot">None</span>,     <span class="co"># the extension to use for the generated file if any.</span>
+                       <span class="co"># The default is not to save the matrix at all.</span>
+   <span class="co">'sigma'</span>:  <span class="fl">1.0</span>,      <span class="co"># standard deviation for the normal-like distributions,</span>
+   <span class="co">'shape'</span>:  <span class="ot">None</span>,     <span class="co"># the shape to use for NumPy matrices</span>
+}
+
+_DISTRIBUTIONS = { <span class="co"># I wrap some of the &quot;random&quot; module's distributions</span>
+   <span class="st">'uniform'</span>:     <span class="kw">lambda</span> options: <span class="kw">lambda</span>: rndm.uniform(options.<span class="dt">min</span>, options.<span class="dt">max</span>),
+   <span class="co">'triangular'</span>:  <span class="kw">lambda</span> options: <span class="kw">lambda</span>: rndm.triangular(options.<span class="dt">min</span>, options.<span class="dt">max</span>, options.mode),
+   <span class="co">'exponential'</span>: <span class="kw">lambda</span> options: <span class="kw">lambda</span>: rndm.expovariate(options.lambd),
+   <span class="co">'gaussian'</span>:    <span class="kw">lambda</span> options: <span class="kw">lambda</span>: rndm.gauss(options.mu, options.sigma),
+   <span class="co">'logNormal'</span>:   <span class="kw">lambda</span> options: <span class="kw">lambda</span>: rndm.lognormvariate(options.mu, options.sigma),
+   <span class="co">'normal'</span>:      <span class="kw">lambda</span> options: <span class="kw">lambda</span>: rndm.normalvariate(options.mu, options.sigma)
+}
+
+_PARAMETERS = { <span class="co"># maps distribution names to what parameters they depend on</span>
+   <span class="st">'uniform'</span>:     (<span class="st">&quot;min&quot;</span>, <span class="st">&quot;max&quot;</span>),
+   <span class="co">'triangular'</span>:  (<span class="st">&quot;min&quot;</span>, <span class="st">&quot;max&quot;</span>, <span class="st">&quot;mode&quot;</span>),
+   <span class="co">'exponential'</span>: (<span class="st">&quot;lambd&quot;</span>,),
+   <span class="co">'gaussian'</span>:    (<span class="st">&quot;mu&quot;</span>, <span class="st">&quot;sigma&quot;</span>),
+   <span class="co">'logNormal'</span>:   (<span class="st">&quot;mu&quot;</span>, <span class="st">&quot;sigma&quot;</span>),
+   <span class="co">'normal'</span>:      (<span class="st">&quot;mu&quot;</span>, <span class="st">&quot;sigma&quot;</span>)
+} 
+
+<span class="kw">class</span> RandomDist:
+
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, options):
+      <span class="kw">for</span> attr in _DEFAULTS: 
+         <span class="co"># make sure that self has all possible attributes with some value</span>
+         <span class="ot">self</span>.<span class="ot">__setattr__</span>(attr, su.getvalue(options, attr, _DEFAULTS[attr]))
+      <span class="kw">if</span> <span class="ot">self</span>.dist in _PARAMETERS: 
+         parms = _PARAMETERS[<span class="ot">self</span>.dist]
+         distDescription = <span class="st">&quot;&quot;</span> <span class="co"># strictly for debugging</span>
+         <span class="kw">for</span> parm in parms:
+            value = su.getvalue(options, parm, _DEFAULTS[parm])
+            distDescription += <span class="st">&quot;{} = {},&quot;</span>. <span class="dt">format</span>(parm, value)
+         distDescription = <span class="ot">self</span>.dist+<span class="st">&quot;(&quot;</span> + distDescription[<span class="dv">0</span>:-<span class="dv">1</span>] +<span class="st">&quot;)&quot;</span>
+         <span class="ot">self</span>.<span class="ot">__str__</span>  = <span class="kw">lambda</span>: distDescription
+         floatDist = _DISTRIBUTIONS[<span class="ot">self</span>.dist](<span class="ot">self</span>)
+         intOnly   = su.getvalue(options, <span class="st">&quot;int&quot;</span>, _DEFAULTS[<span class="st">&quot;int&quot;</span>])
+         <span class="ot">self</span>.dist = <span class="kw">lambda</span>: math.floor(floatDist()) <span class="kw">if</span> intOnly <span class="kw">else</span> floatDist()
+      <span class="kw">else</span>:
+         msg = <span class="st">&quot;'</span><span class="ot">{0}</span><span class="st">' is not a recognized distribution name.&quot;</span>
+         <span class="kw">raise</span> <span class="ot">AttributeError</span>(msg.<span class="dt">format</span>(<span class="ot">self</span>.dist))
+      <span class="co"># Set and vet self.shape: on entry it is either None, a string, a tuple, or an int </span>
+      <span class="kw">if</span> <span class="ot">self</span>.shape is not <span class="ot">None</span>:
+         <span class="kw">if</span> <span class="dt">isinstance</span>(<span class="ot">self</span>.shape, <span class="dt">str</span>): 
+            parts = <span class="dt">tuple</span>([<span class="dt">int</span>(part) <span class="kw">for</span> part in <span class="ot">self</span>.shape.split(<span class="st">','</span>)])
+         <span class="kw">elif</span> <span class="dt">isinstance</span>(<span class="ot">self</span>.shape, <span class="dt">int</span>):
+            <span class="ot">self</span>.shape = (<span class="ot">self</span>.shape,)
+         <span class="kw">elif</span> not <span class="dt">isinstance</span>(<span class="ot">self</span>.shape, <span class="dt">tuple</span>):
+            msg = <span class="st">&quot;Expected a str, tuple, or int, but got </span><span class="ot">{0}</span><span class="st">&quot;</span>
+            <span class="kw">raise</span> <span class="ot">TypeError</span>(msg.<span class="dt">format</span>(su.a_classname(<span class="ot">self</span>.shape)))
+      <span class="ot">self</span>.dtype = npu.numpytype(<span class="ot">self</span>.dtype)
+      <span class="ot">self</span>.generated = ([],[]) <span class="kw">if</span> <span class="ot">self</span>.save == <span class="st">'npz'</span> <span class="kw">else</span> <span class="ot">None</span>
+</code></pre>
+<h3 id="command-line-support">Command line support</h3>
+<h4 id="setcmdlineargscmdlineparser-and-fromcmdline"><code>setCmdLineArgs(cmdlineparser)</code> and <code>fromCmdLine()</code></h4>
+<p>These are the usual two methods expected by <code>cmdlineparser.parse_args()</code>.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> setCmdLineArgs(parser):
+      defaults = _DEFAULTS
+      parser.add_a_flag(<span class="st">'-int'</span>,   <span class="st">'random integer values only'</span>)
+      parser.add_a_str(<span class="st">'-dbg'</span>,     defaults[<span class="st">'dbg'</span>],   <span class="st">'turn on debugging output'</span>)
+      parser.add_a_str(<span class="st">'-dist'</span>,    defaults[<span class="st">'dist'</span>],  <span class="st">'probability distribution to use'</span>)
+      parser.add_a_str(<span class="st">'-dtype'</span>,   defaults[<span class="st">'dtype'</span>], <span class="st">'NumPy type name for the entries'</span>)
+      parser.add_a_str(<span class="st">'-shape'</span>,   defaults[<span class="st">'shape'</span>], <span class="st">'rowsxcols,... string'</span>)
+      parser.add_a_float(<span class="st">'-lambd'</span>, defaults[<span class="st">'lambd'</span>], <span class="st">'for the exponential distribution'</span>)
+      parser.add_a_float(<span class="st">'-max'</span>,   defaults[<span class="st">'max'</span>],   <span class="st">'upper bound on entries'</span>)
+      parser.add_a_float(<span class="st">'-min'</span>,   defaults[<span class="st">'min'</span>],   <span class="st">'lower bound on entries'</span>)
+      parser.add_a_float(<span class="st">'-mode'</span>,  defaults[<span class="st">'mode'</span>],  <span class="st">'mode for triangular distribution'</span>)
+      parser.add_a_float(<span class="st">'-mu'</span>,    defaults[<span class="st">'mu'</span>],    <span class="st">'mean for normal distribution'</span>)
+      parser.add_a_float(<span class="st">'-pct'</span>,   defaults[<span class="st">'pct'</span>],   <span class="st">'percentage of entries to fill in'</span>)
+      parser.add_a_float(<span class="st">'-sigma'</span>, defaults[<span class="st">'sigma'</span>], <span class="st">'std. dev. for the normal distribution'</span>)
+
+   <span class="kw">def</span> fromCmdLine():
+      args = clp.parse_args(RandomDist, usage=<span class="st">&quot;generate sets of random values&quot;</span>)
+      <span class="kw">return</span> RandomDist(args)
+</code></pre>
+<h3 id="vector-and-list-computations">Vector and list computations</h3>
+<h4 id="listsize"><code>list(size)</code></h4>
+<p>returns a random <code>list</code> whose size is <code>size</code> using <code>self</code>’s distribution. You may pass an integer literal string, an <code>int</code> or an <code>int</code> 1-<code>tuple</code> as the argument value..</p>
+<h4 id="vectorsize-unit_vectorsize"><code>vector(size)</code><br /><code>unit_vector(size)</code></h4>
+<p>Both return a <code>numpy</code> “<code>ndarray</code>” whose dimension is <code>size</code> and whose values are distributed according to <code>self</code>’s distribution. The unit vector case returns a vector with Euclidean norm 1.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> _size2tuple(size):
+      the_tuple = npu.to_shape(size)
+      <span class="kw">if</span> <span class="dt">len</span>(the_tuple) == <span class="dv">1</span>: 
+         <span class="kw">return</span> the_tuple
+      <span class="kw">else</span>:
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Expected an integer 1-tuple, but got {}.&quot;</span>.<span class="dt">format</span>(the_tuple))
+
+   <span class="kw">def</span> <span class="dt">list</span>(<span class="ot">self</span>, size):
+      <span class="kw">return</span> [<span class="ot">self</span>.dist() <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, RandomDist._size2tuple(size)[<span class="dv">0</span>])]
+
+   <span class="kw">def</span> vector(<span class="ot">self</span>, size, path=<span class="ot">None</span>, ext=<span class="st">&quot;npy&quot;</span>):
+      vector = np.zeros(RandomDist._size2tuple(size), dtype=<span class="ot">self</span>.dtype)
+      <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>,<span class="dt">len</span>(vector)): vector[n] = <span class="ot">self</span>.dist()
+      <span class="kw">if</span> path != <span class="ot">None</span>:
+         npu.writearray(path, vector, ext)
+      <span class="kw">return</span> vector
+
+   <span class="kw">def</span> unit_vector(<span class="ot">self</span>, shape_info, path=<span class="ot">None</span>, ext=<span class="st">&quot;npy&quot;</span>):
+      shape = npu.to_shape(shape_info)
+      vector = np.zeros(shape)
+      norm_squared = <span class="fl">0.0</span>
+      flat = vector.reshape((npu.sizefromshape(shape),))
+      <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, vector.size):
+         vector[n] = x = <span class="ot">self</span>.dist()
+         norm_squared += x*x
+      vector /= math.sqrt(norm_squared)
+      <span class="kw">if</span> path != <span class="ot">None</span>:
+         npu.writearray(path, vector, ext)
+      <span class="kw">return</span> vector
+
+</code></pre>
+<h3 id="matrix-output-formats">Matrix output formats</h3>
+<h4 id="sparse_arrayshape-pct-tgt"><code>sparse_array(shape, pct, tgt)</code></h4>
+<p>creates a matrix only a (small) percentage of whose values are non-zero. The keyword <code>pct</code> is that percentage. Be careful: percentage really means “percentage”, not “fraction”. The default value for the percentage is <code>self.pct</code>, and the default for <code>self.pct</code> is <code>100.0</code>. The keyword argument <code>shape</code> is the usual <code>numpy</code> shape <code>tuple</code> specification. The default is <code>self.shape</code>, but the latter has no reasonable default: the owner of <code>self</code> has to set it. The final keyword argument is <code>tgt</code>, which is a directory path for an existing directory into which to write the matrix, once created. The default value is <code>None</code>, and when that is the case, <code>self.tgt</code> will be used. If that value is also <code>None</code>, no persistent copy of the matrix will be made.</p>
+<p>This naive implementation distributes the entries uniformly in the matrix.</p>
+<h4 id="matrixshape-tgt-square_matrixself-dim-tgt"><code>matrix(shape, tgt)</code><br /><code>square_matrix(self, dim, tgt)</code></h4>
+<p>fills in an entire matrix with random values. <code>square_matrix</code> wraps <code>matrix</code> to create a square matrix with <code>dim</code> rows and <code>dim</code> columns. If <code>dim</code> is none, <code>self.shape[0]</code> will be used. <code>matrix</code> uses its keyword argument <code>shape</code> for the shape tuple if it is not <code>None</code>; otherwise, it uses <code>self.shape</code>. <code>tgt has the same meaning here as for</code>sparse_array`.</p>
+<h4 id="diagonally_dominant_matrixself-dim-pct-tgt"><code>diagonally_dominant_matrix(self, dim, pct, tgt)</code></h4>
+<p>creates a (possibly) sparse square matrix with non-negative entries whose off-diagonal entries are bounded above by the diagonal entries in their row and column. The keyword arguments all have the same meanings as in the 3 method signatures above.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> randomindex(shape):
+      <span class="kw">return</span> <span class="dt">tuple</span>((rndm.randrange(<span class="dv">0</span>, n) <span class="kw">for</span> n in shape))
+
+   <span class="kw">def</span> sparse_array(<span class="ot">self</span>, shape=<span class="ot">None</span>, pct=<span class="ot">None</span>, path=<span class="ot">None</span>, ext=<span class="st">&quot;npy&quot;</span>):
+      <span class="kw">if</span> shape is <span class="ot">None</span>: shape = <span class="ot">self</span>.shape
+      <span class="kw">if</span> pct is <span class="ot">None</span>: pct = <span class="ot">self</span>.pct
+      entriesToFill = math.floor((npu.sizefromshape(shape)*pct)/<span class="fl">100.0</span>)
+      array = np.zeros(shape, dtype=<span class="ot">self</span>.dtype)
+      <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, entriesToFill):
+         index = randomindex(shape)
+         <span class="kw">while</span> array[index] != <span class="dv">0</span>:
+            index = randomindex(shape)
+         newvalue = <span class="ot">self</span>.dist()
+         <span class="kw">while</span> value == <span class="dv">0</span>:
+            newvalue = <span class="ot">self</span>.dist()
+         array[index] = newvalue
+      <span class="kw">if</span> path != <span class="ot">None</span>: npu.writearray(path, array, ext)
+      <span class="kw">return</span> array
+
+   <span class="kw">def</span> matrix(<span class="ot">self</span>, shape = <span class="ot">None</span>, path=<span class="ot">None</span>, ext=<span class="st">&quot;npy&quot;</span>):
+      <span class="kw">if</span> shape is <span class="ot">None</span>: shape = <span class="ot">self</span>.shape
+      matrix = np.zeros(shape, dtype=<span class="ot">self</span>.dtype)
+      (rows, columns) = shape   
+      <span class="kw">for</span> i in <span class="dt">range</span>(<span class="dv">0</span>,rows):
+         <span class="kw">for</span> j in <span class="dt">range</span>(<span class="dv">0</span>, columns): matrix[i,j] = <span class="ot">self</span>.dist()
+      <span class="kw">if</span> path != <span class="ot">None</span>: npu.writearray(path, matrix, ext)
+      <span class="kw">return</span> matrix
+
+   <span class="kw">def</span> square_matrix(<span class="ot">self</span>, dim=<span class="ot">None</span>, path=<span class="ot">None</span>, ext=<span class="st">&quot;npy&quot;</span>):
+      shape = (dim, dim) <span class="kw">if</span> dim != <span class="ot">None</span> <span class="kw">else</span> <span class="ot">self</span>.shape
+      <span class="kw">return</span> <span class="ot">self</span>.matrix(shape, path, ext)
+
+   <span class="kw">def</span> diagonally_dominant_matrix(<span class="ot">self</span>, dim=<span class="ot">None</span>, pct=<span class="ot">None</span>, path=<span class="ot">None</span>, ext=<span class="st">&quot;npy&quot;</span>):
+      shape = (dim, dim) <span class="kw">if</span> dim != <span class="ot">None</span> <span class="kw">else</span> <span class="ot">self</span>.shape
+      matrix = np.zeros(shape, dtype=<span class="ot">self</span>.dtype)
+      diagonal = np.zeros(dim, dtype=<span class="ot">self</span>.dtype)
+      <span class="kw">if</span> pct is <span class="ot">None</span>: pct = <span class="ot">self</span>.pct
+      entriesToFill = math.floor((dim*dim*pct)/<span class="fl">100.0</span>) - dim
+      <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>,dim):
+         <span class="kw">while</span> diagonal[n] == <span class="dv">0</span>: matrix[n,n] = diagonal[n] = <span class="ot">self</span>.dist()
+      <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, entriesToFill):
+         i = rndm.randrange(<span class="dv">0</span>,dim); j = rndm.randrange(<span class="dv">0</span>,dim)
+         <span class="kw">while</span> matrix[i,j] == <span class="dv">0</span>:
+            i = rndm.randrange(<span class="dv">0</span>,dim); j = rndm.randrange(<span class="dv">0</span>,dim)
+         maxAllowed = <span class="dv">1</span> + <span class="dt">min</span>(diagonal[i], diagonal[j]) <span class="co"># m[i,j] in range(1, maxAllowed) ...</span>
+         matrix[i,j] = <span class="ot">self</span>.dist() % maxAllowed         <span class="co">#     note the &quot;mod&quot; operation here</span>
+         <span class="kw">while</span> matrix[i,j] == <span class="dv">0</span>:                        <span class="co">#     and we don't want 0's</span>
+            matrix[i,j] = <span class="ot">self</span>.dist() % maxAllowed
+      <span class="kw">if</span> path != <span class="ot">None</span>: npu.writearray(path, matrix, ext)
+      <span class="kw">return</span> matrix
+      </code></pre>
+</body>
+</html>

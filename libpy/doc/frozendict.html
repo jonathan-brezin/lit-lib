@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>FrozenDict: a read-only dict</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title"><span class="titleCode">FrozenDict</span>: a read-only <span class="titleCode">dict</span></h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">November, 2015</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#the-class-frozendict">The class <code>FrozenDict</code></a><ul>
+<li><a href="#the-constructor-frozendictmapping">The constructor: <code>FrozenDict(mapping)</code></a></li>
+<li><a href="#some-thoughts-about-the-design">Some thoughts about the design</a><ul>
+<li><a href="#aliases-can-be-a-problem">Aliases can be a problem</a></li>
+<li><a href="#care-about-extending-the-class">Care about extending the class</a></li>
+<li><a href="#why-delegation-and-not-extension">Why delegation and not extension?</a></li>
+</ul></li>
+<li><a href="#and-about-the-implementation">… and about the implementation</a></li>
+</ul></li>
+</ul>
+</nav>
+<h2 id="the-class-frozendict">The class <code>FrozenDict</code></h2>
+<p>This class provides a very simple example of how to decorate a <code>dict</code>-like object as an instance of a class that implements the <a href="readonlydict.html"><code>ReadonlyDictAPI</code></a>.</p>
+<h3 id="the-constructor-frozendictmapping">The constructor: <code>FrozenDict(mapping)</code></h3>
+<p>The argument, <code>mapping</code>, needs to implement the “read” part of the <code>dict</code> API:</p>
+<p><code> __getitem__, __contains__, __iter__, __le__, __len__, copy, get, items, keys, values </code></p>
+<p>For an example of a frozen dictionary’s creation and use, see the delegation test code, <a href="examples/delegate_test.py">“<code>delegate_test.py</code>”</a>.</p>
+<h3 id="some-thoughts-about-the-design">Some thoughts about the design</h3>
+<p>The constructor has to make a copy of <code>mapping</code> for two reasons. First, this is the only way to prevent others with access to <code>mapping</code> from updating what the new frozen dictionary sees. Second, <code>mapping</code> may have attributes other than the set of name/value pairs that one wants to access as if they were native to the <code>FrozenDict</code>, so in the most general case, the new <code>FrozenDict</code> really needs <em>all</em> of <code>mapping</code> available to it. Since <code>mapping</code> is guaranteed to have a <code>copy</code> method, the constructor relies on it to make the copy it needs.</p>
+<blockquote>
+<p>You might ask if, in the interest of saving both time and space, one could avoid copying <code>mapping</code> if one knows that it is already read-only. Again, there are two considerations. First, it is not easy to determine whether <code>mapping</code> is read-only, because mutability, unlike <a href="https://docs.python.org/3/reference/datamodel.html#object.__hash__">hashability</a>, is not a functionally defined attribute of a Python object. Second, even if it were easy, it would not be a good idea, as we want the new <code>FrozenDict</code> to be the only reference to its copy of <code>mapping</code>’s data.</p>
+</blockquote>
+<blockquote>
+<p>In other words, I am trying to make “frozen” really mean what it says: if you want to modify a frozen dictionary, that dictionary itself has to request the thaw. Otherwise, it stays frozen forever. No other piece of code can do it for you. That said, one still has to be a little careful.</p>
+</blockquote>
+<h4 id="aliases-can-be-a-problem">Aliases can be a problem</h4>
+<p>It probably should go without saying, but here goes anyway: do not confuse the frozen dictionary with an identifier whose current value it is. In particular, there is there nothing stopping you from assigning a frozen dictionary to more than one identifier. That can be a bad idea:</p>
+<blockquote>
+<p>Suppose <code>a</code> and <code>b</code> both have the same frozen dictionary as their value. The underlying mapping is visible to both variables as the private field <code>_map</code>. While both <code>a._map</code> and <code>b._map</code> will yield <code>None</code>, there is nothing to stop <code>b</code> from calling <code>object.__getattribute__(&quot;_map&quot;)</code> to rip the underlying mapping out of its protective shell. <code>b</code>’s owner can then modify that mapping, and <code>a</code> will see those modifications.</p>
+</blockquote>
+<blockquote>
+<p>There is a big difference between the owner of <code>a</code> freezing and thawing a dictionary while being fully confident no one else can, versus creating a situation where any of several players might or might not violate the freeze.</p>
+</blockquote>
+<p>A variation on this situation occurs when one has a variable <code>x</code> that has a frozen dictionary as an attribute, <code>x.fd</code>. It is dangerous to pass around references to <code>x.fd</code>. In fact, it is probably even a good idea to make consumers ask <code>x</code> for data from the mapping, rather than allowing them to ask <code>x.fd</code> directly.</p>
+<h4 id="care-about-extending-the-class">Care about extending the class</h4>
+<p>Classes that extend <code>FrozenDict</code> should be careful if they override its <code>copy()</code> method. As it is implemented in this class, <code>copy()</code> calls the constructor for the class of instance of <code>FrozenDict</code> that invoked it.</p>
+<h4 id="why-delegation-and-not-extension">Why delegation and not extension?</h4>
+<p>Why delegate to a field rather than simply extending the mapping’s class and overriding, in the extension, any unwanted “write” methods? That has to be more efficient at run-time, no? Yes, a bit, and one can do it without overriding <code>__getattribute__</code>. Similar techniques, using <a href="https://docs.python.org/3/library/types.html"><code>types.new_class</code></a>, to those implemented by the <a href="delegator.html"><code>delegator</code> module</a> allow one to replace the “write” API of a <code>dict</code>-like class with methods that raise an appropriate exception.</p>
+<p>Extension has one minor hiccup, though. If <code>C</code> is the class that extends the <code>dict</code>-like class <code>D</code>, you can still use <code>super</code> calls to exercise <code>D</code>’s “write” API. I personally think that this makes it too easy to defeat the freeze, because <code>super</code> is a perfectly valid public method. On the other hand, when you delegate to some attribute <code>c._d</code> that you have hidden by providing <code>c</code> with its own version of <code>__getattribute__</code>, things are not nearly so simple. In fact, you need to do the analogue of a <code>super</code> call, which is to use <code>object.__get_attribute__</code>, the method that delegating has deliberately overridden, to pry loose <code>c._d</code> before you access that object directly. If you call <code>object</code>’s <code>__getattribute__</code>, you are making a statement that</p>
+<ol type="1">
+<li><p>you understand what you are doing (the method is not part of the class whose instance you are working with), and</p></li>
+<li><p>the method is not intended for normal usage (it is both private and magical).</p></li>
+</ol>
+<p>So again, why delegate rather than extend? Mainly because I wanted the delegation code for other purposes where extension was not a clean solution. Having written the delegation code, I got lazy and just used it here. That it has some advantages is nice, and that it also has some disadvantages is just the way life is.</p>
+<h3 id="and-about-the-implementation">… and about the implementation</h3>
+<p>Using <code>RO_Dict_Delegator</code> to decorate <code>FrozedDict</code> assures that its “write” API raises errors, rather than performing any operation on the delegate, <code>_map</code>.</p>
+<p>All I ask of the object to be assigned as <code>_map</code>’s value is that it support <code>dict</code>’s “read” API. It may have other methods and attributes of its own that the caller may still want to access as if they were the caller’s own. <code>Dynamic_Delegator</code> replaces <code>FrozenDict</code>’s <code>__setattr__</code> and <code>__getattribute__</code> methods so that <code>self._map</code> itself becomes invisible, but <code>self.x</code> will refer to <code>self._map.x</code> whenever <code>x</code> is an attribute of <code>self._map</code> that is not also an attribute of <code>self</code>.</p>
+<p>Overriding <code>__setattr__</code> affects the constructor, because it makes <code>self._map</code> impossible to initialize by a simple assignment. Instead, the constructor must call <code>object.__setattr__</code>. Overriding <code>__getattribute__</code> affects <code>copy</code> and <code>__str__</code> analogously: <code>self._map</code> is only visible via <code>object.__getattribute__</code>.</p>
+<p>“<a href="delegator.html">delegator.html</a>” has a careful discussion of the “delegate” pattern as well as the two decorators used in this implementation.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> delegator <span class="ch">import</span> *
+<span class="ch">from</span> copy <span class="ch">import</span> copy
+
+<span class="ot">@RO_Dict_Delegator</span>(<span class="st">&quot;_map&quot;</span>)
+<span class="ot">@Dynamic_Delegator</span>(<span class="st">&quot;_map&quot;</span>, excluded=<span class="dt">set</span>( <span class="co"># the &quot;write&quot; API and copy() are NOT delegated!</span>
+      (<span class="st">&quot;__delitem__&quot;</span>,<span class="st">&quot;__setitem__&quot;</span>,<span class="st">&quot;clear&quot;</span>,<span class="st">&quot;copy&quot;</span>,<span class="st">&quot;pop&quot;</span>,<span class="st">&quot;popitem&quot;</span>,<span class="st">&quot;setdefault&quot;</span>,<span class="st">&quot;update&quot;</span>)
+   )
+)
+<span class="kw">class</span> FrozenDict():
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, mapping):
+      <span class="dt">object</span>.<span class="ot">__setattr__</span>(<span class="ot">self</span>, <span class="st">&quot;_map&quot;</span>, mapping.copy())
+
+   <span class="kw">def</span> copy(<span class="ot">self</span>): <span class="co"># not a straightforward delegation: need self's class's constructor</span>
+      <span class="kw">return</span> <span class="ot">self</span>.__class__(<span class="dt">object</span>.<span class="ot">__getattribute__</span>(<span class="ot">self</span>, <span class="st">&quot;_map&quot;</span>))
+
+   <span class="kw">def</span> <span class="ot">__str__</span>(<span class="ot">self</span>):  <span class="co"># for our purposes, a frozen dict is just its mapping made read-only</span>
+      <span class="kw">return</span> <span class="dt">object</span>.<span class="ot">__getattribute__</span>(<span class="ot">self</span>, <span class="st">&quot;_map&quot;</span>).<span class="ot">__str__</span>()
+
+   <span class="kw">def</span> <span class="ot">__repr__</span>(<span class="ot">self</span>): <span class="co"># but from Python's perspective it is constructed by FrozenDict()</span>
+      <span class="kw">return</span> <span class="st">&quot;</span><span class="ot">{0}</span><span class="st">(</span><span class="ot">{1}</span><span class="st">)&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.__class__.<span class="ot">__name__</span>, <span class="ot">self</span>.<span class="ot">__str__</span>())
+</code></pre>
+</body>
+</html>

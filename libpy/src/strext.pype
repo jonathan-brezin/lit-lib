@@ -1,0 +1,301 @@
+""" <head> 
+Title: Some String Functions Extending <code>str</code>
+Author: Jonathan Brezin
+Date: November, 2015
+Show source: yes
+""" # </head>
+
+""" <md>
+
+## Why do this? ##
+
+There are some annoying gaps and half-baked implementations in the `str` code.  As I found I
+have wanted things, I have added them here.  If this were Ruby, I would have added the new
+functions as instance methods.  It is not, and I cannot.  I cannot even add them as attributes
+of `str`.  Another obvious strategy is to extend the `str` class with my own `Str` class.  The
+down side of that approach is that all `str` methods that return a `str` move you out of my
+`Str` class and back into `str`, so you wind up making extra calls to convert the `str` method
+return value to be a `Str`.  I don't know a way around that, sadly.  There's a similar problem with
+trying to delegate to an instance field--everything's great, except that you have to catch every
+`str` that gets handed to you by some code you don't own and convert it to a `Str`.
+
+So, what's a poor programmer to do?  I decided to just provide the functions I need as top
+level functions named `str_...`, where the ellipsis is what the _real_ method name should be.
+This should make it safe to "`from strext import *`".  Why `strext` and not `str`?  Because I
+did not want _any_ possibility of confusing this stuff with Python's own.
+
+Get the feeling I'm not thrilled here?
+
+""" # </md>
+
+import re
+
+
+""" <md>
+
+## The functions ##
+
+###<code style="text-decoration: underline;">str_center(s, width, filler=' ', extraOnRight=True, trim=True)</code>###
+
+returns the string `s`, centered in a string of length `width`. Padding is done using the value
+of `filler`, which should be (but does not have to be) a single character string, and which by
+default is a space.  If `filler` has more than one character, the final copy added to either
+side of `s` may get truncated at its end.
+
+The parameter `extraOnRight` is a Boolean.  If the padding does not allow one to exactly center
+the string, do you want any extra padding on the right or left side?  The default is that
+`extraOnRight` is `True`, which puts any extra stuff on the right.
+
+Finally, what to do if the fill string is longer than one character and you need pad a little on
+either or both sides? The default is to trim a little from the end of `filler` in order to pad
+each side within a character width of one another.  That is where the final parameter, `trim`
+comes in. Its default is `True`, which means "trim substrings from `filler` to allow the two
+sides as close to the same amount of padding as possible."  Otherwise, treat `filler` as being
+"atomic": if I can fit a whole extra copy of it on the chosen side, I will, but then I quit, even
+if I have not got the full width, because the padding is not to be trimmed.
+
+__Nota bene:__ If the length of `s` is greater than `width`,`s` itself, unmodified, is returned.
+
+""" # </md>
+
+def str_center(s, width, filler=' ', extraOnRight=True, trim=True):
+   selfSize = len(s)
+   if width <= selfSize: 
+      return s
+   totalDelta = width - selfSize
+   fillSize = len(filler)
+   if fillSize is 1:
+      if extraOnRight or (totalDelta & 1) is 0:
+         return s.center(width, filler)
+      else:
+         return filler + s.center(width-1, filler)
+   # At this point fillSize is at least 2
+   copiesOfFillerNeeded = totalDelta // fillSize
+   fillPerSide = totalDelta // 2
+   copiesPerSide = fillPerSide // fillSize
+   residual = totalDelta - (2 * copiesPerSide * fillSize)
+   if trim: # use copiesPerSide of the filler and some part of filler before and after
+      meanresidual = residual//2
+      if residual%2 is 0:
+         largerResidual = smallerResidual = meanresidual
+      else:
+         largerResidual = meanresidual + 1
+         smallerResidual = meanresidual
+      if extraOnRight:
+         leftResidual, rightResidual = (smallerResidual, largerResidual)
+      else:
+         leftResidual, rightResidual = (largerResidual, smallerResidual)
+      copies = filler*copiesPerSide
+      prefix = copies + filler[0 : leftResidual]
+      suffix = copies + filler[0: rightResidual]
+      return prefix + s + suffix
+   else: # use one more copy of filler on the chosen side
+      if residual < fillSize:
+         leftcount = rightcount = copiesPerSide
+      else:
+         if extraOnRight:
+            (leftcount, rightcount) = (copiesPerSide, copiesPerSide+1)
+         else:
+            (leftcount, rightcount) = (copiesPerSide+1, copiesPerSide)
+      prefix = leftcount * filler
+      suffix = rightcount * filler
+      return prefix + s + suffix
+
+""" <md>
+
+###<code style="text-decoration: underline;">str_expandtabs(s, tabs=8, strict=False)</code>###
+
+returns a copy of the string where all tab characters are replaced by one or more spaces,
+depending on the current column and the given tab size. 
+
+There are two ways to specify the tab stops: either a single number n, in which case the tab
+stops are n, 2n, 3n..., or an indexable collection that yields the positions in order.  What is
+new here is the ability to specify a list of tab stops.
+
+The 0 position is the character either at the beginning of the text or immediately following a
+new-line character. The default tabspec is 8, not because it is what you'll want, but for
+historical reasons and consistency with other languages.
+
+It is an error, when a tab list is provided, to ask for tabs in a line beyond the last tab stop.
+If the call is 'strict', an exception is raised. Otherwise, the tab is left there: what are we
+supposed to do with it???
+
+Finally, if there are no tabs in "s", "s" is returned directly: no copy is made.
+ 
+""" # </md>
+ 
+def str_expandtabs(s, tabs=8, strict=False):
+   if s.find('\t') < 0: return s
+   elif type(tabs) == int: return s.expandtabs(tabs)
+
+   # the new code starts here: limited set of possibly uneven tabs
+   answer = ''
+   lastTab = tabs[-1]
+   for line in s.splitlines(keepends=True):
+      column = 0 ;  stop = 0;  tabposition = tabs[0] # beginning of line, first tab stop
+      tabsInLine = []
+      for n in range(0, len(line)):
+         if line[n] == '\t': tabsInLine.append(n)
+      if len(tabsInLine) == 0: answer += line
+      else:
+         #print("tabs in line {1} at {0}".format(tabsInLine, line))
+         lastTabInLine = tabsInLine[-1]
+         expanded = ''
+         start = 0
+         for tabx in tabsInLine:
+            #print("start={0}, tabx={1}".format(start, tabx))
+            expanded += line[start : tabx] # copy up to the tab in line
+            column = len(expanded)
+            if column > lastTab:
+               if strict: 
+                  raise Exception("Tab too late: column="+column+", last tab="+lastTab)
+               else: start = tabx         # leave the tab there: who knows what the caller wanted?
+            else:
+               start = tabx+1             # next segment start immediately after the tab
+               for stop in tabs:          # find the first tab beyond the current length
+                  #print("   stop={0}, column={1}".format(stop, column))
+                  if stop > column:       # add spaces until the expanded length is at the stop
+                     while stop > column:
+                        expanded += ' '; column += 1
+                     break
+         answer += expanded + line[lastTabInLine+1:]
+   return answer
+
+""" <md>
+
+###<code style="text-decoration: underline;">str_findlast(s, whatToLookFor)</code>###
+
+returns the last index of `whatToLookFor` in the string `s`. this is not efficient, but is
+convenient for `s` of moderate length.  The obvious ploy, which is to reverse both and  then
+just call "find", is too space inefficient, no?
+
+""" # </md>
+
+def str_findlast(s, whatToLookFor):
+   lengthOfMatch = len(whatToLookFor)
+   n = len(s)-lengthOfMatch
+   firstToMatch = whatToLookFor[0]
+   ##########################################################################################
+   #
+   # Suppose that firstToMatch is 'x', and we match 'x' at n in s.  If all of whatToLookFor
+   # is not matched there, how much further back in `s` do we have to go to have any hope of
+   # match?  If 'x' occurs later in `whatToLookFor`, we have to go back far enough so that the
+   # first occurrence of 'x' after the initial one lands on the spot matching that initial one
+   # now.  In particular, if 'x' occurs only at the start of whatToLookFor, we have to go
+   # back at least the length of whatToLookFor before we have any hope of a match.  That is
+   # the logic here in computing minBack in the next two lines of code.  In the call there
+   # to "find", the second argument, "1", is the first index to look at. The effect is to find
+   # the second occurrence of firstToMatch in whatToLookFor, if there is one.
+   #
+   ##########################################################################################
+   minBack = whatToLookFor.find(firstToMatch, 1)
+   if minBack < 0: minBack = lengthOfMatch
+   while(n>=0):
+      #print("n={0}, s[n]={1}, find index={2}".format(n, s[n], s.find(whatToLookFor, n)))
+      if s[n] != firstToMatch: n -= 1
+      else:
+         if s.find(whatToLookFor, n)==n: return n
+         else: n -= minBack
+   return -1
+
+""" <md>
+
+###<code style="text-decoration: underline;">str_islower(s, like_python=False)</code>###
+
+What I want is 
+
+> `a.islower()` is `True` whenever `a[n].lower() == a[n]` for every `n`.
+
+The other possibility, which is what Python uses, is that
+
+> `a.islower()` is `True` whenever `a[n].islower() == True` for all `n`.
+
+For example, Python says (Python 3.4.3 |Anaconda 2.2.0 (x86_64)| (default, Mar  6 2015,
+12:07:41)):
+
+> `'3'.islower() == False` is `True`, but
+
+> `'0x3'.islower() == True`. is also `True`  
+
+Which is it? 
+
+I don't know what you want, so I provide both.  Needless to say, the default is that you get
+mine, but if `like_python` is `True`, you get Python's somewhat paradoxical version.
+
+###<code style="text-decoration: underline;">str_istitle(s)</code>###
+
+Python's `istitle` is a mystery wrapped in an enigma.  Here I take advantage of the fact that I
+only want title-casing of titles--that is, short strings.  If you have to check whether 2Mb
+worth of strings are title-cased, you have my sympathy, but not my help.
+
+See the remarks on [str_title](str_titles) for a sense of how baroque this computation can be.
+
+###<code style="text-decoration: underline;">str_isupper(s, like_python=False):</code>###
+
+What I want is a.isupper() == True whenever a[n].upper() == a[n] for every n.  The other
+possibility (Python's) is that a[n].isupper() == True for all n. See the comments on islower()
+above for more.
+
+""" # </md>
+
+def str_islower(s, like_python=False):
+   if like_python:
+      return s.islower()
+   for c in s:
+      if c.lower() != c: return False
+   return True
+
+def str_istitle(s):
+   return str_title(s) == s # uses my title()
+
+def str_isupper(s, like_python=False):
+   if like_python:
+      return s.isupper()
+   for c in s:   # use MY default
+      if c.upper() != c: return False
+   return True
+
+""" <md>
+
+###<code style="text-decoration: underline;">str_reverse(s)</code>###
+
+is a not particularly efficient method for turning 'abc' into 'cba', but it is not clear you can
+do a lot better when strings are immutable, short of calling a C function to do the real work.
+The return value is the reversed string--unlike the mutable case, where the reversal can be done
+in place, we have no choice here other than to build a new string.
+
+""" # </md>
+
+def str_reverse(s):
+   asList = list(s)
+   asList.reverse() # does the reversal in place: no return value
+   return ''.join(asList)
+
+""" <md>
+
+###<code style="text-decoration: underline;">str_title(s)</code>###
+
+returns the string with all letters that follow white-space characters capitalized.  This is
+closer to my idea of title-casing than Python's 'title' method for s.  For example, Python says
+that `'a1b'.title()` is `'A1B'`, whereas I would say it is `'A1b'`.  99 times out of 100, the
+latter is what I want, as in the special cases where, instead of `'1'`, I have `"'"` (an
+apostrophe) or `"-"` (a dash). Whether the character following a dash is capitalized is a
+function of the whole phrase, not a title-case issue, ditto for apostrophes: `"Jim's Book"` NOT
+`"Jim'S Book"`.
+
+Real title-casing also respects quotes, as in the title: _Caesar's "Et tu Brutus...": A History
+of Betrayal_.  "tu" should not be capitalized in this title.  Remember, this is supposed to work
+with titles, not Python string literals, so apostrophes are not taken to open a  quotation.
+
+""" # </md>
+
+_QMRE = re.compile('([\u0022\u0027\u00ab\u00bb\u2018-\u201f])') # quotation marks regular expression
+def str_title(s):
+   if _QMRE.search(s) is None:
+      return re.sub(r"\S+", lambda mo: mo.group(0)[0].upper() + mo.group(0)[1:].lower(), s)
+   else:
+      parts = [part for part in _QMRE.split()]
+      for k in range(0, len(parts), 4):   # unquoted, ", quoted, ", next unquoted ... 
+         parts[k] = parts[k].title()
+      return ''.join(parts)
+

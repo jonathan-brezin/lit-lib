@@ -1,0 +1,474 @@
+""" <head> 
+Title: <span class="titleCode">WildCardLookup</span>: simple wild-card matching
+Author: Jonathan Brezin
+Date: April, 2016
+Show source: yes
+""" # </head>
+
+""" <md>
+
+## Overview ##
+
+A common coding problem is to maintain a set of strings, normally patterns of some kind, in which
+the lookup is just a little looser than string equality.  I'll talk about the strings in my set as
+"patterns", and the strings that I'm looking to match against these patterns as "keys".
+
+What I mean by "looser" is the simplest sort of wild card match:
+
+> If "*" is one of the patterns in my set `wcs`, then `x in wcs` will be `True` whatever value `x`
+may have.
+
+> Patterns whose syntax is &ldquo;`*`_`xxx`_&rdquo; match all keys ending with "_`xxx`_" that are at
+least one character longer--e.g. `*_in` matches `x_in`, but not `_in`.
+
+> Patterns whose syntax is &ldquo;_`xxx`_`*`&rdquo; match all keys that start with "_`xxx`_" and
+(again) are at least one character longer.
+
+> Patterns whose syntax is &ldquo;_`xxx`_`*`_`yyy`_&rdquo; match all keys that start with "_`xxx`_",
+end with "_`yyy`_", and are at least one character longer.
+
+The typical use cases have patterns like
+
+> `user_*`, `cart_*`, `prefs_*`, etc. 
+
+> `*.txt`, `*.py`, etc.
+
+As might be clear from these examples, the flexibility permitted with the "*" is what I felt is
+convenient for a couple of common tasks: filtering debugging code, as in [`dbg.py`](dbg.html), and
+tracking sets of file paths with common directories or file-types.  In both these examples, the
+pattern set is modest in size, and there is rarely any reason to have any more flexible pattern
+matching facility.
+
+Of course, some minimal care in choosing the patterns is required to get sensible behavior. Having,
+for instance, both`"user"` and `"user*"` as a pattern is a recipe for confusion--why not use
+`"user_*"` for the longer keys? Having both `"*_in"` and `"file_*"` as patterns and `"file_in"` as
+a key is also a good way to get confused. 
+
+## The structure of the store ##
+
+The wild-card free patterns are kept in their own `set`.  Since I only permit one &lsquo;*&rsquo;
+per pattern, wild-card patterns split into start-end pairs.  I keep them in a dictionary keyed by
+the start.  The values for a given "start" string are the set of its associated "end" strings.  
+Either the start or the end string may be the empty string, _but not both._  The case of `*` by
+itself is handled specially.
+
+I also keep a dictionary that is a cache of the (key, boolean) pairs for the keys for which a match
+was attempted. A `True` value for the pair means that the key was matched. The cache is a modest
+efficiency hack.  I want to avoid redoing wild-card checks repeatedly on the same key, particularly
+for keys that will not be matched. So, once a key is looked for, I cache it together whether its
+status: matched or not. If patterns are removed, I clear the positive entries of the cache that are
+affected.  When keys are added, I do the same for the failed part of the cache. Once a key is in the
+cache, its lookup cost is `O(1)`.
+
+## Details of the API ##
+
+### The constructor, <code>WildCardLookup(&ast;patterns)</code>
+
+takes 0 or more strings as arguments.  Each argument must be a `str` that is a comma-separated list
+of patterns. White space around the patterns is stripped, but _white space within the patterns is
+preserved_.
+
+No patterns are added--of course!--if no arguments are passed. 
+
+""" # </md>
+
+from collections import defaultdict
+
+class WildCardLookup():
+   def __init__(self, *patterns):
+      self.exactmatch = set()   # no wild cards
+      self.pairs = defaultdict(set) # key == start of match; the value is the set of ends.
+      self.cache = {}           # the results of previous match attempts
+      self.matchall = False     # any key matches, if this is True
+      if len(patterns) > 0:
+         self.add(*patterns)
+
+""" <md>
+
+### Set operations ###
+
+You might ask why I didn't just make wild card sets an extension of `set`.  The problem has to do
+with my wanting the expression "`key` `in` `wcl`" to yield `True` when the `key` matches some
+pattern in the wild-card lookup `wcl`.  A consequence of that decision is that `set` methods like
+`difference()` or `intersection()`, which have to do with what patterns are in the sets and not what
+they match, cannot be implemented using the `in` operator. The obvious code just won't work:
+
+<pre class="exampleCode">
+def intersection(self, other): return WildCardLookup([x for x in self if x in other])
+</pre>
+
+One gets around this by implementing the whole menu of `set` operations explicitly for
+`WildCardLookup`.  I want to emphasize again that this is all about patterns, not about what the
+patterns match.  A `WildCardLookup` with `{"*"}` as its pattern set is disjoint from a
+`WildCardLookup` with `{"*_in"}` as its pattern set, even though the former matches every key that
+the latter does.
+
+That said, here are the set operation methods.
+
+#### <code>__len__()</code>
+
+returns the total number of patterns currently alive, including the universal match pattern, "*".
+
+#### <code>add(&ast;new_patterns)</code>
+
+takes one or more pattern strings as arguments and adds those patterns to the active set.  The
+arguments are the same as that for the constructor, namely comma-separated lists of patterns.  In
+fact, the constructor just passes it arguments to `add()` to initialize the pattern set.
+
+#### <code>remove(&ast;dead_patterns)</code>
+
+takes one or more pattern strings as arguments and removes these now unwanted patterns from the set
+of active patterns.  The arguments have the same format as for the constructor and for `add()`.
+
+#### <code>patterns()</code>
+
+returns the set of all patterns currently alive, including `"*"`.  All of the set operations that
+follow are based on the `set` returned here.
+
+#### <code>aWildCardLookup == other</code>
+
+returns `True` if, and only if, both have exactly the same pattern set.
+
+#### <code>aWildCardLookup != other</code>
+
+returns `True` if, and only if, there is some pattern in one that is not in the other.
+
+#### <code>isdisjoint(other)</code>
+
+returns `True` if, and only if, the two have no patterns in common.
+
+#### <code>issubset(other)</code> 
+
+returns `True` if, and only if, every pattern in the caller is also in `other`.
+
+#### <code>aWildCardLookup &lt;= other </code>
+
+is a synonym for `aWildCardLookup.issubset(other)`.
+
+#### <code>aWildCardLookup &lt; other</code>
+
+tests whether the pattern set of `aWildCardLookup` is a proper  subset of the pattern set of
+`other`; i.e., `WildCardLookup <= other` and `WildCardLookup != other`.
+
+#### <code>issuperset(other)</code>
+
+returns `True` if, and only if, every pattern in `other` is also in the caller.
+
+#### <code>aWildCardLookup >= other</code>
+
+is a synonym for `aWildCardLookup.issuperset(other)`
+
+#### <code>aWildCardLookup > other</code>
+
+is a synonym for `WildCardLookup>=other and aWildCardLookup!=other`.
+
+#### <code>union(&ast;others)</code>
+
+takes one or more `WildCardLookup`s as arguments and returns a new `WildCardLookup` with all of
+patterns from the caller and the arguments.
+
+#### <code>aWildCardLookup | other1 | ...</code>
+
+is a synonym for `aWildCardLookup.union(other1, ...)`.
+
+#### <code>intersection(*others)</code>
+
+takes one or more `WildCardLookup`s as arguments and returns a new `WildCardLookup` with all of the
+patterns common to the caller and all of the arguments.
+
+#### <code>aWildCardLookup &amp; other &amp; ...</code>
+
+is a synonym for `aWildCardLookup.intersection(other, ...)`
+
+#### <code>difference(other)</code>
+
+returns a new `WildCardLookup` containing all of the patterns in the `WildCardLookup` that are not
+in the `WildCardLookup` "`other`".
+
+#### <code>aWildCardLookup - other</code>
+
+is a synonym for `aWildCardLookup.difference(other)`.
+
+#### <code>symmetric_difference(other)</code> and <code>aWildCardLookup ^ other</code>
+
+returns a new `WildCardLookup` with all of the patterns that are eitherin the caller or in the `WildCardLookup`
+"`other`", but are _not_ in both.
+
+#### <code>aWildCardLookup ^ other</code>
+
+is a synonym for `aWildCardLookup.symmetric_difference(other)`.
+
+""" # </md>
+      
+   def __contains__(self, key):
+      if self.matchall:
+         return True
+      elif key in self.cache:
+         return self.cache[key]
+      elif key in self.exactmatch:
+         self.cache[key] = True
+         return True
+      elif len(key) < 2: # wild card matches need at least one character beyond the pattern
+         self.cache[key] = False
+         return False
+      else:
+         for start in self.pairs:
+            if key.startswith(start):
+               restOfKey = key[len(start)+1:]
+               for end in self.pairs[start]:
+                  if restOfKey.endswith(end):
+                     self.cache[key] = True
+                     return True
+         self.cache[key] = False
+         return False
+
+   def __len__(self):
+      return len(self.exactmatch)+len(self.pairs)+(1 if self.matchall else 0)
+
+   def add(self, *newPatterns):
+      for newPattern in newPatterns:
+         if type(newPattern) is not str:
+            raise TypeError("Expected a key string, but got a {0}".format(type(newPattern)))
+         added = [x.strip() for x in newPattern.split(',')]
+         for pattern in added:
+            if "*" not in pattern:
+               self.exactmatch.add(pattern)
+               if pattern in self.cache and not self.cache[pattern]:
+                  self.cache[pattern] = True
+            elif pattern == "*":
+               self.matchall = True
+            else:
+               (start, end) = pattern.split('*')
+               self.pairs[start].add(end)
+               for cached in self.cache:
+                  if not self.cache[cached]:
+                     if cached.startswith(start) and cached[len(start)+1:].endswith(end):
+                        self.cache[cached] = True
+
+   def remove(self, *deadPatterns):
+      resetTheCache = False
+      for deadPattern in deadPatterns:
+         parsed = [x.strip() for x in deadPattern.split(',')]
+         for removed in parsed:
+            #print("remove '{}'".format(removed))
+            if removed is '*':
+               self.matchall = False
+            elif removed in self.exactmatch: 
+               self.exactmatch.remove(removed)
+               if removed in self.cache:
+                  self.cache.pop(removed)
+            else:
+               (start, end) = removed.split('*')
+               if start in self.pairs:
+                  startSet = self.pairs[start]
+                  if end in startSet:
+                     startSet.remove(end)
+                     if len(startSet) is 0:
+                        self.pairs.pop(start)
+                     resetTheCache = True
+      if resetTheCache:
+         # simplest guess: invalidate all positive entries in the cache.  It is no more
+         # expensive to check the entries that would have survived if they are encountered
+         # afterward as guards
+         for key in self.cache:
+            if self.cache[key]:
+               self.cache.pop(key) 
+
+   def patterns(self):
+      all = set(self.exactmatch)
+      if self.matchall: all.add("*")
+      for start in self.pairs:
+         for end in self.pairs[start]:
+            all.add(start+"*"+end)
+      return all
+
+   def isdisjoint(self, other):
+      return self.patterns().isdisjoint(other.patterns())
+
+   def issubset(self, other):
+      return self.patterns().issubset(other.patterns())
+
+   def __eq__(self, other):
+      return self.matchall==other.matchall and self.patterns() == other.patterns
+
+   def __ne__(self, other):
+      return self.matchall!=other.matchall or self.patterns() != other.patterns
+
+   def __le__(self, other):
+      return self.issubset(other)
+
+   def __lt__(self, other):
+      return self.issubset(other) and self.__ne__(other)
+
+   def issuperset(self, other):
+      return self.patterns().issuperset(other.patterns())
+
+   def __ge__(self, other):
+      return self.issuperset(other)
+
+   def __gt__(self, other):
+      return self.issuperset(other) and self.__ne__(other)
+
+   def union(self, *others):
+      asSet = self.patterns().union(*[other.patterns() for other in others])
+      return WildCardLookup(*list(asSet))
+
+   def __or__(self, other):
+      return self.union(other)
+
+   def intersection(self, *others):
+      asSet = self.patterns().intersection(*[other.patterns() for other in others])
+      return WildCardLookup(*list(asSet))
+
+   def __and__(self, other):
+      return self.intersection(other)
+
+   def difference(self, *others):
+      asSet = self.patterns().difference(*[other.patterns() for other in others])
+      return WildCardLookup(*list(asSet))
+
+   def __sub__(self, other):
+      return self.difference(other)
+
+   def symmetric_difference(self, other):
+      asSet = self.patterns().symmetric_difference(other.patterns())
+      return WildCardLookup(*list(asSet))
+
+   def __xor__(self, other):
+      return self.symmetric_difference(other)
+
+
+""" <md>
+
+### Other Methods
+
+There are two methods that provide tests not convenient to write just using the wild card
+&ldquo;*&rdquo; and the "`in`" operator.
+
+#### <code>anyMatched(&ast;keys)</code>
+
+The arguments are the keys that one wants matched, or comma-separated lists of those keys.  The
+return value is `True` if at least one of the keys named by the argument is matched by a pattern.
+At least one argument is required.
+
+#### <code>allMatched(&ast;keys)</code>
+
+The arguments are the same as for `anyMatched()`. The return value is `True` if all of the keys
+named by its argument are matched by patterns.  Again, at least one argument is required.
+
+Finally, here are a few methods that are mostly useful for debugging this class.  They deal with
+which patterns match a given key.
+
+#### <code>strictestPatternFor(key)</code>
+
+returns the longest pattern that matches the given `key`--that is, the pattern with the fewest
+matches.  If the key appears as an exact match pattern, it will be returned.  Otherwise, if there
+are two patterns of the same length, the first in lexicographic order wins.  If no real pattern
+matches and "*" is a live pattern, it will be returned.
+
+#### <code>weakestPatternFor(key)</code>
+
+returns the shortest pattern that matches the given `key`--that is, the pattern with the most
+matches.  If there are two patterns of the same length, the first in lexicographic order wins.  If
+there is any pattern other than "*" that works, it will be returned. "*" will be returned only if it
+is a live pattern and no other pattern works.  The idea is to be able to find out easily if a key
+has a match _only because all keys do._
+
+#### <code>patternsMatching(key)</code>
+
+returns a list of all of the patterns that match `key`.  You get the whole list of patterns drawn
+from the exact matches and the (start, end) wild-card pairs.  They are listed in lexicographic
+order.  "*" is not included: only substantive patterns are. If there are no patterns matching `key`,
+the empty list will be returned.
+
+""" # </md>
+
+   def strictestPatternFor(self, key):
+      if key in self.exactmatch:
+         # the exact match is definitely the strictest: look no further 
+         return key
+      allmatches = self.patternsMatching(key)
+      if len(allmatches) is 0:
+         return "*" if self.matchall else None
+      else:
+         sizes = [len(x) for x in allmatches]
+         winner = sizes.index(max(sizes))
+         return allmatches[winner]
+
+   def weakestPatternFor(self, key):
+      allmatches = self.patternsMatching(key)
+      if len(allmatches) is 0:
+         return "*" if self.matchall else None
+      else:
+         sizes = [len(x) for x in allmatches]
+         winner = sizes.index(min(sizes))
+         return allmatches[winner]
+      return self._matchedBy(key, False)
+
+   def patternsMatching(self, key):
+      theList = []
+      if key in self.exactmatch:
+         theList.append(key)
+      if len(key) < 2:
+         return theList
+      for start in self.pairs:
+         if key.startswith(start):
+            rest = key[len(start)+1:]
+            for end in self.pairs[start]:
+               if rest.endswith(end):
+                  theList.append(start+"*"+end)
+      theList.sort()
+      return theList
+
+   def anyMatched(self, *keys):
+      if len(keys) is 0:
+         raise ValueError("WildCardLookup.anyMatched requires at least one argument.")
+      elif self.matchall:
+         return True
+      else:
+         for entry in keys:
+            tested = [x.strip() for x in entry.split(',')]
+            for x in tested:
+               if self.__contains__(x): # NB. uses my _contains_, not set's!!!
+                  return True
+         return False
+         
+   def allMatched(self, *keys):
+      if len(keys) is 0:
+         raise ValueError("WildCardLookup.allMatched requires at least one argument.")
+      elif self.matchall:
+         return True
+      else:
+         for entry in keys:
+            tested = set(x.strip() for x in entry.split(','))
+            for x in tested:
+               if not self.__contains__(x):
+                  return False
+         return True
+
+
+""" <md>
+
+### A `WildCardLookup` is iterable.
+
+The values you get are the patterns in lexicographic order.  `"*"` collates before any alphanumeric
+character in all conventional character encodings. This implies, for example, that `"a*"` will
+appear before `"ab"` if both are patterns in the set, and by the same logic, `"*a"` will appear
+before both `"a*"` and `"ab"`.  
+
+A dictionary of sets is used to hold the wild-card patterns, so creating the iterable is an
+`O(nlog(n))` cost operation when the number of patterns is `n`.  The `log(n)` factor comes in from
+the cost of sorting the list of all the patterns gotten by flattening the dictionary of sets and
+then appending the exact matches.  The uses I have in mind, like filtering debugging output, have
+fairly small pattern sets, so this cost is not a major consideration, but other situations might not
+be so simple.  For my own debugging purposes, I felt it would be useful to see the patterns in some
+predictable order, no matter what, so I could see missing patterns or unexpected patterns easily.
+That's why I am willing to pay the cost of sorting.
+
+""" # </md>
+
+   def __iter__(self):
+      sorted = list(self.patterns())
+      sorted.sort()
+      return sorted.__iter__()
+

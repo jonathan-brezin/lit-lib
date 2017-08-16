@@ -1,0 +1,858 @@
+""" <head> 
+Title: Support for <code class="titleCode">numpy</code>
+Author: Jonathan Brezin
+Date: March, 2017
+Show source: yes
+""" # </head>
+
+""" <md>
+
+### Overview ###
+
+In the course of doing some eigenvalue calculations on moderately large matrices, a few 
+simple, generally useful functions seemed to be needed. I've packaged them here, in case I
+ever have to wade back into `numpy` again.
+
+### Dealing with "norms"
+
+#### <code>supnorm(array)</code> {#supnorm}
+
+returns the sup norm (_i.e._ the _l<sub>&infin;</sub>_ norm) of the `numpy` `ndarray`
+"`array`" that is its argument.
+
+#### <code>def twonorm(array)</code>
+
+returns the `l`<sub>`2`</sub> norm of the array: the square-root of the sum of the squares of
+its entries (aka the "Frobenius" norm).  N.B. NumPy's `linalg.norm` computes something for
+arrays indexed by n-tuples for n>2, but I am not sure what it computes.  Whatever it is, it is
+not this.
+
+#### <code>def sameentries(array1, array2)</code>{#sameentries}
+
+returns `True` if, and only if, the two arrays have the same shape and their corresponding
+entries are equal (in the sense of `==`).  It returns `False` otherwise.  This is _not_ the same
+as the `==` operator implemented by NumPy.  Arithmetic and comparison operations on NumPy
+`ndarray`s are defined as element-wise operations, and generally yield `ndarray` objects as
+results.
+
+#### <code>asunitnorm(array, tolerance=128&ast;MACHINE_EPSILON)</code> {#asunitnorm}
+
+If the l<sub>2</sub> norm of `array` is greater than `tolerance`, it is divided out of 
+`array`'s entries to yield a unit vector.  That vector is then returned.  If the norm is not
+greater than the tolerance, a `ValueError` is raised.  The machine epsilon is the smallest
+positive floating point value representable by this version of Python on the hardware it is
+running: `numpy.finfo(np.float).eps`.  The default tolerance is a reasonable mulitple of the
+machine epsilon.
+
+### Accessing array elements
+
+#### <code>isinshape(index, shape)</code> {#isinshape}
+
+`shape` is the shape of a NumPy array.  The call returns `True` if, and only if, `index` is a
+list-like collection of non-negative integers whose length is the rank of `shape`, and if, for
+each `k`, `index[k]<array[k]`.
+
+#### <code>index2entry(index, array)</code> {#index2entry}
+
+`index` is a list-like collection of non-negative integers whose length is the rank of the
+array.  The call returns the value of `array` indexed by `index`.
+
+#### <code>entry_iter(array)</code> {#entry_iter}
+
+is an iterator that yields the entries in `array` is row-major order.
+
+#### <code>index_iter(shape)</code>{#index_iter}
+
+is an iterator that yields the indices for an array with shape "`shape`" in row-major order.
+
+### Debugging output: displaying part or all of an array
+
+#### <code>format_arrayhead(array, &ast;&ast;kwargs)</code>\
+<code>format_arraytail(array,&ast;&ast;kwargs)</code> \
+<code>format_array(array,&ast;&ast;kwargs)</code> {#format_array}
+
+The first argument, `array`, is a numeric `ndarray` of arbitrary shape.  The keyword arguments,
+and their default values, are:
+
+<blockquote>
+
+<table>
+<THEAD>
+<tr><th>Keyword</th><th>Meaning</th><th>Default</th></tr>
+<TBODY>
+<tr><td>`displaylimit`</td><td>the total number of entries to display</td><td align="center">None</td></tr>
+<tr><td>`perline`</td><td>the number of entries to display per line</td><td align="center">1</td></tr>
+<tr><td>`formatting`</td><td>the formatting string</td><td align="center">`"{1:g}"`</td></tr>
+<tr><td>`separator`</td><td>the string used between entries on a line</td><td align="center">`" "`</td></tr>
+<tr><td>`ender`</td><td>the string used to end lines</td><td align="center">`"\n"`</td></tr>
+</table>
+
+</blockquote>
+
+These three functions all return a string that contains `displaylimit` entries from "`array`".
+The shape of `array` is temporarily changed to `(array.size,)`.  That done, `format_arrayhead`
+prints entries from the beginning of the array, `format_arraytail` from the end of the array,
+and `format_array` roughly `displaylimit/2` entries from both ends. Every `perline`-th entry is
+followed by the `ender` string; the others are followed by the `separator` string.  If
+`formatter` is `None`, the formatting will be  `"{1:g}"`, and if you provide your own 
+`formatter` string, it will be applied with the entry's index, `n`, and its value, `v`:
+&nbsp;&nbsp;`formatter.format(n, v)`
+
+If you are displaying from both ends of the array, but less than the whole array, the beginning
+entries and ending entries will be separated by an ellipsis ("`...`").  If the beginning would
+have ended a line, `ender` will be prepended and appended to that ellipsis.  Otherwise, 
+`separator` will.
+
+""" # </md>
+
+from functools import reduce
+import math
+import numpy as np
+import os as os
+import os.path as osp
+import re
+import sys
+import sysutils as su
+
+def to_shape(shape_info):
+   if isinstance(shape_info, str):
+      return tuple([int(x) for x in size_info.strip().split(',')])
+   elif isinstance(shape_info, int):
+      return (shape_info, )
+   else:
+      return tuple([int(x) for x in shape_info]) # a crude type check
+
+def _mul(x,y):
+   return x*y
+
+def sizefromshape(shape_info):
+   return reduce(_mul, to_shape(shape_info))
+
+def supnorm(array):
+   return np.amax(abs(array))
+
+def twonorm(array):
+   if len(array.shape) >= 2:
+      return np.linalg.norm(array.reshape((sizefromshape(array.shape),)))
+   else:
+      return np.linalg.norm(array)
+
+def sameentries(array1, array2):
+   return (array1.shape == array2.shape) and (twonorm(array1-array2) == 0)
+
+def isinshape(index, shape):
+   if isinstance(index, int): index = [index]
+   rank = len(shape)
+   if len(index) != rank: return False
+   for n in range(0, rank):
+      if (index[n] >= shape[n]) or (index[n] < 0):
+         return False
+   return True
+
+def index2entry(index, array):
+   if isinstance(index, int): index = [index]
+   if not isinshape(index, array.shape):
+      msg = "Array has shape {}, so {} is not valid index"
+      raise TypeError(msg.format(array.shape, index))
+   working = array
+   for k in index:
+      working = working[k]
+   return working
+
+def entry_iter(array):
+   rank = len(array.shape)
+   nextindex = np.zeros(rank, dtype = int)
+   working_n = rank-1
+   while isinshape(nextindex, array.shape):
+      rv = index2entry(nextindex, array)
+      bumped = nextindex[working_n] + 1
+      if bumped < array.shape[working_n]:
+         nextindex[working_n] = bumped
+         yield rv
+      elif working_n > 0:
+         for k in range(working_n, rank):
+            nextindex[k] = 0
+         working_n -= 1
+         nextindex[working_n] += 1
+         working_n = rank-1
+         yield rv
+      else:
+         raise StopIteration()
+
+def index_iter(shape):
+   rank = len(shape)
+   nextindex = np.zeros(rank, dtype = int)
+   working_n = rank-1
+   while isinshape(nextindex, shape):
+      rv = nextindex.copy()
+      bumped = nextindex[working_n] + 1
+      if bumped < shape[working_n]:
+         nextindex[working_n] = bumped
+         yield rv
+      elif working_n > 0:
+         for k in range(working_n, rank):
+            nextindex[k] = 0
+         working_n -= 1
+         nextindex[working_n] += 1
+         working_n = rank-1
+         yield rv
+      else:
+         raise StopIteration()
+
+MACHINE_EPSILON = np.finfo(np.float).eps
+
+def asunitnorm(array, tolerance = None):
+   if tolerance is None:
+      tolerance = max(array.size, 128)*MACHINE_EPSILON 
+   norm = twonorm(array)
+   if norm < tolerance:
+      raise ValueError("Array norm, {:g} too near zero to normalize.".format(norm))
+   else:
+      return array/norm
+
+def _nth_index(n, shape):
+   # in the size check, a shape with one or more zeros--e.g. (3,0,1)--will have size
+   # 0, and hence will cause the error to be raised, because such an array must be
+   # empty.
+   if not isinstance(n, int):
+      ValueError("Expected an integer, but got {}".su.a_classname(n))
+   elif n < 0 or n >= sizefromshape(shape):
+      msg = "{}-th entry requested, but there are only {}."
+      raise ValueError(msg.format(n, sizefromshape(shape)))
+   raw_list = [0 for k in range(0, len(shape))]
+   for k in range(len(shape)-1, -1, -1):
+      coord = n % shape[k]
+      raw_list[k] = coord
+      n = (n - coord)//shape[k]
+      if n == 0: return tuple(raw_list)
+
+def _format(array, begins, ends, perline, formatter, separator, ender):
+   total = begins+ends
+   available = array.size
+   if available > total:
+      use = total
+   else: # we can display the whole array
+      begins = available
+      ends = 0
+      use = available
+   shape_in = array.shape
+   array.shape = (array.size,)
+   left = ""
+   for n in range(0, begins):
+      suffix = ender if (n+1) % perline is 0 else separator
+      array_n = array[n]
+      if isinstance(array_n, complex) and array_n.imag == 0.0:
+         array_n = array_n.real 
+      left += formatter.format(_nth_index(n,shape_in),array_n)+suffix
+   left_trimmed = left if left.endswith(ender) else left[0:-len(separator)]
+   right = ""
+   first = array.size - ends
+   for m in range(first, array.size):
+      suffix = ender if (m-first+1) % perline is 0 else separator
+      array_m = array[m]
+      if isinstance(array_m, complex) and array_m.imag == 0.0:
+         array_m = array_m.real 
+      right += formatter.format(_nth_index(m, shape_in),array_m)+suffix
+   right_trimmed = right[0:-len(ender)] if right.endswith(ender) else right[0:-len(separator)]
+   array.shape = shape_in
+   if begins > 0:
+      if ends > 0:
+         if use<=perline:
+            between = "{0}...{0}".format(separator)  
+         elif left.endswith(ender):
+            between = "  ...{0}".format(ender)
+         else:
+            between = "{1}...{0}   ...{0}".format(ender, separator)
+         return left_trimmed+between+right_trimmed
+      elif left_trimmed.endswith(ender):
+         return left_trimmed[0:-len(ender)]
+      else: return left_trimmed
+   else:
+      return right_trimmed
+
+def format_arrayhead(
+      array, displaylimit=None, perline=1, formatter="{1:g}", separator=' ', ender="\n"
+   ):
+   if displaylimit is None: displaylimit = array.size
+   return _format(array, displaylimit, 0, perline, formatter, separator, ender)
+
+def format_arraytail(
+      array, displaylimit=None, perline=1, formatter="{1:g}", separator=' ', ender="\n"
+   ):
+   if displaylimit is None: displaylimit = array.size
+   return _format(array, 0, displaylimit, perline, formatter, separator, ender)
+
+def format_array(
+      array, displaylimit=None, perline=1, formatter="{1:g}", separator=' ', ender="\n"
+   ):
+   if displaylimit is None:
+      return _format(array, array.size, 0, perline, formatter, separator, ender)
+   else:
+      begins = math.ceil(displaylimit/2)
+      ends = displaylimit - begins
+      return _format(array, begins, ends, perline, formatter, separator, ender)
+
+""" <md>
+
+### Working with `numpy` data types
+
+`numpy` works with its own set of roughly 20 numeric data types.  These functions translate
+between those types (as valid Python objects) and strings, as well as providing a couple of
+other conveniences, such as `printf` format help.  
+
+
+#### <code>numpytype(strOrType)</code> 
+
+translates a string naming a `numpy` `type` to the actual type.  The intended use is for command
+line processing.  If anything other than a string is passed as the argument, it is returned
+untouched.   Otherwise, the `numpy` `type` of that name is returned.
+
+#### <code>typename(strOrType)</code>
+
+translates a `numpy` `type` to its character-string name.
+
+#### <code>typeformat(strOrType)</code>
+
+translates a `numpy` `type` or type name to the simplest "`printf`" format  that makes sense for
+that type--either "d", "u", or "g".
+
+#### <code>typefromvalue(value)</code>
+
+returns a `numpy` type that is consistent with the Pythonic type of `value`.  I do not try to
+be clever here: I really do just look at `value`'s type.  One of 4 values is returned: `int32`,
+`float64`, `complex128`, or `bool_`.  This is intended as a "best guess" for use in writing out
+homogenous arrays to a [CSV file](https://en.wikipedia.org/wiki/Comma-separated_values).  Our
+format for this sort of file has a first line that details various parameters for the matrix
+saved, including the `numpy` type for its entries. Having this available before the matrix in
+the file simplifies allocating storage for it before any of its entries have been read.
+
+""" # </md>
+
+_TYPENAME2TYPE = {
+   'bool_': np.bool_,      # Boolean (True or False) stored as a byte
+   'int_': np.int_,        # Default integer type (= C long; normally int64 or int32)
+   'intc': np.intc,        # Identical to C int (normally int32 or int64)
+   'intp': np.intp,        # Integer for indexing (= C ssize_t; normally int32 or int64)
+   'int8': np.int8,        # Byte (-128 to 127)
+   'int16': np.int16,      # Integer (-32768 to 32767)
+   'int32': np.int32,      # Integer (-2147483648 to 2147483647)
+   'int64': np.int64,      # Integer (-9223372036854775808 to 9223372036854775807)
+   'uint8': np.uint8,      # Unsigned integer (0 to 255)
+   'uint16': np.uint16,    # Unsigned integer (0 to 65535)
+   'uint32': np.uint32,    # Unsigned integer (0 to 4294967295)
+   'uint64': np.uint64,    # Unsigned integer (0 to 18446744073709551615)
+   'float_': np.float_,    # Shorthand for float64.
+   'float16': np.float16,  # sign bit, 5 bits exponent, 10 bits mantissa
+   'float32': np.float32,  # Sign bit, 8 bits exponent, 23 bits mantissa
+   'float64': np.float64,  # Sign bit, 11 bits exponent, 52 bits mantissa
+   'complex_': np.complex_,    # Shorthand for complex128.
+   'complex64': np.complex64,  # Complex number: two 32-bit floats
+   'complex128': np.complex128 # Complex number: two 64-bit floats
+}
+
+_FORMAT_DICTIONARY = {
+   'b': "d",   # boolean--should be 0 or 1?
+   'c': "e",   # complex number: a pair of floating-point numbers
+   'f': "e",   # floating point number
+   'i': "d",   # decimal integer
+   'u': "u"    # unsigned (ie non-negative) decimal integer
+}
+
+def numpytype(strOrType):
+   return _TYPENAME2TYPE[strOrType] if isinstance(strOrType, str) else strOrType
+
+def typename(strOrType):
+   return strOrType if isinstance(strOrType, str) else strOrType.name
+
+def typeformat(strOrType):
+   name = typename(strOrType)
+   return  _FORMAT_DICTIONARY[name[0]]
+
+def typefromvalue(value):
+   if isinstance(value, int): return np.int32
+   elif isinstance(value, float): return np.float64
+   elif isinstance(value, complex): return np.complex128
+   elif isinstance(value, bool): return np.bool_
+   else:
+      msg = "Unsupported numpy type for value {} of type {}"
+      raise ValueError(msg.format(value, type(value)))
+
+""" <md>
+
+### Generic Array File I/O ###
+
+#### <code>readarray(path, &ast;&ast;kwargs)</code> {#writearray}
+
+reads an array from a file located by `path`.   This is a very thin wrapper whose job is simply
+to use the filename extension that ends `path` to choose the function used to read the file:
+
+[npyload]: https://docs.scipy.org/doc/numpy/reference/generated/numpy.load.html
+[npyloadtxt]:  https://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html
+
+<blockquote><table>
+<tr><th>Extension</th><th>Effect</th></tr>
+<tr><td>`".npy"`:</td><td>&nbsp;call [`np.load`][npyload]</td></tr>
+<tr><td>`".npz"`:</td><td>&nbsp;call [`np.load`][npyload]</td></tr>
+<tr><td>`".gz"`:</td><td>&nbsp;call [`np.loadtxt`][npyloadtxt]</td></tr>
+<tr><td>`".txt"`:</td><td>&nbsp;call [`np.loadtxt`][npyloadtxt]</td></tr>
+<tr><td>`".csv"`:</td><td>&nbsp;call [`readcsv`](#readecsv)</td></tr>
+<tr><td>`".tbl"`:</td><td>&nbsp;call [`readtable`](#readtable)</td></tr>
+</table></blockquote>
+
+The trailing keyword arguments, `**kwargs`, are passed on to the function call implied by the
+filename extension.
+
+The return value is a three-tuple, whose components are a function of the file type:
+
+1) the result as a NumPy `ndarray`,
+2) an array of heading lines (`.csv`) or rows (`.tbl`)
+3) an array of footing lines (`.csv`) or columns used as row headings (`.tbl`).
+
+For files of type "`.n*`" that are written and read by NumPy code, the arrays in _2)_ and _3)_
+are empty: only the NumPy result is of interest.
+
+#### <code>writearray(path, array, ext=".npy", &ast;&ast;kwargs)</code> {#writearray}
+
+writes `array` to the file named by the combination of `path` and `ext`.  There is no return
+value.  Like `readarray` for input, this is simply a thin wrapper around calls to NumPy and
+local functions that handle variations on, in this case, the output file format.
+     
+The argument `path` is either `None`, a path for directory into which to write the output, or a
+complete path for the output file.  If it is `None`, the current working directory will be used.
+`ext` is the filename extension and must be one of those in the folowing table:
+
+[npysave]: https://docs.scipy.org/doc/numpy/reference/generated/numpy.save.html
+[npysavetxt]:  https://docs.scipy.org/doc/numpy/reference/generated/numpy.savetxt.html
+[npysavezc]: https://docs.scipy.org/doc/numpy/reference/generated/numpy.savez_compressed.html
+
+<blockquote>
+<table>
+<tr><th>Extension</th><th>Effect</th></tr>
+<tr><td>`".npy"`:</td><td>&nbsp;call [`np.save`][npysave]</td></tr>
+<tr><td>`".npz"`:</td><td>&nbsp;call [`np.savez_compressed`][npysavezc]</td></tr>
+<tr><td>`".gz"`: </td><td>&nbsp;call [`np.savetxt` with _gzip_ output][npysavetxt]</td></tr>
+<tr><td>`".txt"`:</td><td>&nbsp;call [`np.savetxt` with UTF-8 output][npysavetxt]</td></tr>
+<tr><td>`".csv"`:</td><td>&nbsp;call [`writecsv`](#writecsv)
+<tr><td>`".tbl"`:</td><td>&nbsp;call [`writetable`](#writetable)
+</table></blockquote>
+
+The trailing keyword arguments, `**kwargs`, are passed on to the function call implied by the
+filename extension.
+
+If no filename for the file is provided--in other words, if `path` names a directory, the
+filename will be taken to be "`array_`_`shape.ttt.ext`_",
+where 
+<blockquote><table>
+<tr><td>_`shape`_&nbsp;</td><td> is the shape of the array in the format _`iiixjjjx...`_, 
+with _`iii`_ the first dimension, _`jjj`_ the second, and so on; </td></tr>
+
+<tr><td> _`ttt`_&nbsp;</td><td> is a timestamp: the last
+five characters in the current time as returned by the library function `time.gmtime` and
+written in base 36; and  </td></tr>
+
+<tr><td>_`ext`_&nbsp;</td><td> is the filename extension, as provided for either in `path`
+or, if not there, by `ext`. </td></tr>
+
+</table></blockquote>
+
+""" # </md>
+
+def readarray(path, options={}):
+   ignore, basetype = osp.splitext(path)
+   if basetype.startswith('.np'):
+      if basetype.startswith('.npz#'): # field name in the loaded file's dict
+         namestart = 5 + path.rfind('.npz#')
+         path = path[0:namestart+4]
+         name = path[namestart:]
+         return (np.load(path)[name], [], [])
+      else:
+         return (np.load(path), [], [])
+   elif basetype == ".csv":
+      return readcsv(path, options)
+   elif basetype == ".tbl": 
+      return readtable(path, options)
+   else:
+      raise ValueError("Unexpected file type, '{}', for a matrix".format(basetype))
+
+def writearray(path, array, ext="npy", **kwargs):
+   path, ext = _resolve_basename(path, array, ext)
+   if ext == '.npy':
+      np.save(path, array, **kwargs)
+   elif ext == '.csv':
+      writecsv(path, array, **kwargs)
+   elif ext == '.tbl':
+      writetable(path, array, **kwargs)
+   else:
+      raise ValueError("Unexpected extension, '{}', for array path.".format(ext))
+
+
+""" <md>
+### Reading CSV-like files--variations on NumPy's functions {#reading_csv}
+
+The methods I've written are explicitly intended for saving numeric NumPy arrays as text files,
+not for saving lists of lists or any other sort of indexed collection.  There are two flavors of
+writer: one for generic arrays, and one for spreadsheet-like tables, where, for the sake of
+documenting the semantics of the values, one may provide headings both above the columns and to
+the left of the rows.  The methods handling the "table" format are `readtable` and `writetable`.
+The corresponding pair for generic arrays is `readcsv` and `writecsv`. 
+
+NumPy is careful to provide both "row-major" and "column-major" formats for arrays, the latter
+being FORTRAN's preferred format.  Since I have no particular need of FORTRAN--I last wrote in
+that language in 1977--I have not worried about providing both formats.  Just to be clear, if
+`(n`<sub>1</sub>, `... n`<sub>d</sub>`)` is the shape tuple for an array of dimension `d`
+(or "rank `d`", if you prefer), I read and write as if I were looping over the rightmost index
+first:
+
+<pre class="exampleCode">
+
+   for k<sub>1</sub> in range(0, n<sub>1</sub>+1):
+      for k<sub>2</sub> in range(0, n<sub>2</sub>+1):
+         ...
+            for k<sub>d</sub> in range(0, n<sub>d</sub>+1):
+               handle(array[k<sub>1</sub>,...,k<sub>d</sub>])
+
+</pre> 
+
+#### <code>readcsv(path, options={})</code>\
+<code>readtable(path, options={})</code>{#readtable}
+
+Both read a UTF-8 text file that is assumed to have numeric data in a CSV-like format. `readcsv`
+is intended for arrays of any shape and permits only header and footer lines as text (not as
+table entries before or after, the table's numeric data). `readtable` is intended for vectors
+and matrices, and therefore allows row and column  headings as an integral part of the CSV
+array: the actual numeric data is in a sub-array bordered above by rows of column headings and
+to the left by columns of row headings.
+
+> __CAREFUL!__  If you are working with the "table" format, are using the first `k` columns for
+row headings, and have one or more rows of column headings, then the length of a column heading
+row is `k+n`, where `n` is the number of columns of numerical data in the body of the table.
+
+The file is read in and used to initialize a NumPy array of the appropriate shape. The
+parameters are
+
+<blockquote>
+
+---------  ------------------------------------------
+`path`:    locates the file in question
+`options`: a mapping whose keys are described below 
+---------  ------------------------------------------
+
+</blockquote>
+
+[urlquery]: https://en.wikipedia.org/wiki/Uniform_Resource_Locator#Syntax
+
+You can supply the option values in the `options` argument, as part of the path, and in the
+first line of the file itself. The idea is that the `options` argument represents
+application-wide defaults that a particular input file might need to override.  The syntax for
+adding options to the path is the usual one for adding the [_"query"_ part to a URL][urlquery]:
+follow the file path with
+
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`?key1=value1&key2=value2&...` 
+
+with those option keys and values that are local to the file.  These options override the
+`options` argument.  Use exactly the same syntax to embed options as the first line of the file,
+_but add a leading_ `'#'`.  (Lines beginning with `'#'` are conventionally treated as comments
+in CSV files.)  The path options dominate the file options, which in turn dominate those in
+`options`.
+
+The options keys, with the default values I provide, are:
+
+<blockquote>
+
+  Key       Description                                            Default
+----------  ---------------------------------------------------- -------------
+`"shape"`   &nbsp;comma-separated entries for the shape tuple       `None`
+`"dtype"`   &nbsp;the datatype to expect for the entries           `"int32"`
+`"sep"`     &nbsp;a single character that is the field separator    `'|'`
+`"dbgnpu"`  &nbsp;display debugging output?                        `False`
+----------  ---------------------------------------------------- -------------
+
+</blockquote>
+For `readtable` only, there are two other options to handle headings:
+<blockquote>
+
+  Key      Description                                          Default
+---------  -----------------------------------------------   -------------
+`"rskip"`  &nbsp;the number of heading rows to skip               `0`
+`"cskip"`  &nbsp;the number of heading columns to skip            `0`
+---------  -----------------------------------------------   -------------
+
+</blockquote>
+
+The matrix returned has type `numpy.ndarray(shape, dtype=type)`
+
+The reason for allowing more than one header row and/or column is quite simply that the 
+application for which this was written required that ability to be clear about the meaning of
+the actual matrix entries.  Also, the reason for using `'|'` as the default separator is that
+it is not used in numeric strings by any language I know of, nor is it likely to appear in
+the heading text, whereas commas or whitespace, which are the other common separators, are.
+
+#### <code>writecsv(path, array, headers="", footers="", sep='|', selfid=True)</code>\
+<code>writetable(path, array, rowheaders=None, colheaders=None, sep='|', selfid=False)</code> {#writetable}
+
+Both write the matrix to a file. If `path` does not name a directory, it is taken to name the
+output file.  In that case, if `path`'s base name has no file-type extension, `".csv"`  will be
+appended by `writecsv` and `".tbl"` by `writetable`.  If `path` does name a directory, the file
+name will be constructed as described in the comments on `writearray` above.
+
+`writecsv` allows heading text and footer text.  The corresponding arguments, `headers` and
+`footers`, should be the text to use.  Each header and footer line has a `'#'` prepended as it
+is written, so that the lines look like comments in the CSV file.  Otherwise, as you would
+expect, this text will appear "as is",  with headers at the beginning of the file and footers at
+the end.
+
+If heading rows are provided for `writetable`, the argument should be accessible as if it were a
+list of rows, each row a list of one entry per column (and remember the warning above about how
+many columns you need!).  The entries may be empty strings, but there must be one item per
+column.  If you are using a `numpy` array, its shape must be `(count, cols)`, where `count` is
+the number of rows to be used for the headings and `cols` is the number of columns.  The
+analogous conditions govern the column headings, except now the shape is `(rows, count)`, or if
+you like to think of lists of lists, a list with one entry per row, each entry being a list with
+one entry per heading column. Typically, if present at all, `count` is `1` in both cases, so the
+heading rows have shape `(1,cols)`, and the heading columns shape `(rows,1)`.
+
+The matrix entries are converted to ASCII strings before being written out. The keyword argument
+`sep` is a string of length 1 that is used to separate the matrix entries in a given row.  A
+newline character ends each row.  Python's ["universal newline"](https://docs.python.org/3.6/glossary.html#term-universal-newlines)
+convention is used.  
+
+""" # </md>
+
+def optiondefaults():
+   return {
+      "shape"  : None,    # same meaning as for an ndarray
+      "dtype"  : "int32", # again: same meaning as for an ndarray
+      "sep"    : '|',     # a single character that is the field separator
+      "dbgnpu" : False,   # show debugging printouts?
+                          # the two below are needed only for readtable/writetable
+      "rskip"  : 0,       # the number of heading rows to skip
+      "cskip"  : 0        # the number of heading columns to skip
+   }
+_PATH_PARM_RE = re.compile("([^?]+)(\?([^?]+))?$")
+_BASEPATTERN = re.compile("array_([x\d]+)\.(\w+)\.(\w+)\.(\w+)")
+
+def _parseparms(path, options):
+   defaults = optiondefaults()
+   (path, ignore, parms) = _PATH_PARM_RE.match(path).groups()
+   basename = osp.basename(path)
+   match = _BASEPATTERN.match(basename)
+   local_options = {}
+   if match != None:
+      shape, dtype, ignore = match.groups()
+      local_options["shape"] = shape
+      local_options["dtype"] = dtype
+   if parms != None:
+      _parseurlparms(parms, local_options, defaults)
+   su.mergepairs(local_options, options)
+   su.mergepairs(local_options, defaults)
+   return path, local_options
+
+def _readfirstline(f, options, defaults):
+   line = f.readline()
+   _parseurlparms(line[2:].lstrip(), options, defaults)
+   # translate string values to their desired types:
+   if isinstance(options['shape'], str):
+      options['shape'] = tuple([int(n) for n in options['shape'].split('x')])
+   else:
+      # make sure (a) value is a tuple, and (b) entries are integers
+      options['shape'] = tuple([int(n) for n in options['shape']])
+   options['dtype'] = numpytype(options['dtype'])
+   if not isinstance(options['dtype'], type):
+      msg = "expected valid NumPy data type, got '{}'"
+      raise ValueError(msg.format(options['dtype']))
+   options['rskip'] = int(options['rskip'])
+   options['cskip'] = int(options['cskip'])
+   options["dbgnpu"] = su.asboolean(options['dbgnpu'])
+   return f.readline() if line.startswith("#?") else line   
+
+def _parseurlparms(urlparms, local_options, defaults):
+   # urlparms ?key=value&key=value...
+   parms = urlparms.rstrip().split('&')
+   if defaults["dbgnpu"]: print("parms is '{}'".format(parms))
+   for parm in parms:
+      if defaults["dbgnpu"]: print("parm is '{}'".format(parm))
+      (name, value) = parm.split('=')  # 
+      if name in defaults:
+         oldvalue = local_options[name]
+         default = defaults[name] 
+         if name in local_options and oldvalue != default and oldvalue != value:
+            msg = "WARNING: {} is '{}' in the path, but '{}' in the parameters"
+            print(msg.format(name, oldvalue, value), file=sys.stderr)
+         #print("'{}' --> '{}'".format(name, value))
+         local_options[name] = value
+      elif defaults["dbgnpu"]: # ignore ???
+         print("Unexpected option in the path parameters: '{}'".format(name))
+         print(defaults)
+   return local_options
+
+def readtable(path, options={}):
+   path, options = _parseparms(path, options)
+   with open(path) as f:
+      line = _readfirstline(f, options, optiondefaults())
+      if options["dbgnpu"]: print("line after first is '{}'".format(line))
+      separator = options['sep']
+      column_headings = []
+      row_headings = []
+      # ignore any header lines to get to the first line of data
+      first_data_column = options['cskip']
+      for n in range(0, options['rskip']):
+         headings = line.strip().split(separator)
+         column_headings.append(headings[first_data_column:])
+         line = f.readline()
+         if options["dbgnpu"]: print("headings {}: '{}'".format(n, line))
+      # read the first row containing real data and use it to determine the matrix
+      # size, if the options do not already do that.
+      row = line.strip().split(separator)
+      if options['dbgnpu']:
+         msg = "Matrix starts at column {}; separator: '{}'" 
+         print(msg.format(first_data_column, separator))
+         print("First row: {}".format(row))
+      fields_per_line = len(row)
+      cols = fields_per_line - first_data_column
+      shape = options['shape']
+      if shape != None: 
+         expected = shape[1] if len(shape) > 1 else shape[0]
+         if cols != expected:
+            msg = "Expected {} data columns, but first line has {}"
+            raise ValueError(msg.format(expected,cols))
+         rows = shape[0] if len(shape) > 1 else 1
+      else:
+         rows = cols
+         shape = (cols, cols)
+         print("WARNING: no shape specified: {} assumed.".format(shape),file=sys.stderr)
+      if options['dbgnpu']: print("{} data fields in the first row.".format(cols))
+      data_range = range(first_data_column, fields_per_line)
+
+      # allocate and fill in the matrix
+      entrytype = options["dtype"]
+      matrix    = np.zeros(shape, dtype=entrytype)
+
+      # we've already read the first row
+      if first_data_column > 0: 
+         row_headings.append(row[0:first_data_column])
+      for j in data_range:
+         matrix[0, j-first_data_column] = entrytype(row[j].strip()) 
+
+      # now read the remaining rows
+      i = 1 # next row to update
+      while i < rows:
+         line = f.readline()
+         if options["dbgnpu"]: print("row {}: {}".format(i, line))
+         if len(line) == 0:
+            raise IOError("{} rows found at EOF, but {} were expected".format(i,rows))
+         row = line.strip().split(separator)
+         if len(row) != fields_per_line:
+            msg = "{} fields found in row {}, but {} were expected"
+            raise IOError(msg.format(len(row), i, cols))
+         if first_data_column > 0:
+            row_headings.append(row[0:first_data_column])
+            for j in data_range:
+               matrix[i, j-first_data_column] = entrytype(row[j].strip())
+         i += 1
+   return (matrix, column_headings, row_headings)
+
+def readcsv(path, options={}):
+   path, options = _parseparms(path, options)
+   if options["dbgnpu"]: print("options before: {}".format(options))
+   with open(path, 'rt') as f:
+      line = _readfirstline(f, options, optiondefaults())
+      separator = options['sep']
+      shape = options['shape']
+      totalsize = sizefromshape(shape)
+      entrytype = options['dtype']
+      array = np.zeros((totalsize,), dtype=entrytype)
+      n = 0
+      headers = []
+      while len(line) > 0 and line[0] == '#':
+         headers.append(line[1:])
+         line = f.readline()
+      while len(line) > 0 and line[0] != '#':
+         if line != "\n":
+            for entry in line.split(separator):
+               array[n] = entrytype(entry)
+               n += 1
+         line = f.readline()
+      footers = []
+      while len(line)>0:
+         footers.append(line[1:])
+         line = f.readline()
+      if n != totalsize:
+         raise ValueError("Read {} entries, but expected {}".format(n, totalsize))
+      return (array.reshape(shape), headers, footers)
+
+def _resolve_basename(path, array, ext):
+   if not osp.isdir(path):
+      (ignore, actual_ext) = osp.splitext(path)
+      if len(actual_ext) == 0:
+         actual_ext = ext
+      return (path, actual_ext)
+   else:
+      if not path.endswith(os.sep): path += os.sep
+      shape_str = 'x'.join([str(n) for n in array.shape])
+      formatString = "{0}array_{1}{2}{3}{2}{4}{2}{5}"
+      entrytype = typename(numpytype(kind) if kind != None else array.dtype)
+      timestamp = su.now2IntLiteral(36)[-4:]
+      resolved = formatString.format(
+         path, shape_str, os.extsep, entrytype, timestamp, ext
+      )
+      return (path, ext)
+
+def writetable(path, matrix, rowheaders=None, colheaders=None, sep='|', selfid=True):
+   if len(matrix.shape) == 1:
+      matrix = matrix.reshape(1, matrix.shape(0))
+   elif len(matrix.shape) != 2:
+      raise TypeError("Expected a vector or matrix, but got shape {}".format(shape))
+   path, ignore = _resolve_basename(path, matrix, "tbl")
+   (rows, cols) = matrix.shape
+   if rowheaders is None: rskip = 0
+   else:
+      shape = rowheaders.shape
+      rskip = 1 if len(shape) == 1 else shape[0]
+   if colheaders is None: cskip = 0
+   else:
+       shape = colheaders.shape
+       cskip = 1 if len(shape) == 1 else shape[1]
+   entrytype = typename(matrix.dtype)
+   formatString = "{0:"+typeformat(entrytype)+"}"
+   with open(path, "wt") as f:
+      if selfid:
+         firstlinefmt = "#? shape={}x{}&rskip={}&cskip={}&dtype={}&sep={}\n"
+         f.write(firstlinefmt.format(rows, cols, rskip, cskip, entrytype, sep))
+      if rskip != 0:
+         f.write(sep.join([str(x) for row in rowheaders for x in row])+"\n")
+      if cskip == 0:
+         for row in matrix:
+            fwrite(sep.join([formatString.format(x) for x in row])+"\n" )
+      else:
+         for n in range(0, rows):
+            headers = sep.join([str(x) for x in colheaders[n]])
+            the_row = sep.join([formatString.format(x) for x in matrix[n]])
+            f.write(sep.join([headers, the_row]) + "\n")
+
+def writecsv(path, array, headers="", footers="", perline=10, sep='|', selfid=True):
+   path, ignore = _resolve_basename(path, array, "csv")
+   entrytype = typename(array.dtype)
+   formatString = "{0:"+typeformat(entrytype)+"}"
+   shape = array.shape
+   if len(shape)==1:
+      rows = 1
+      cols = array.size 
+   else:
+      rows = shape[0]
+      cols = shape[1]
+   reshaped = array.reshape((array.size,))
+   with open(path, "wt") as f:
+      if selfid:
+         f.write("#? shape={}x{}&dtype={}\n".format(rows, cols, entrytype))
+      if len(headers) > 0:
+         for line in headers.split("\n"):
+            f.write("#"+line+"\n")
+      n = 0
+      while n < array.size:
+         next_n = n + perline
+         slice_n = reshaped[n : next_n] 
+         f.write(sep.join([formatString.format(x) for x in slice_n])+"\n" )
+         n = next_n
+      if len(footers) > 0:
+         for line in footers.split("\n"):
+            f.write("#"+line+"\n")

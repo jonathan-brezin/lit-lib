@@ -1,0 +1,521 @@
+""" <head> 
+Title: <code>cmdlineparser</code>: Simplified Command Line Processing
+Author: Jonathan Brezin
+Date: November, 2015
+Show source: yes
+""" # </head>
+
+""" <md>
+
+## Introduction ## 
+
+The aim here is to simplify adding command line argument specifications to a "main" Python entry
+point.  I do so by extending the Python library's 
+[`ArgumentParser`](https://docs.python.org/3.5/library/argparse.html) class.
+All the parsing work is delegated to an instance of that class.  The 
+[`add_argument()`](https://docs.python.org/3/library/argparse.html#the-add-argument-method)
+method of `ArgumentParser` itself has a necessarily rich signature:
+
+<pre class="exampleCode">
+ArgumentParser.add_argument(name or flags...
+   [, action][, nargs][, const][, default][, type]
+   [, choices][, required][, help][, metavar][, dest])
+</pre>
+
+The major reason for extending the class is to provide a number of instance methods that handle
+the most common situations with minimal signatures.
+
+Three types of command line keys are supported:
+
+<blockquote><table>
+
+<tr><td>_positional_:</td><td>  which must occur in a command line in the same relative position
+that they appear in the sequence of `add_...` calls that register the keys. Typically, positional
+arguments are the first and/or last key. Particularly when appearing last, they may consume any
+number of arguments.</td></tr>
+
+<tr><td>_key/value&nbsp;pairs_:</td><td> optional keys consuming a single argument that follows as
+its value</td></tr>
+
+<tr><td>_flags_:</td><td> keys whose value is `False` by default and is `True` if present</td></tr>
+
+</table></blockquote>
+
+Those three are enough for now.  Notably missing are key/value options that can consume more than
+one argument.  I have not needed them, so I have not implemented them.  I also do not handle the
+unfortunately common case of a command line that contains a final set of entries which are to be
+ignored by the invoked program itself, but are saved by it and eventually passed on to some other
+program, possibly one created by it.  One way to handle this is by quoting the part of the command
+line that is to be passed through and treating the quoted string as single positional argument.
+Another common convention is to use the minimal key, "`--`", to separate the two parts of the
+command line. That solution is not easily supported by the library code I am wrapping.  I may yet do
+some preprocessing to make it work, but I am not anxious to open that can of worms.  As a practical
+matter, one can also use a non-standard, but easily recognizable, option key like `--the_rest` or
+`--pass_on`.
+
+Some vocabulary: 
+
+> <b>_Arguments_</b> are the entries in a list. The list is normally gotten by splitting a command
+line at whitespace, but any list of strings will do.  
+
+> <b>_Keys_</b> or <b>_keywords_</b> name groups of values. Non-numeric entries the argument list
+are identified as keys by beginning them with a "`-`".  Keys may be followed in the list by zero or
+more entries that are interpreted as the key's value. These key/value pairs are normally called
+<b>_options_</b> and, as the word "option" implies, they usually are not be required to be present.
+
+> <b>_Values_</b> are those entries in the argument list that are not keywords.  Some values are
+part of key/value pairs as just described; others are "positional", in the sense that their meaning
+is derived from where they appear in the argument list, not from being paired with an option
+keyword.
+
+> <b>_Flags_</b> are keywords that do not consume any values.  A flag `-xxx` has the value `True` or
+`False` depending on whether `-xxx` appears in the argument list or not.
+
+How to handle repeated appearances of the same key in a command line is a vexed issue.  First wins?
+Last? Keep all the values as a list?  The argument parser provided with the Python library does
+"last wins" by default.  It implements the "keep all" if you provide the `action` keyword argument
+with the  value `append`.  One could also implement "first wins" or "once only", but I have not.
+Should you need to, it is a  simple matter of extending the
+[`Action`](https://docs.python.org/3/library/argparse.html#argparse.Action) class.  
+
+Another thing to be careful of is options that contain characters that appear in an option but are
+not legal in Python identifiers, most particularly '-', which  `argparse` translates to an
+underscore "`_`".  If you want to use the returned object's attributes to access the value, you need
+to use the "`_`".  If you use the "add_" methods supplied here and you use the `dict` version of the
+key/value pairs, both the `-` and the `_` names are there.  If you use any other funny character,
+you _must_ use the `dict` variant.
+
+[native_parse]: https://docs.python.org/3/library/argparse.html#the-parse-args-method
+
+At the risk of being accused of "piling on", I have to raise another issue, namely, what to do if
+there are unrecognized keys.  The native Python library call, [`parse_args()`][native_parse],
+exits on any error, after spitting out a message.  By "exit", I mean just that: you are left back at
+the command shell prompt with an exit status of `2`. Remember, this method is designed to process
+command lines, so it is not unreasonable to assume that garbage keys will be recoverable only by re-
+entering a correct command line--and either there will be someone at the keyboard ready to deal with
+it--or not (sigh!).
+
+Finally, a reminder that `argparse` is pretty sophisticated about parsing key/value pairs.  If `-x`
+is a key, `-xyz` will be recognized as an occurrence of `x` with value `yz`, just as `-x yz` would
+be.  Of course, if `xy` or `-xyz` are also keys, all bets as to how `-xyz` is interpreted are off.
+
+"""
+
+from argparse import ArgumentParser
+from argparse import HelpFormatter
+from collections import defaultdict, namedtuple
+from frozendict import FrozenDict
+import re
+import sys
+import sysutils as su
+import types
+
+""" <md>
+
+#### High-level interface: <code>parse_args(&ast;classes, args=None, usage=None, harden=True)</code> 
+
+This is a module-level function that is adequate for bootstrapping a lot of command-line programs.
+It informs the parser of the union of the command line keys expected by the classes passed to it as
+arguments, and then parses the command line.  The `usage` parameter is a string that is prepended to
+the help message that is generated automatically for the `--help` keyword argument.  
+
+The return value is an `object` whose public attributes are the keywords, stripped of leading
+dashes.  The value of an attribute is either the value supplied in the command line or a default
+specified when the keyword was added to the parser's dictionary.  The actual type of the return
+value is determined by the keyword parameter "`harden`".  If it is `True`, which is the default, the
+return value is a `namedtuple` and immutable.  Otherwise, the return value is a `SimpleNamespace`.
+If the command line keywords, less their opening dashes, are not valid Python identifiers, you want
+to go with the `SimpleNamespace`, because all of the keywords will be found in the return value's
+`__dict__` and hence are accessible via its "`[]`" operator.  The `namedtuple` constructor will
+raise a `ValueError` if it encounters a lexically invalid key.
+
+The classes passed as the call's initial arguments are processed in the order they appear in the
+argument list.  Each class is assumed to have a class method `setCmdLineArgs()` that takes a
+`CmdLineParser` as its only argument.  The job of that method is to add the argument specifications
+to the parser's list, normally by calling the `add...` methods below. `setCmdLineArgs()` is a class
+method because the command line options, often as not, are used to initialize any instances that are
+constructed.  
+
+Some care is required when there are positional arguments.  My advice is not to have optional and
+positional arguments interspersed in the  series of `add_...` calls.  Put them all first or last.
+
+By default--that is, when `args` is `None`--this call parses the arguments coming in from the
+command-line.  Otherwise, the value for `args` should be a list of strings representing a tokenized
+command-line.
+
+""" # </md>
+
+def parse_args(*classes, args=None, usage=None, harden=True):
+   clp = CmdLineParser() if usage == None else CmdLineParser(usage=usage)
+   for aClass in classes:
+      clp.setCaller(aClass)
+      aClass.setCmdLineArgs(clp)
+   return clp.parse_all_args(args=args, harden=harden)
+
+
+""" <md>
+
+## Getting the key/value pairs as a <code>dict</code> {#as_a_dict}
+
+There are times when passing the result through to an application's constructors that it is more
+convenient to pass a `dict`-like object whose keys are the command line keywords.  An example is
+when the constructors are designed to be called not just more or less directly from the command
+line, but from other places in the application as well that may have their own source for
+initializing the options.  It is more natural in Python, if not easier, for the other callers to
+construct a `dict` with the desired keys than it is for them to construct an object with the right
+attributes. That explains why I bothered with the following one-liner to convert `parse_all_args`'s
+output to a  `dict` or [`FrozenDict`](inheritancedict.html#freezing-a-mapping):
+
+#### <code>args_dict(parsed_args, freeze=False)</code> 
+
+`args_dict` returns a dictionary whose key/value pairs are the attribute/value pairs of the value
+returned by a call to either the `parse_args()` module-level function or to the `CmdLineParser`
+instance method `parse_all_args()`.  If `freeze` is `True`, the return value is a read-only
+dictionary; otherwise it is an ordinary `dict`.
+
+"""
+
+def args_dict(parsed_args, freeze=False):
+  if hasattr(parsed_args, "__dict__"):
+    return parsed_args.__dict__.copy() if not freeze else FrozenDict(parsed_args.__dict__)
+  elif hasattr(parsed_args, "_asdict"):
+    asdict = parsed_args._asdict()
+    return asdict if not freeze else FrozenDict(asdict)
+  else:
+    raise TypeError(
+      "Unexpected return type, {}, from the argument parser".format(type(parsed_args))
+    )
+
+""" <md>
+
+## The <code>CmdLineParser</code> class and its initializer ##
+
+__`CmdLineParser`__ extends the class 
+[`ArgumentParser`](https://docs.python.org/3.5/library/argparse.html#argumentparser-objects) from
+the Python Standard Library.  Its constructor has exactly the same signature as `ArgumentParser`,
+so I won't elaborate further here.  There is also a tutorial on using `ArgumentParser`:
+[https://docs.python.org/3.5/howto/argparse.html](https://docs.python.org/3.5/howto/argparse.html).
+If you are willing to live with my module-level `parse_args()`, you can avoid the constructor
+call entirely, because I'll do it for you.
+
+There are three fields I have added to the base `ArgumentParser`.
+
+> _`synonyms`_ maps each option key to all of its synonyms--_e.g._ short and long forms, like`-f`
+and `--from`.
+
+> _`misfits`_ is the set of option keys that are not valid Python identifiers and hence not usable
+as attribute names.  This is just for debugging purposes.
+
+> _`caller`_ is the name of the class that is currently adding options to the profile.  It is only
+used to generate error messages and is `None` (and hence ignored) by default.  
+
+You can set _`caller`_ either as the keyword argument "`caller`" or by calling the method
+
+#### <code>setCaller(caller)</code> 
+
+The value of caller should be the class that is initializing the profile.  An object of that class
+is also okay, as is the character string name of the class.  Passing `None` results in no name
+being used.
+
+It is considered good taste for a class to use a method named `setCmdLineArgs` to specify the
+command line keys and their semantics.  Even better taste is to begin that method by calling
+`setCaller`, just in case some error is detected.  The module-level `parse_args` makes the call for
+you, in case you were neglectful, but still, it is goodness to make `setCmdLineArgs` self-contained.
+
+"""
+class CmdLineParser(ArgumentParser):
+
+   def __init__(self, 
+                 prog=None,             usage=None,
+                 description=None,      epilog=None,
+                 parents=[],            formatter_class=HelpFormatter,
+                 prefix_chars='-',      fromfile_prefix_chars=None,
+                 argument_default=None, conflict_handler='error',
+                 add_help=True,         caller=None):
+      self.synonyms = defaultdict(list)  # maps each key to its synonyms
+      self.misfits = set()               # keys that are not valid Python ids
+      self.setCaller(caller)
+      ArgumentParser.__init__(self,
+                 prog=prog, usage=usage, description=description,
+                 epilog=epilog, parents=parents, formatter_class=formatter_class,
+                 prefix_chars=prefix_chars, fromfile_prefix_chars=fromfile_prefix_chars,
+                 argument_default=argument_default, conflict_handler=conflict_handler,
+                 add_help=add_help)
+
+   def setCaller(self, caller):
+      if caller is None:
+         self.caller = None
+      elif isinstance(caller, str):
+         self.caller = caller
+      else:
+         theClass = caller if isinstance(caller, type) else caller.__class__
+         self.caller = theClass.__name__
+
+""" <md>
+
+## Two instance method parsing method "overrides "##
+
+I don't really override these methods, I wrap them, because I don't want to risk my version being
+called internally by `argsparse` at some future time.  The only reason for wrapping these methods of
+`ArgumentParser` at all is to make sure that when there are multiple keywords for the same option,
+_all_ of the possible keywords, and not just the second one specified in the call to `add_argument`,
+are available as attributes of the parser's return value.
+
+#### <code>parse_all_args(args=None, strict=True)</code> 
+
+The call returns an object whose attributes are the keywords and whose values are those
+corresponding to the keywords.  `args` is either a `list` of strings that are the entries in the
+argument list, or is `None`, in which case the list is taken to be passed in from the command-line
+via `sys.argv`.  Defaults, if available, for keywords not present are supplied as needed.  See the
+documentation for 
+[ArgumentParser.add_argument](https://docs.python.org/3.5/library/argparse.html#the-add-argument-method).
+
+If any errors are detected, the call _exits_ the application, _it does_ not _just raise an
+exception._  
+
+#### <code>parse_only_known_args(args=None, strict=True)</code> 
+
+This call is the basically same as `parse_all_args`, but wraps `parse_known_args` instead of
+`parse_args`, so it does not produce an error when unrecognized arguments are present. Instead, it
+returns a two item tuple containing the populated namespace and the list of remaining argument
+strings.  Per the warning in the `argparse` documentation:  [prefix
+matching](https://docs.python.org/3/library/argparse.html#prefix-matching) rules apply to `ArgumentParser`'s
+`parse_known_args`, which means that the parser may consume an option even if it’s just a prefix of
+one of its known options, instead of leaving it in the remaining arguments list.
+
+"""
+
+   def _addSynonyms(self, namespace, strict=True, harden=False):
+      kvpairs = vars(namespace)
+      updates = {}
+      errors = []
+      for key, value in kvpairs.items():
+         if key in self.synonyms:
+            try:
+               for other in self.synonyms[key]:
+                  updates[other] = value
+            except Exception as e:
+               errors.add(str(e))
+      if len(errors) > 0:
+         if strict:
+            raise ValueError("Parse failed:\n\t{}".format(errors))
+         else:
+            for msg in errors:
+               print(msg, file=sys.stderr)
+      for key in updates:
+         value = updates[key]
+         namespace.__dict__.update(((key, value),))
+      return su.harden(namespace) if harden else namespace
+
+   def parse_all_args(self, args=None, strict=True, harden=False):
+      namespace = types.SimpleNamespace()
+      self.parse_args(args, namespace)
+      return self._addSynonyms(namespace, strict, harden)
+      
+   def parse_only_known_args(self, args=None, strict=True, harden=False):
+      namespace = types.SimpleNamespace()
+      namespace, the_rest = self.parse_known_args(args, namespace)
+      return (self._addSynonyms(namespace, strict, harden), the_rest)
+
+""" <md>
+
+## The full-bodied add methods ##
+
+As mentioned at the outset, my convention for dealing with command line options is to provide
+each class that uses them with a class method `setCmdLineArgs()` whose only argument is a 
+`CmdLineParser` instance.  The method uses that instance to call the `add...` functions that
+populate the universe of expected options.  One can then either call the righteous `parse_all_args`
+or the forgiving `parse_only_known_args` to get what amounts to a dictionary of the option key/value
+pairs.
+
+The methods that follow allow the full range of possibilities for adding the common types of
+options. The  main win here is that the keyword parameters for the call have default values that
+cover a lot of the common cases, so the calls can be relatively succinct, as  [the shortcut examples
+below](shortcuts-for-when-there-is-only-a-short-key-name) show.
+
+The keyword arguments for these calls (and their defaults) are  
+
+> `const=None`, `default=None`, `type=str`, `choices=None`, `required=False`, `action='store'`,
+`help='(no help)'`, `metavar=None`, `nargs=1`
+
+These are the same as those for `ArgumentParser`'s
+[`add_argument`](http://docs.python.org/3/library/argparse.html#the-add-argument-method) method.
+See that documentation for an explanation of their semantics.  
+
+#### <code>add_pair(self, &ast;keys, &ast;&ast;kwargs)</code> 
+
+The call adds a key/value pair to the list for which the value is either concatenated to the
+key (_e.g_ `--tab=3` for a long key  like `tab`, `-max4` for a short key like `max`) or is the
+next token in the argument list. Any of the values in the `keys` array may be used in the
+command line.  All of the keyword arguments above are available here, except  `nargs`, which must
+have the value `1`.
+
+> The first arguments, the keywords, are positional. By convention, there are at most two keys, and
+when there are two, the short form for the key (single leading dash) is first, followed by the long
+form (two leading dashes). E.g. "-v" and "--version".  See the [testing code](examples/clptest.py)
+for an example.
+
+#### <code>add_repeatable(self, &ast;keys, &ast;&ast;kwargs)</code> 
+
+This call calls `add_pair` with `action='append'` so that the values for multiple occurrences of the
+option are accumulated in a list.
+
+#### <code>add_flag(self, &ast;keys, help='(no help)')</code> 
+
+This call adds a "flag" to the list. A flag is a command line argument whose presence or
+non-presence is all that is at stake. Like key/value arguments, flags may have an optional long
+name.  Otherwise, they have no other parameters, beyond documenting who wants them and what they
+mean.
+
+#### <code>add_positional(self, key, type=str, nargs=1, choices=None, help='(no help)')</code> 
+
+This call adds an argument that is recognized by its position in the list, not by being introduced
+by a key.  For obvious reasons, this normally means that it appears in the first or last position in
+a command line.  Optional keys that fall before a positional key need not appear in a particular
+command line, but if they do, they must preceed that positional key in that line.  The analogous
+restriction applies to keyword options that follow a positional key.  As you can see, only a few of
+`add_argument`'s keyword arguments apply here.
+
+All of these methods rely on an override of `argparse`'s `add_argument` method.
+
+#### <code>add_argument(&ast;args, &ast;&ast;kwargs)</code> override
+
+This method tracks the synonyms for each argument key, and normalizes the key in the same way that
+`argparse` does.  The idea is that, once the parse is done, the value for a key can be found using
+any of its synonyms.  It is critical to remember that keywords that are not legal Python ids and
+contain bad characters other than `-` have to be found in the `dict` key/value collection you get by
+calling [args_dict](#as_a_dict).  The arguments are exactly the same as they are for the
+`ArgumentParser` method it overrides.
+
+"""
+   
+   def add_argument(self, *args, **kwargs):
+      for n in range(0, len(args)):
+         argN = args[n]
+         mall = re.fullmatch("(-*)(.+)", argN)
+         #print(mall.groups())
+         if not mall.group(2):
+            continue 
+         leader = mall.group(1)
+         keyN = mall.group(2)
+         mkey = re.fullmatch("\w+", keyN)
+         if not mkey:
+            clean = keyN.replace('-', '_')
+            self.synonyms[clean].append(keyN)
+            self.synonyms[keyN].append(clean)
+            keyN = clean # make sure we have what argparse might use as a key
+            self.misfits.add(keyN)
+         for m in range(0, len(args)):
+            if n != m:
+               mall = re.fullmatch("(-+)(.+)", args[m])
+               keyM = mall.group(2)
+               #print("{} {} <--> {} {}".format(n, keyN, m, keyM))
+               self.synonyms[keyN].append(keyM)
+      return ArgumentParser.add_argument(self, *args, **kwargs)
+
+   def _print_add_error(self, key, message):
+      tail = " option '{}': {}".format(key, message)
+      if self.caller:
+         tail = " caller '{}', {}".format(self.caller, tail)
+      print("Error:"+tail, file=sys.stderr)
+
+   def add_pair(self, *keys,           # the short and optional long form for the key 
+                     const=None,       # value to use if the key appears without a value
+                     default=None,     # value to use if the key does NOT appear at all
+                     type=str,         # a valid Python type, typically str or int
+                     choices=None,     # if a collection, the only valid values for the key
+                     required=False,   # normally a key need not appear
+                     action='store',   # normal action: just save the value
+                     help='(no help)', # help message
+                     metavar=None      # documentation only
+                     ):
+      try:
+         if len(keys) == 1:
+            if keys[0][0] == '-':
+               self.add_argument(keys[0],
+                  const=const, default=default, type=type,  choices=choices,
+                  required=required, help=help, metavar=metavar)
+            else:
+               self.add_argument(keys[0],
+                  const=const, default=default, type=type,  choices=choices,
+                  help=help, metavar=metavar)
+         else:
+            self.add_argument(keys[0], keys[1],
+               const=const, default=default, type=type,  choices=choices,
+               required=required, help=help, metavar=metavar)
+            self.synonyms[keys[1]] = keys[0]
+      except Exception as e: 
+         self._print_add_error(keys[0], str(e))
+
+   def add_repeatable(self, *keys,     # the short and optional long form for the key 
+                     const=None,       # value to use if the key appears without a value
+                     default=None,     # value to use if the key does NOT appear at all
+                     type=str,         # a valid Python type, typically str or int
+                     choices=None,     # if a collection, the only valid values for the key
+                     required=False,   # normally a key need not appear
+                     help='(no help)', # help message
+                     metavar=None      # documentation only)
+                     ):
+      if keys[0][0] != '-':
+         raise ValueError("Positional argument '{}' cannot be repeatable".format(keys[0]))
+      self.add_pair(*keys, source=source, const=const, default=default,
+                    type=type, choices=choices, required=required, action="append",
+                    help=help, metavar=metavar)
+
+   def add_flag(self, *keys,            # the short and optional long form for the key 
+                     help='(no help)'): # help message
+      try:
+         if  len(keys) == 1: 
+            self.add_argument(keys[0], action='store_true', help=help)
+         else: 
+            self.add_argument(keys[0], keys[1], action='store_true', help=help)
+            self.synonyms[keys[1]] = keys[0]
+      except Exception as e:
+         self._print_add_error(keys[0], str(e))
+
+   def add_positional(self, key,      # the key for accessing the value
+                     type=str,        # a valid Python type, typically str or a numeric type
+                     nargs=1,         # normally 1, can be a number, '?', '+', or  '*' 
+                     choices=None,    # if a collection, the only valid values for the key
+                     help='(no help)' # help message
+                     ):
+      try:
+         self.add_argument(key, type=type, choices=choices, help=help, nargs=nargs)
+      except Exception as e:
+         self._print_add_error(key, str(e))
+
+""" <md>
+
+## Shortcuts for when there is only a "short" key name ##
+
+The following methods add an option with a single (short) key to the list.  The method name contains
+the type of value for the key.  Note that a help message is expected, so that the default `--help`
+will describe the new option's semantics. The final two methods add a positional argument with a
+sequence of entries of given type, strings by default.
+
+#### <code>add_a_flag(self, key, help_msg)</code> 
+#### <code>add_an_int(self, key, default_value, help_msg)</code> 
+#### <code>add_a_float(self, key, default_value, help_msg)</code> 
+#### <code>add_a_str(self, key, default_value, help_msg)</code> 
+#### <code>add_a_list(self, key, help, type=str)</code> 
+#### <code>add_an_optional_list(self, key, help, type=str)</code> 
+
+"""
+   def add_a_flag(self, key, help_msg):
+      self.add_flag(key, help=help_msg)
+
+   def add_an_int(self, key, default_value, help_msg):
+      self.add_pair(key, default=default_value, help=help_msg, type=int)
+
+   def add_a_float(self, key, default_value, help_msg):
+      self.add_pair(key, default=default_value, help=help_msg, type=float)
+
+   def add_a_str(self, key, default_value, help_msg):
+      self.add_pair(key, default=default_value, help=help_msg, type=str)
+
+   def add_a_list(self, key, help, type=str): 
+      self.add_positional(key, help=help, nargs='+', type=type)
+
+   def add_an_optional_list(self, key, help, type=str):
+      self.add_positional(key, help=help, nargs='*', type=type)
+   

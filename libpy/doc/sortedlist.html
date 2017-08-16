@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Maintaining Sorted Lists and Sets</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Maintaining Sorted Lists and Sets</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">September, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#a-rose-by-any-other-name">A rose by any other name</a></li>
+<li><a href="#the-raison-detre-for-sortedlist">The raison d’etre for <code>SortedList</code></a><ul>
+<li><a href="#the-why">The “why”</a></li>
+<li><a href="#the-how">The “how”</a></li>
+<li><a href="#the-what">The “what”</a></li>
+</ul></li>
+<li><a href="#the-sortedlist-class">The <code>SortedList</code> class</a><ul>
+<li><a href="#the-constructor-sortedlistiterable-keynone">The constructor: <code>SortedList(iterable=(), key=None)</code></a></li>
+<li><a href="#some-basic-core-methods">Some basic core methods</a><ul>
+<li><a href="#string-conversions">String conversions</a></li>
+<li><a href="#set_threshold"><code style="text-decoration: underline;">set_threshold(*, fraction=None, absolute=None)</code></a></li>
+<li><a href="#restore_sorted_order"><code style="text-decoration: underline;">restore_sorted_order()</code></a></li>
+<li><a href="#sort"><code style="text-decoration: underline;">sort()</code></a></li>
+</ul></li>
+<li><a href="#inserting-and-removing-items">Inserting and removing items</a><ul>
+<li><a href="#additem-and-appenditem"><code style="text-decoration: underline;">add(item)</code> and <code style="text-decoration: underline;">append(item)</code></a></li>
+<li><a href="#insertitem"><code style="text-decoration: underline;">insert(item)</code></a></li>
+<li><a href="#mergeiterable-and-extenditerable"><code style="text-decoration: underline;">merge(iterable)</code> and <code style="text-decoration: underline;">extend(iterable)</code></a></li>
+<li><a href="#popindex-1-and-pop_orelseindex-1-orelsenone"><code style="text-decoration: underline;">pop(index=-1) </code> and <code style="text-decoration: underline;">pop_orelse(index=-1, orelse=None) </code></a></li>
+<li><a href="#removeitem-sameidonlyfalse-failhardtrue"><code style="text-decoration: underline;">remove(item, sameIdOnly=False, failHard=True)</code></a></li>
+<li><a href="#discarditem-sameidonlyfalse"><code style="text-decoration: underline;">discard(item, sameIdOnly=False)</code></a></li>
+<li><a href="#replaceolditem-newitem-sameidonlyfalse"><code style="text-decoration: underline;">replace(olditem, newitem, sameIdOnly=False)</code></a></li>
+<li><a href="#remove_allitem-sameidonlyfalse"><code style="text-decoration: underline;">remove_all(item, sameIdOnly=False)</code></a></li>
+<li><a href="#remove_keykey"><code style="text-decoration: underline;">remove_key(key)</code></a></li>
+</ul></li>
+<li><a href="#set-operations">Set operations</a><ul>
+<li><a href="#unionother-clonetrue-and-self-other"><code style="text-decoration: underline;">union(other, *, clone=True)</code> and <code>self + other</code></a></li>
+<li><a href="#intersectionother-clonetrue-and-self-other"><code style="text-decoration: underline;">intersection(other, *, clone=True)</code> and <code>self &amp; other</code></a></li>
+<li><a href="#diffother-clonetrue-and-self---other"><code style="text-decoration: underline;">diff(other, *, clone=True)</code> and <code>self - other</code></a></li>
+<li><a href="#xorother-clonetrue-and-self-other"><code style="text-decoration: underline;">xor(other, *, clone=True)</code> and <code>self ^ other</code></a></li>
+<li><a href="#clear"><code style="text-decoration: underline;">clear()</code></a></li>
+</ul></li>
+<li><a href="#accessing-items-and-counts">Accessing items and counts</a><ul>
+<li><a href="#indexitem"><code style="text-decoration: underline;">index(item)</code></a></li>
+<li><a href="#bisect_leftitem-and-bisect_rightitem"><code style="text-decoration: underline;">bisect_left(item)</code> and <code style="text-decoration: underline;">bisect_right(item)</code></a></li>
+<li><a href="#bisect_rightitem"><code style="text-decoration: underline;">bisect_right(item)</code></a></li>
+<li><a href="#last_ltitem-orelsenone"><code style="text-decoration: underline;">last_lt(item, orelse=None)</code></a></li>
+<li><a href="#last_leitem-orelsenone"><code style="text-decoration: underline;">last_le(item, orelse=None)</code></a></li>
+<li><a href="#first_geitem-orelsenone"><code style="text-decoration: underline;">first_ge(item, orelse=None)</code></a></li>
+<li><a href="#first_gtitem-orelsenone"><code style="text-decoration: underline;">first_gt(item, orelse=None)</code></a></li>
+<li><a href="#find_key_rangekey"><code style="text-decoration: underline;">find_key_range(key)</code></a></li>
+<li><a href="#find_keykey"><code style="text-decoration: underline;">find_key(key)</code></a></li>
+<li><a href="#find_slice_rangestartnone-stopnone-inclusivetrue-reversedfalse"><code style="text-decoration: underline;">find_slice_range(start=None, stop=None, *, inclusive=True, reversed=False)</code></a></li>
+<li><a href="#find_item_key_rangeitem"><code style="text-decoration: underline;">find_item_key_range(item)</code></a></li>
+<li><a href="#slicestartnone-stopnone-inclusivetrue"><code style="text-decoration: underline;">slice(start=None, stop=None, *, inclusive=True)</code></a></li>
+<li><a href="#slice_generatorstartnonestopnoneinclusivetruereversedfalse"><code style="text-decoration: underline;">slice_generator(start=None,stop=None,*,inclusive=True,reversed=False)</code></a></li>
+<li><a href="#key_countsstartnonestopnoneinclusivetruereversedfalse"><code style="text-decoration: underline;">key_counts(start=None,stop=None,*,inclusive=True,reversed=False)</code></a></li>
+<li><a href="#keysstartnonestopnoneinclusivetruereversedfalse"><code style="text-decoration: underline;">keys(start=None,stop=None,*,inclusive=True,reversed=False)</code></a></li>
+<li><a href="#itemsstartnonestopnoneinclusivetruereversedfalse"><code style="text-decoration: underline;">items(start=None,stop=None,*,inclusive=True,reversed=False)</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#the-class-checkedsortedlistsortedlist">The class <code>CheckedSortedList(SortedList)</code></a><ul>
+<li><a href="#checkedsortedlistiterable-keynone-vetterlambda-x-x"><code style="text-decoration: underline;">CheckedSortedList(iterable=[], key=None, vetter=lambda x: x)</code></a></li>
+</ul></li>
+<li><a href="#the-class-sortedtypedlistsortedlist">The class <code>SortedTypedList(SortedList)</code></a><ul>
+<li><a href="#the-constructor-iterable-keynone-atypeint-asatypenone">The constructor, <code style="text-decoration: underline;">iterable=[], key=None, aType=int, asAType=None)</code></a></li>
+</ul></li>
+<li><a href="#the-class-sortedsetsortedlist">The class <code>SortedSet(<a href="sortedlist.html">SortedList</a>)</code></a><ul>
+<li><a href="#the-constructor-sortedsetiterable-failondupfalse">The constructor SortedSet(iterable=(), failondup=False)</a></li>
+</ul></li>
+<li><a href="#the-class-sortedkeyedsetsortedlist">The class <code>SortedKeyedSet(<a href="sortedlist.html">SortedList</a>)</code></a><ul>
+<li><a href="#the-constructor-sortedkeyedsetiterable-keynone-ondupnew">The constructor SortedKeyedSet(iterable=(), key=None, ondup=“new”)</a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> blist <span class="ch">import</span> blist
+<span class="ch">import</span> sysutils <span class="ch">as</span> su
+</code></pre>
+<h2 id="a-rose-by-any-other-name">A rose by any other name</h2>
+<p>I know it is a sad abuse of language, but to have a consistent vocabulary that I can use throughout these notes, I am going to use “<em>items</em>” to mean “values that I want to track and keep ordered”, and I am going to use “<em>key</em>” for a value derived from an item that is used to compute the ordering of the items.</p>
+<p>We have to be careful about what “ordered” means in the context of a list sorted by key. If there may be more than one item with a given key, those items may appear in any order. It may happen that they appear in the order they were inserted into the list, and probably will, but that is not part of the contract. The order of the items with given key is arbitrary.</p>
+<p>While we’re on the subject of terminology, “list” is commonly used to describe a collection of items laid out in a sequence. Sometimes the order in which the items appear is important, sometimes not. When the order is not important, what you have is commonly called a “multiset”. If you wanted to be a bit more precise than I have been, not to say more finicky, you would call what I am implementing here a “sorted list of multisets”, one multiset per key. You will pardon me, I hope, for using just <code>SortedList</code> as the class name, rather than the more accurate <code>SortedMultisetList</code>.</p>
+<h2 id="the-raison-detre-for-sortedlist">The raison d’etre for <code>SortedList</code></h2>
+<h3 id="the-why">The “why”</h3>
+<p>Surprise! It is all about efficiency, which, in this case, means the cost to</p>
+<blockquote> 
+initialize the list<br />insert and remove entries from an existing list,<br />search for a particular entry,<br />retrieve the entry in a particular position,<br />iterate over some or all of the entries, or<br />iterate over some or all of the keys
+</blockquote>
+
+<p>For iterating, the best bet is to just string out the values linearly in memory. That’s not too bad for initialization (cost, in terms of the list size <code>N</code>, is <code>O(Nlog(N))</code>) and searching (cost is <code>O(log(N))</code>). It is a real loser for insertion or deletion, since room must be made for the inserted entry at the appropriate index, and the gap created on deletion has to be compressed out, so the cost is <code>O(N)</code>. If, however, the list can be initialized in one shot (or just a few) and then does not have too many additions or deletions, one can still live with this simple approach: no metadata needed.</p>
+<p>If you anticipate the average number <code>A</code> of occurrences for a given value to be much bigger than 1, putting only the distinct values in the sorted array and keeping track of the counts for each value lowers the insert/deletion cost to <code>N/A</code>. Finding an element by position, though, is expensive, unless you also keep a cumulative count for each value. For <code>N/A</code> in the range of tens of thousands, keeping the counts and cumulative counts is probably not so bad, but it definitely does <em>not</em> scale. It suffers from dramatic overkill for metadata. <a href="https://en.wikipedia.org/wiki/B-tree">B+ trees</a> with a count at each interior node for the size of its subtree will do the job with much less metadata, although at the cost (of course?) of much more complex code.</p>
+<p>The <a href="http://stutzbachenterprises.com/blist/blist.html"><code>blist</code> module</a> on which this code is based uses the B+ tree approach and achieves <code>O(log(N))</code> times for modifying the list as well as indexing into it and searching it.</p>
+<p>The <code>blist</code> module includes a <code>sortedlist</code> class that does exactly what <code>SortedList</code> does, but it suffers from maintaining the list in sorted order as it is built initially. If the app grows the list from scratch, this should not normally be a problem, but if your starting point is a large list, the cost is real. One timing I ran on an otherwise idle Mac desktop showed the following times (in seconds) to initialize a sorted list of 1,000,000 pairs of random integers:</p>
+<blockquote>
+<p>3.6 for a <code>list</code>, 5.4 for a <code>blist</code>, 20.8 for a <code>sortedlist</code></p>
+</blockquote>
+<p>The cost of being sorted at all times is evident. The big reason for creating this intermediate step between <code>blist</code> and <code>sortedlist</code> is exactly to deal with the case that I need most, where the bulk of the list is available at the time the <code>SortedList</code> is created. Why use 20 seconds when 5 will do?</p>
+<h3 id="the-how">The “how”</h3>
+<p>Rather than maintain the list in sorted order at all times, I mark the list as “dirty” when items are added to it, and only sort when an attempt to read the list is made. The disadvantage of this approach is that, if implemented clumsily, the cost of a read can vary greatly from one access to the next, depending on the pattern of adds versus reads. One can smooth this out by setting a threshold for the number of additions to allow before the list is sorted. The appropriate kind of threshold, absolute or relative, depends on the list size, and to some extent, on the cost of comparing two keys.</p>
+<p>Another consideration is where to buffer the items added while we wait to do the sorting. There are two obvious strategies: add at the end of the one true list, then just sort the whole list, or keep a separate “added” list, sort it, and merge it into the original. If <code>A</code> items are added to a list of <code>N</code> items, the former should cost some constant <code>C1</code> times<code>(N+A)log(N+A)</code>, and the latter some constant <code>C2</code> times <code>Alog(N+A)</code> to do the <code>A</code> insertions. So it all comes down to the relative sizes of <code>A</code> and <code>N</code> and of the constants <code>C1</code> and <code>C2</code>. The current implementation uses a single <code>blist</code>.</p>
+<p>The method “<code>restore_sorted_order</code>” drives home any pending additions. I have made it public, but there should not be any reason, under normal conditions, for an application to call it directly. All of the methods here that access the list and require the list to be 100% sorted will make the call themselves.</p>
+<h3 id="the-what">The “what”</h3>
+<p>The public API for <code>blist</code> the same as that for <code>list</code>:</p>
+<blockquote>
+<p><code>append, clear, copy, count, extend, index, insert, pop, remove, reverse, sort</code></p>
+</blockquote>
+<p>Of these, only <code>reverse</code> and <code>sort</code> have no analogue for <code>SortedList</code>s. Both of these methods shuffle the items in the list <em>in place</em>. For a <code>blist</code>, this is perfectly reasonable, since the ordering of the items you want can vary even within the needs of a single application, so providing a method that accepts the comparison function as an argument makes a lot of sense. For a <code>SortedList</code>, the ordering must be consistent with the key supplied (and its <code>__lt__()</code> method).</p>
+<p><code>blist</code> also has the same operators as <code>list</code>:</p>
+<blockquote>
+<p>[], [:], in, +, *, &lt;, &lt;=, ==, !=, &gt;=, &gt;</p>
+</blockquote>
+<p>For unsorted lists, this is pretty much all one’s heart could desire. Once you have a sorted list, there is more you might want. <code>blist.sortedlist</code> adds the bare minimum.</p>
+<blockquote>
+<p><code>add, bisect, bisect_left, bisect_right, discard, update</code></p>
+</blockquote>
+<p>The <code>sortedlist</code> API discourages the direct use of keys. For example, <code>index()</code> finds the position of the first occurence of an <em>item</em>, but API does not provide the analogous method for a key, even though the key for an item is an essential part of the contract to maintain the sort. I have added methods</p>
+<blockquote>
+<p><code>find_key, find_key_range, remove_key, key_counts, keys</code></p>
+</blockquote>
+<p>in order to fill that gap.</p>
+<p>Then there are the “<code>bisect...</code>” methods. I’m far from the first to have worried about this API. In fact, my whole approach to sorted lists was inspired by <a href="http://code.activestate.com/recipes/577197-sortedcollection/">Raymond Hettinger’s code</a>. In particular, the extension for the <code>bisect</code> API is his (method names slightly changed):</p>
+<blockquote>
+<p><code>last_lt, last_le, first_gt, first_ge</code></p>
+</blockquote>
+<p>Hettinger uses “find_” rather than “first_” and “last_”–in order, I assume, to be consistent with other index locating calls in the standard libraries. Also, “find” is a verb, and method names ought to be verbs. I thought that “first” and “last” were more suggestive, though, in this context, but <code>find_first_gt</code> was just toooooo long. The bottom line: Hettinger’s approach is what counts: delivering the item nearest a given item on one side of it or the other. My hat’s off to Hettinger for an elegant, clean interface.</p>
+<p>There is also an <a href="https://docs.python.org/3/library/collections.html#collections.OrderedDict"><code>OrderedDict</code></a> class in the Python standard library. It “almost” does what I think the world really needs, but if you compare the API there with Hettinger’s (which I again commend to your attention), I think you will agree that the library code has a comparatively thin public API.</p>
+<h2 id="the-sortedlist-class">The <code>SortedList</code> class</h2>
+<h3 id="the-constructor-sortedlistiterable-keynone">The constructor: <code>SortedList(iterable=(), key=None)</code></h3>
+<p>The first argument is an iterable that is used to populate the list. By default, it is the empty tuple, and nothing is added. The second argument is either <code>None</code>, or is a function of a single argument that maps an item to its key. The key’s value may or may not be immediately visible as an attribute or property of the item in the usual Python sense of those terms.</p>
+<p><em><code>threshold</code></em> is the only attribute of a <code>SortedList</code> that is a public data field. It is a virtual field. See the documentation for <a href="#set_threshold"><code>set_threshold</code></a> below for its use.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> _threshold_data:
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, fraction=<span class="fl">0.5</span>, absolute=<span class="dv">64</span>*<span class="dv">1024</span>):
+      <span class="kw">if</span> <span class="fl">0.0</span> &lt;= fraction &lt;= <span class="fl">1.0</span>:
+         <span class="ot">self</span>.fraction = fraction
+      <span class="kw">else</span>:
+         msg = <span class="st">&quot;Threshold fraction {} is illegal: it must be between 0 and 1&quot;</span>
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(fraction))
+      <span class="ot">self</span>.absolute = <span class="dt">int</span>(absolute)
+   <span class="kw">def</span> <span class="ot">__repr__</span>(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="st">&quot;_threshold_data({:.3f},{})&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.fraction, <span class="ot">self</span>.absolute)
+   <span class="kw">def</span> is_met_by(<span class="ot">self</span>, entries_in_sorted_part,  new_entries):
+      <span class="co"># there must be more new entries than some fraction of the old size</span>
+      <span class="kw">if</span> new_entries &gt;= entries_in_sorted_part * <span class="ot">self</span>.fraction:
+         <span class="co"># and there must be at least some minimum number, independent of the old size</span>
+         <span class="kw">return</span> new_entries &gt;= <span class="ot">self</span>.absolute
+      <span class="kw">else</span>:
+         <span class="kw">return</span> <span class="ot">False</span>
+
+<span class="kw">class</span> _threshold:
+   <span class="kw">def</span> <span class="ot">__get__</span>(<span class="ot">self</span>, obj, <span class="dt">type</span>=<span class="ot">None</span>):
+      <span class="kw">return</span> obj._threshold
+   <span class="kw">def</span> <span class="ot">__set__</span>(<span class="ot">self</span>, obj, new_value):
+      <span class="kw">if</span> <span class="dt">isinstance</span>(new_value, _threshold_data):
+         obj._threshold = new_value 
+      <span class="kw">else</span>:
+         msg = <span class="st">&quot;The new value, {}, is not a _threshold_data instance, as required.&quot;</span>
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(su.a_classname(new_value)))
+   <span class="kw">def</span> <span class="ot">__delete__</span>(<span class="ot">self</span>, obj):
+      <span class="kw">raise</span> <span class="ot">AttributeError</span>(<span class="st">&quot;The threshold attribute cannot be deleted.&quot;</span>)
+
+<span class="kw">class</span> SortedList(blist):
+   threshold = _threshold()
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, iterable=(), key=<span class="ot">None</span>):
+      blist.<span class="ot">__init__</span>(<span class="ot">self</span>, iterable)
+      blist.sort(<span class="ot">self</span>, key=key)
+
+      <span class="co"># The following attributes are used to implement the lazy sorting.  I track the</span>
+      <span class="co"># two extreme key values so that when an item is added that at either extreme</span>
+      <span class="co"># (or beyond), it can be immediately inserted without worrying about locating</span>
+      <span class="co"># the appropriate insertion index. Items that belong in the interior of the list</span>
+      <span class="co"># are initially added at the end of the list and put into their correct positions</span>
+      <span class="co"># only when an attempt to access the list items is made.</span>
+      <span class="dt">object</span>.<span class="ot">__setattr__</span>(<span class="ot">self</span>, <span class="st">&quot;_key&quot;</span>, key <span class="kw">if</span> key is not <span class="ot">None</span> <span class="kw">else</span> <span class="kw">lambda</span> x: x)
+      <span class="ot">self</span>._threshold = _threshold_data() <span class="co"># criterion for when to restore sorted order</span>
+      <span class="ot">self</span>._pending = <span class="dv">0</span> <span class="co"># how many items at the end of the list need to be relocated</span>
+      <span class="ot">self</span>._set_firstkey()
+      <span class="ot">self</span>._set_lastkey()
+
+      <span class="co"># turn on and off debugging aids--see __str__</span>
+      <span class="ot">self</span>._noRestore = <span class="ot">False</span> <span class="co"># allow slicing without restoring the sorted order?</span>
+      <span class="ot">self</span>._debug = <span class="ot">False</span>     <span class="co"># should __str__ special show debugging output?</span>
+
+   <span class="kw">def</span> _set_firstkey(<span class="ot">self</span>, byIndex=<span class="ot">True</span>, value=<span class="ot">None</span>):
+      <span class="kw">if</span> byIndex:
+         <span class="kw">try</span>:
+            value = <span class="ot">self</span>._key(blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>,<span class="dv">0</span>))
+         <span class="kw">except</span>:
+            <span class="kw">pass</span>
+      <span class="dt">object</span>.<span class="ot">__setattr__</span>(<span class="ot">self</span>, <span class="st">&quot;_firstkey&quot;</span>, value)
+
+   <span class="kw">def</span> _set_lastkey(<span class="ot">self</span>, byIndex=<span class="ot">True</span>, value=<span class="ot">None</span>):
+      <span class="kw">if</span> byIndex:
+         <span class="kw">try</span>:
+            value = <span class="ot">self</span>._key(blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>,-<span class="dv">1</span>))
+         <span class="kw">except</span>:
+            <span class="kw">pass</span>
+      <span class="dt">object</span>.<span class="ot">__setattr__</span>(<span class="ot">self</span>, <span class="st">&quot;_lastkey&quot;</span>, value)
+
+</code></pre>
+<h3 id="some-basic-core-methods">Some basic core methods</h3>
+<h4 id="string-conversions">String conversions</h4>
+<p><code>__str__</code> is the same as <code>__repr__</code>, and both just wrap their <code>blist</code> originals to substitute the new class name.</p>
+<h4 id="set_threshold"><code style="text-decoration: underline;">set_threshold(*, fraction=None, absolute=None)</code></h4>
+<p>When an item is added to the list, it may or may not be immediately inserted into the slot where it belongs in slotted order. If enough additions occur, the sorted order will be restored. The threshold for doing so depends on two numbers:</p>
+<blockquote>
+<p><strong><code>fraction</code></strong>: a number betweeen 0 and 1 (inclusive). If <code>N</code> is the current list size, <code>fraction*N</code> is the minimum number of insertions pending before a restore is forced. The default value is <code>0.5</code>.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>absolute</code></strong> is a non-negative integer. The number of pending items to be inserted must be at least as big as <code>absolute</code> to meet the threshold, whether the “fraction test” is met or not.</p>
+</blockquote>
+<p>By default, the fraction is 1/2 and the absolute minimum number to insert is 64K. Once the fraction <code>fraction*N</code> is greater than <code>absolute</code>, the fraction is the number that counts. The point of keeping <code>absolute</code> around is not to do too many restorations when the list is still small.</p>
+<h4 id="restore_sorted_order"><code style="text-decoration: underline;">restore_sorted_order()</code></h4>
+<p>If there are any pending additions, insert them into the list where they belong. The return value is the number of items inserted. This is a public call, but you should not normally need to invoke it: if I’ve done my job correctly, any call that requires the list to be sorted will call this to make sure it is.</p>
+<h4 id="sort"><code style="text-decoration: underline;">sort()</code></h4>
+<p>We have to override the <code>blist</code> in-place <code>sort</code> method so that it does exactly what we need: assure that any pending additions are inserted where they belong. This is done by calling <code>restore_sorted_order</code>. The call does not return any value.</p>
+<p>Notice that <code>sort</code> does not have the keyword parameter <code>key</code>. For a <code>SortedList</code>, that function is set by the constructor. The <code>blist</code> <code>sort</code> also has a parameter <code>reverse</code> that makes no sense for a <code>SortedList</code>, whose ordering is defined by its key function. You <em>cannot</em> do a reverse sort in place on a <code>SortedList</code>. What you can do is to create iterators to traverse the sorted list in any order your heart desires.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> <span class="ot">__setattr__</span>(<span class="ot">self</span>, name, value):
+      <span class="kw">if</span> name in [<span class="st">&quot;_firstkey&quot;</span>, <span class="st">&quot;_key&quot;</span>, <span class="st">&quot;_lastkey&quot;</span>]:
+         <span class="kw">raise</span> <span class="ot">AttributeError</span>(name+<span class="st">&quot; is a read-only attribute&quot;</span>)
+      <span class="kw">else</span>:
+         <span class="dt">object</span>.<span class="ot">__setattr__</span>(<span class="ot">self</span>, name, value) <span class="co"># use SortedList.__... to avoid recursion</span>
+
+   <span class="kw">def</span> <span class="ot">__delattr__</span>(<span class="ot">self</span>, name):
+      <span class="kw">if</span> name in [<span class="st">&quot;_firstkey&quot;</span>, <span class="st">&quot;_key&quot;</span>, <span class="st">&quot;_lastkey&quot;</span>, <span class="st">&quot;_pending&quot;</span>]:
+         <span class="kw">raise</span> <span class="ot">AttributeError</span>(<span class="st">&quot;the &quot;</span>+name+<span class="st">&quot; attribute may not be deleted.&quot;</span>)
+      <span class="kw">else</span>:
+         <span class="dt">object</span>.<span class="ot">__delattr__</span>(<span class="ot">self</span>, name)
+
+   <span class="kw">def</span> <span class="ot">__repr__</span>(<span class="ot">self</span>):
+      <span class="ot">self</span>.restore_sorted_order()
+      old = blist.<span class="ot">__repr__</span>(<span class="ot">self</span>)
+      tail = old[old.index(<span class="st">&quot;(&quot;</span>):]
+      <span class="kw">return</span> <span class="ot">self</span>.__class__.<span class="ot">__name__</span>+ tail
+
+   <span class="kw">def</span> <span class="ot">__str__</span>(<span class="ot">self</span>):
+      <span class="kw">if</span> not <span class="ot">self</span>._debug:
+         <span class="kw">return</span> <span class="ot">self</span>.<span class="ot">__repr__</span>()
+      <span class="kw">else</span>:
+         <span class="kw">try</span>:
+            <span class="co"># I want to use blist's lazy slicing, but only on the list as it is RIGHT NOW, not</span>
+            <span class="co"># after it has the sort restored.  Therefore, I need a Boolean to forestall the</span>
+            <span class="co"># restore that would occur when the slice is computed.</span>
+            <span class="ot">self</span>._noRestore = <span class="ot">True</span>
+            unsortedLength = <span class="dt">len</span>(<span class="ot">self</span>)-<span class="ot">self</span>._pending
+            old = blist.<span class="ot">__repr__</span>(<span class="ot">self</span>[<span class="dv">0</span>:unsortedLength]) <span class="co"># this part is in order (or should be!)</span>
+            tail = old[old.index(<span class="st">&quot;(&quot;</span>):]
+            pending = <span class="dt">str</span>(<span class="dt">list</span>(<span class="ot">self</span>[unsortedLength:]))   <span class="co"># these are the pending insertions</span>
+            <span class="ot">self</span>._noRestore = <span class="ot">False</span>
+            <span class="kw">return</span> <span class="ot">self</span>.__class__.<span class="ot">__name__</span>+<span class="st">&quot;(&quot;</span>+<span class="dt">str</span>(<span class="ot">self</span>.threshold)+<span class="st">&quot;)&quot;</span>+tail+pending
+         <span class="kw">except</span> <span class="ot">Exception</span> <span class="ch">as</span> e:
+            <span class="ot">self</span>._noRestore = <span class="ot">False</span>
+            <span class="kw">raise</span> e
+
+   <span class="kw">def</span> set_threshold(<span class="ot">self</span>, *, fraction=<span class="ot">None</span>, absolute=<span class="ot">None</span>):
+      old = <span class="ot">self</span>.threshold
+      <span class="kw">if</span> fraction is <span class="ot">None</span>:
+         fraction = old.fraction
+      <span class="kw">if</span> absolute is <span class="ot">None</span>:
+         absolute = old.absolute
+      <span class="ot">self</span>.threshold = _threshold_data(fraction, absolute)
+
+   <span class="kw">def</span> sort(<span class="ot">self</span>):
+      <span class="ot">self</span>.restore_sorted_order()
+
+   <span class="kw">def</span> restore_sorted_order(<span class="ot">self</span>):
+      numberPending = <span class="ot">self</span>._pending
+      <span class="kw">if</span> numberPending &gt; <span class="dv">0</span>:
+         blist.sort(<span class="ot">self</span>, key = <span class="ot">self</span>._key)
+         <span class="ot">self</span>._pending = <span class="dv">0</span>
+         <span class="ot">self</span>._set_lastkey()
+         <span class="ot">self</span>._set_firstkey()
+      <span class="kw">return</span> numberPending
+</code></pre>
+<h3 id="inserting-and-removing-items">Inserting and removing items</h3>
+<p><code>sortedlist</code> provides methods <code>insert</code>, <code>update</code>, <code>discard</code>, <code>pop</code> and <code>remove</code> for these operations. <code>SortedList</code> adds a few others.</p>
+<h4 id="additem-and-appenditem"><code style="text-decoration: underline;">add(item)</code> and <code style="text-decoration: underline;">append(item)</code></h4>
+<h4 id="insertitem"><code style="text-decoration: underline;">insert(item)</code></h4>
+<p><code>add</code> and <code>append</code> are synonyms. Both add the given item to the list, but do not immediately resort the list. This is an efficiency hack. Any operation that really needs the list to be sorted, such as getting an iterator over it, checks to make sure the list is sorted before doing any real work.</p>
+<p><code>insert</code> also adds the item to the list, but unlike the other two calls, this one immediately puts the new item into the list exactly where it belongs.</p>
+<h4 id="mergeiterable-and-extenditerable"><code style="text-decoration: underline;">merge(iterable)</code> and <code style="text-decoration: underline;">extend(iterable)</code></h4>
+<p><code>merge</code> does exactly that: merges the items yielded by its argument into the list. In keeping with Python conventions, since this update is <em>in place</em>, no return value is supplied. See the opening comments for a discussion of the lazy approach here to doing the actual insertions.</p>
+<p><code>extend</code> is a synonym for <code>merge</code> that overrides the <code>blist</code> method of the same name. The reason for adding <code>merge</code> as an alternative to <code>extend</code> is that “extend” implies “add to the end”, whereas in this sorted world, what we are doing is merging the new list into the existing one.</p>
+<h4 id="popindex-1-and-pop_orelseindex-1-orelsenone"><code style="text-decoration: underline;">pop(index=-1) </code> and <code style="text-decoration: underline;">pop_orelse(index=-1, orelse=None) </code></h4>
+<p>Remove and return the item at the given (integer) index, the last item by default. If the list is empty, <code>pop</code> raises an <code>IndexError</code>, but <code>pop_orelse</code> returns <code>orelse</code>. The default value for <code>orelse</code> is <code>None</code>, which (given that we are sorting by key) is rarely a valid list item.</p>
+<p>The usual caveat: deleting by index in this context is, with the obvious exceptions of 0 and -1, a dangerous way to do business.</p>
+<h4 id="removeitem-sameidonlyfalse-failhardtrue"><code style="text-decoration: underline;">remove(item, sameIdOnly=False, failHard=True)</code></h4>
+<p>Remove the first instance of <code>item</code> in the list. If <code>sameIdOnly</code> is <code>True</code>, “<code>is</code>”, rather than “<code>==</code>”, is used for the comparison to <code>item</code> . If the item is not found and <code>failHard</code> is <code>True</code>, a <code>ValueError</code> is raised. This is the default and is consistent with the <code>blist</code> API. If <code>failHard</code> is <code>False</code>, and the item is not found, this is a no-op.</p>
+<h4 id="discarditem-sameidonlyfalse"><code style="text-decoration: underline;">discard(item, sameIdOnly=False)</code></h4>
+<p>This is a synonym for the “fail soft” call: “<code>self.remove(item, sameIdOnly, False)</code>”. It is provided to be consistent with the API provided by <code>blist.sortedlist</code>.</p>
+<h4 id="replaceolditem-newitem-sameidonlyfalse"><code style="text-decoration: underline;">replace(olditem, newitem, sameIdOnly=False)</code></h4>
+<p>Replace all occurrences of <code>olditem</code> with <code>newitem</code>. “<code>is</code>”, rather than “<code>==</code>”, is used for the comparison to <code>olditem</code> if <code>sameIdOnly</code> is <code>True</code>. The number of replacements made is returned.</p>
+<h4 id="remove_allitem-sameidonlyfalse"><code style="text-decoration: underline;">remove_all(item, sameIdOnly=False)</code></h4>
+<p>Remove <em>all</em> occurrences of <code>item</code>. “<code>is</code>”, rather than “<code>==</code>”, is used for the comparison to <code>item</code> if <code>sameIdOnly</code> is <code>True</code>. The number found–possibly zero!–is returned.</p>
+<h4 id="remove_keykey"><code style="text-decoration: underline;">remove_key(key)</code></h4>
+<p>Remove <em>all</em> items with the given and return the count of the number found, again, possibly zero.</p>
+<h3 id="set-operations">Set operations</h3>
+<p>In the following set operations, the return value is a new sorted list by default. If the second argument, <code>clone</code> is <code>False</code>, the operation is done in place. The operator forms, <code>a+b</code>, <code>a&amp;b</code>, <code>a-b</code> and <code>a^b</code>, all create a new list.</p>
+<h4 id="unionother-clonetrue-and-self-other"><code style="text-decoration: underline;">union(other, *, clone=True)</code> and <code>self + other</code></h4>
+<p>This is analogous to <code>merge</code>, but if <code>clone</code> is <code>True</code>, creates a new <code>SortedList</code>. If an item occurs in both, its count in the union is the sum of its two counts. The new <code>SortedList</code> is returned.</p>
+<h4 id="intersectionother-clonetrue-and-self-other"><code style="text-decoration: underline;">intersection(other, *, clone=True)</code> and <code>self &amp; other</code></h4>
+<p>Create and return a (new) <code>SortedList</code> whose items appear both in the caller and in <code>other</code>. If an item appears <code>m</code> times in the caller and <code>n</code> times in <code>other</code>, it will appear <code>min(m,n)</code> times in the intersection.</p>
+<h4 id="diffother-clonetrue-and-self---other"><code style="text-decoration: underline;">diff(other, *, clone=True)</code> and <code>self - other</code></h4>
+<p>Create and return a (new) <code>SortedList</code> whose items appear in the caller, but not in <code>other</code>. If an item appears <code>m</code> times in the caller and <code>n</code> times in <code>other</code>, it will appear <code>max(m-n,</code> <code>0)</code> times in the difference.</p>
+<h4 id="xorother-clonetrue-and-self-other"><code style="text-decoration: underline;">xor(other, *, clone=True)</code> and <code>self ^ other</code></h4>
+Create and return a (new) <code>SortedList</code> whose items appear in the caller or in <code>other</code>, but not in both. If an item appears <code>m</code> times in the caller and <code>n</code> times in <code>other</code>, it will appear <code>m+n</code> <code>-</code> <code>min(m,n)</code> in the “xor”, <em>aka</em> the symmetric difference. This is a synonym for
+<pre class="exampleCode">
+
+        self.union(other,clone=clone).diff(self.intersection(other,clone=True),False)
+
+</pre>
+
+<h4 id="clear"><code style="text-decoration: underline;">clear()</code></h4>
+<p>Delete all of the items in the list and return the number of items deleted.</p>
+<pre class="sourceCode python"><code class="sourceCode python">   <span class="kw">def</span> merge(<span class="ot">self</span>, iterable):
+      <span class="kw">for</span> item in iterable:
+         <span class="ot">self</span>.add(item)
+
+   <span class="kw">def</span> extend(<span class="ot">self</span>, iterable):
+      <span class="ot">self</span>.merge(iterable)
+ 
+   <span class="kw">def</span> add(<span class="ot">self</span>, item):  
+      newkey = <span class="ot">self</span>._key(item)
+      <span class="kw">if</span> <span class="dt">len</span>(<span class="ot">self</span>) is <span class="dv">0</span>:
+         <span class="ot">self</span>._set_lastkey(byIndex=<span class="ot">False</span>, value=newkey)
+         <span class="ot">self</span>._set_firstkey(byIndex=<span class="ot">False</span>, value=newkey)
+         blist.append(<span class="ot">self</span>,item)
+      <span class="kw">elif</span> newkey &gt;= <span class="ot">self</span>._lastkey:
+         <span class="ot">self</span>._set_lastkey(byIndex=<span class="ot">False</span>, value=newkey) 
+         blist.append(<span class="ot">self</span>,item)   
+      <span class="kw">elif</span> newkey &lt;= <span class="ot">self</span>._firstkey:
+         <span class="ot">self</span>._set_firstkey(byIndex=<span class="ot">False</span>, value=newkey)
+         blist.insert(<span class="ot">self</span>, <span class="dv">0</span>, item)
+      <span class="kw">else</span>:
+         blist.append(<span class="ot">self</span>,item)   
+         <span class="ot">self</span>._pending += <span class="dv">1</span>
+         <span class="kw">if</span> <span class="ot">self</span>.threshold.is_met_by(<span class="dt">len</span>(<span class="ot">self</span>), <span class="ot">self</span>._pending):
+            <span class="ot">self</span>.restore_sorted_order()
+
+   <span class="kw">def</span> append(<span class="ot">self</span>, item):
+      <span class="ot">self</span>.add(item)
+ 
+   <span class="kw">def</span> insert(<span class="ot">self</span>, item): 
+      newkey = <span class="ot">self</span>._key(item)
+      <span class="kw">if</span> <span class="dt">len</span>(<span class="ot">self</span>) is <span class="dv">0</span> or newkey&gt;=<span class="ot">self</span>._lastkey or newkey&lt;=<span class="ot">self</span>._firstkey:
+         <span class="ot">self</span>.add(item) <span class="co"># add() takes care of the extreme cases without finding a range</span>
+      <span class="kw">else</span>:             <span class="co"># I need to find where to put the new item in the interior</span>
+         r = <span class="ot">self</span>._find_key_range(newkey, <span class="ot">False</span>) <span class="co"># False means &quot;don't restore first&quot;</span>
+         n = r.stop     <span class="co"># n is the first index of an item having key &gt; newkey</span>
+         blist.insert(<span class="ot">self</span>, n, item) <span class="co"># shifts self[n:] to the right one slot and inserts the item</span>
+                                     <span class="co"># into the now empty n-th slot</span>
+
+   <span class="kw">def</span> pop(<span class="ot">self</span>, index=-<span class="dv">1</span>):
+      <span class="kw">if</span> <span class="dt">len</span>(<span class="ot">self</span>) is <span class="dv">0</span>:
+         <span class="kw">raise</span> <span class="ot">IndexError</span>(<span class="st">&quot;Attempt to pop from an empty list&quot;</span>)
+      <span class="ot">self</span>.restore_sorted_order()
+      answer = blist.pop(<span class="ot">self</span>, index)
+      <span class="kw">if</span> <span class="dt">len</span>(<span class="ot">self</span>) is <span class="dv">0</span>:
+         <span class="ot">self</span>._set_lastkey(<span class="ot">None</span>)
+         <span class="ot">self</span>._set_firstkey(value = <span class="ot">None</span>)
+      <span class="kw">else</span>:
+         last = <span class="ot">self</span>._key(<span class="ot">self</span>[-<span class="dv">1</span>])
+         <span class="kw">if</span> last &lt; <span class="ot">self</span>._lastkey:
+            <span class="ot">self</span>._set_lastkey(value = last)
+      <span class="kw">return</span> answer
+
+   <span class="kw">def</span> pop_orelse(<span class="ot">self</span>, index=-<span class="dv">1</span>, orelse=<span class="ot">None</span>):
+      <span class="kw">try</span>:
+         <span class="kw">return</span> <span class="ot">self</span>.pop(index)
+      <span class="kw">except</span> <span class="ot">IndexError</span>:
+         <span class="kw">return</span> orelse
+
+   <span class="kw">def</span> remove(<span class="ot">self</span>, item, sameIdOnly=<span class="ot">False</span>, failHard=<span class="ot">True</span>):
+      r = <span class="ot">self</span>.find_item_key_range(item) 
+      <span class="kw">for</span> n in r:
+         item_n = blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, n)
+         <span class="kw">if</span> item_n == item:
+            <span class="kw">if</span> not sameIdOnly or item_n is item:
+               blist.<span class="ot">__delitem__</span>(<span class="ot">self</span>, n)
+               remaining = <span class="dt">len</span>(<span class="ot">self</span>)
+               <span class="kw">if</span> remaining is <span class="dv">0</span>:
+                  <span class="ot">self</span>._set_lastkey(value = <span class="ot">None</span>)
+                  <span class="ot">self</span>._set_firstkey(value = <span class="ot">None</span>)
+               <span class="kw">elif</span> n == remaining: <span class="co"># the last item was deleted, the first is unchanged</span>
+                  <span class="ot">self</span>._set_lastkey()
+               <span class="kw">elif</span> n == <span class="dv">0</span>:         <span class="co"># the first item was deleted, the last is unchanged</span>
+                  <span class="ot">self</span>._set_firstkey()
+               <span class="kw">return</span>
+      <span class="kw">if</span> failHard:  <span class="co"># we only get here if nothing was removed</span>
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;{} could not be found to remove&quot;</span>.<span class="dt">format</span>(item))
+
+   <span class="kw">def</span> discard(<span class="ot">self</span>, item, sameIdOnly=<span class="ot">False</span>):
+      <span class="ot">self</span>.remove(item, sameIdOnly)
+
+   <span class="kw">def</span> replace(<span class="ot">self</span>, olditem, newitem, sameIdOnly=<span class="ot">False</span>):
+      r = <span class="ot">self</span>.find_item_key_range(olditem)
+      count = <span class="ot">self</span>.remove_all(olditem, sameIdOnly=sameIdOnly)
+      <span class="kw">if</span> count &gt; <span class="dv">0</span>:
+         <span class="ot">self</span>.merge([newitem]*count)
+      <span class="kw">return</span> count
+
+   <span class="kw">def</span> remove_all(<span class="ot">self</span>, item, sameIdOnly = <span class="ot">False</span>):
+      itemkey = <span class="ot">self</span>._key(item)
+      r = <span class="ot">self</span>.find_key_range(itemkey)
+      rreversed = <span class="dt">range</span>(r.stop<span class="dv">-1</span>, r.start<span class="dv">-1</span>, -<span class="dv">1</span>)
+      count = <span class="dv">0</span>
+      <span class="kw">for</span> n in rreversed:
+         item_n = blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, n)
+         <span class="kw">if</span> item_n == item:
+            <span class="kw">if</span> not sameIdOnly or (blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, n) is item):
+               blist.<span class="ot">__delitem__</span>(<span class="ot">self</span>, n)
+               count += <span class="dv">1</span>
+      <span class="kw">if</span> count &gt; <span class="dv">0</span>: <span class="co"># we could have changed the low and high keys</span>
+         <span class="kw">if</span> <span class="dt">len</span>(<span class="ot">self</span>) is <span class="dv">0</span>:
+            <span class="ot">self</span>._set_lastkey(byIndex=<span class="ot">False</span>, value = <span class="ot">None</span>)
+            <span class="ot">self</span>._set_firstkey(byIndex=<span class="ot">False</span>, value = <span class="ot">None</span>)
+         <span class="kw">else</span>:
+            <span class="kw">if</span> itemkey == <span class="ot">self</span>._lastkey:
+               <span class="ot">self</span>._set_lastkey()
+            <span class="kw">if</span> itemkey == <span class="ot">self</span>._firstkey:
+               <span class="ot">self</span>._set_firstkey()
+      <span class="kw">return</span> count
+
+   <span class="kw">def</span> remove_key(<span class="ot">self</span>, key):
+      r = <span class="ot">self</span>.find_key_range(key) 
+      rreversed = <span class="dt">range</span>(r.stop<span class="dv">-1</span>, r.start<span class="dv">-1</span>, -<span class="dv">1</span>)
+      <span class="kw">for</span> n in rreversed:
+         blist.<span class="ot">__delitem__</span>(<span class="ot">self</span>, n)
+      <span class="kw">if</span> r.stop &gt; r.start: <span class="co"># at least one item was removed</span>
+         <span class="kw">if</span> <span class="dt">len</span>(<span class="ot">self</span>) is <span class="dv">0</span>:
+            <span class="ot">self</span>._set_lastkey(byIndex=<span class="ot">False</span>, value = <span class="ot">None</span>)
+            <span class="ot">self</span>._set_firstkey(byIndex=<span class="ot">False</span>, value = <span class="ot">None</span>)
+         <span class="kw">else</span>:
+            <span class="co"># since at least one item remains and &quot;key&quot; is gone, &quot;key&quot; could not have equalled both</span>
+            <span class="co"># the smallest AND the largest key in the list before it was deleted.  It could have</span>
+            <span class="co"># been either one of them, though.</span>
+            <span class="kw">if</span> key == <span class="ot">self</span>._lastkey:
+               <span class="ot">self</span>._set_lastkey()
+            <span class="kw">elif</span> key == <span class="ot">self</span>._firstkey:
+               <span class="ot">self</span>._set_firstkey()
+      <span class="kw">return</span> r.stop - r.start
+
+   <span class="kw">def</span> __copy__(<span class="ot">self</span>):
+      <span class="ot">self</span>.restore_sorted_order()
+      answer = SortedList(<span class="ot">self</span>, <span class="ot">self</span>._key)
+      answer._debug = <span class="ot">self</span>._debug
+      answer.threshold = <span class="ot">self</span>.threshold
+
+   <span class="kw">def</span> copy(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>.__copy__()
+
+   <span class="kw">def</span> union(<span class="ot">self</span>, other):
+      target = <span class="ot">self</span>.copy()
+      target.merge(other)
+      <span class="kw">return</span> target
+
+   <span class="kw">def</span> <span class="ot">__add__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.union(other)
+
+   <span class="kw">def</span> <span class="ot">__iadd__</span>(<span class="ot">self</span>, other):
+      <span class="ot">self</span>.merge(other)
+      <span class="kw">return</span> <span class="ot">self</span>
+
+   <span class="kw">def</span> intersection(<span class="ot">self</span>, other, *, clone=<span class="ot">True</span>):
+      <span class="ot">self</span>.restore_sorted_order()
+      <span class="kw">if</span> <span class="dt">isinstance</span>(other, SortedList): other.restore_sorted_order()
+      common = <span class="dt">set</span>(<span class="ot">self</span>).intersection(<span class="dt">set</span>(other))
+      target = <span class="ot">self</span>.copy() <span class="kw">if</span> clone <span class="kw">else</span> <span class="ot">self</span>
+      <span class="kw">for</span> item in common:
+         ours = <span class="ot">self</span>.count(item)
+         theirs = other.count(item)
+         both = <span class="dt">min</span>(ours, theirs)
+         toss = ours - both
+         <span class="kw">while</span> toss &gt; <span class="dv">0</span>:
+            target.remove(item)
+            toss -= <span class="dv">1</span>
+      <span class="kw">return</span> target
+
+   <span class="kw">def</span> <span class="ot">__and__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.intersection(other)
+
+   <span class="kw">def</span> <span class="ot">__iand__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.intersection(other, clone=<span class="ot">False</span>)
+
+   <span class="kw">def</span> diff(<span class="ot">self</span>, other, *, clone=<span class="ot">True</span>):
+      target = <span class="ot">self</span>.copy() <span class="kw">if</span> clone <span class="kw">else</span> <span class="ot">self</span>
+      common = <span class="ot">self</span>.intersection(other)
+      <span class="kw">for</span> item in common:
+         toss = common.count(item)
+         <span class="kw">while</span> toss &gt; <span class="dv">0</span>:
+            target.remove(item)
+            toss -= <span class="dv">1</span>
+      <span class="kw">return</span> target
+
+   <span class="kw">def</span> <span class="ot">__sub__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.diff(other)
+
+   <span class="kw">def</span> <span class="ot">__isub__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.diff(other, clone=<span class="ot">False</span>)
+
+   <span class="kw">def</span> xor(<span class="ot">self</span>, other, *, clone=<span class="ot">True</span>):
+      in_one = <span class="ot">self</span>.union(other, clone)
+      in_both = <span class="ot">self</span>.intersection(other)
+      <span class="kw">return</span> in_one.diff(in_both, clone=<span class="ot">False</span>)
+
+   <span class="kw">def</span> __xor_(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.xor(other)
+
+   <span class="kw">def</span> <span class="ot">__ixor__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.xor(other, clone=<span class="ot">False</span>)
+
+   <span class="kw">def</span> clear(<span class="ot">self</span>):
+      sizenow = <span class="dt">len</span>(<span class="ot">self</span>)
+      <span class="kw">del</span> <span class="ot">self</span>[<span class="dv">0</span> : ]
+      <span class="ot">self</span>._set_firstkey(byIndex=<span class="ot">False</span>, value = <span class="ot">None</span>)
+      <span class="ot">self</span>._set_lastkey(byIndex=<span class="ot">False</span>, value = <span class="ot">None</span>)
+      <span class="ot">self</span>._pending = <span class="dv">0</span> <span class="co"># should have been cleared when the slice was taken... but just in case...</span>
+      <span class="kw">return</span> sizenow
+</code></pre>
+<h3 id="accessing-items-and-counts">Accessing items and counts</h3>
+<p>While indexing into a <code>SortedList</code> is supported, it is not the recommended way of doing business. To begin with, there is nothing static about the position of an item in a list. As the list is updated, the position changes, so keeping the index as a persistent address for the item is at best dangerous, sorted list or not. Also, it is slow as a way of iterating over the list. My timings for the two loops</p>
+<pre class="exampleCode">
+
+for item in a_sorted_list:
+   do_something_with(a_sorted_list[k])
+
+for k in range(0, len(a_sorted_list)):
+   do_something_with(a_sorted_list[k])
+
+</pre>
+
+<p>consistently show overhead for the indexed version to be about 4 times that for the item-wise version.</p>
+<p>A final comment: I do support forming a slice <code>sl[m:n]</code> of a <code>SortedList</code>, but be aware that the value is again a <code>SortedList</code>, not a <code>list</code> or <code>blist</code>.</p>
+<h4 id="indexitem"><code style="text-decoration: underline;">index(item)</code></h4>
+<p>If all you want is to know whether a given item is in the list, and if so where the first occurrence is, this method does what you want. It is a bit clumsy, in the sense that it fails by raising an <code>ValueError</code> when the item is not found, which if fine if that is not easily handleable where the failed call occurs, but it does little for the readability of the calling code otherwise.</p>
+<h4 id="bisect_leftitem-and-bisect_rightitem"><code style="text-decoration: underline;">bisect_left(item)</code> and <code style="text-decoration: underline;">bisect_right(item)</code></h4>
+<p><code>bisect_left</code> returns the largest index <code>i</code> such that all items in the initial segment <code>sl[:i]</code> of a <code>SortedList</code> <code>sl</code> have key <em>less than</em> <code>item</code>’s. All items in the trailing segment <code>sl[i:]</code> must then have key at least as large as <code>item</code>’s. If <code>item</code>’s key is present in the list, <code>i</code> indexes its leftmost occurrence. <em>Remember, though:</em> the items with given key appear in arbitrary order and are not guaranteed to remain in the same order over time.</p>
+<h4 id="bisect_rightitem"><code style="text-decoration: underline;">bisect_right(item)</code></h4>
+<p><code>bisect_right</code> returns the value <code>i</code> is such that all items in the initial segment <code>sl[:i]</code> of a <code>SortedList</code> <code>sl</code> have key at most as large <code>item</code>’s key, and items in the trailing segment <code>sl[i:]</code> have key greater than <code>key</code>. If an item’s key is present in the list, <code>i</code> points just beyond the rightmost item with that key. Thus, <code>i</code> is the “natural” index at which to insert <code>item</code>: at the end of those with the same key, or between those keys that are the new key’s “nearest neighbors.”</p>
+<p>A good way to think about the <code>bisect_...</code> methods is in terms of the slice they define. If <code>left</code> and <code>right</code> are two items in the <code>SortedList</code> <code>sl</code>, and</p>
+<pre class="exampleCode">
+
+      start = sl.bisect_left(left)
+      stop  = sl.bisect_right(right)
+      
+</pre>
+
+<p>Then <code>sl[start:stop]</code> is the slice of <code>sl</code> consisting of those items whose key satisfies</p>
+<pre class="exampleCode">
+
+      key(left) &lt;= key &lt;= key(right)
+
+</pre>
+
+<p>Compare this with the method <code>find_slice_range</code> below.</p>
+<h4 id="last_ltitem-orelsenone"><code style="text-decoration: underline;">last_lt(item, orelse=None)</code></h4>
+<h4 id="last_leitem-orelsenone"><code style="text-decoration: underline;">last_le(item, orelse=None)</code></h4>
+<h4 id="first_geitem-orelsenone"><code style="text-decoration: underline;">first_ge(item, orelse=None)</code></h4>
+<h4 id="first_gtitem-orelsenone"><code style="text-decoration: underline;">first_gt(item, orelse=None)</code></h4>
+<p>These methods are <a href="http://code.activestate.com/recipes/577197-sortedcollection/">Hettinger’s</a> take on a more natural–and probably less error-prone–interface than the <code>bisect_...</code>s.</p>
+<p><code>last_lt</code> returns the largest <em>item</em> less than the given one. If there is none, the default is to return <code>None</code>. If <code>orelse</code> is not <code>None</code>, it must be a function of two arguments, <code>self</code> and <code>item</code>. The function can either raise an error or return a value. If it does return a value, that value will be returned by <code>last_lt</code> as well. Notice how much simpler the explanation of the call is than, for instance, that of <code>bisect_right</code>.</p>
+<p>The other three methods are the obvious variations on <code>last_lt</code>. <code>first_ge</code>, for example, returns the smallest entry greater than or equal to its argument.</p>
+<h4 id="find_key_rangekey"><code style="text-decoration: underline;">find_key_range(key)</code></h4>
+<p>Return the range <code>(low,</code> <code>high)</code> of indices for which</p>
+<blockquote>
+<p>all items with index <code>n &lt; low</code> have key <code>&lt; key</code>, and<br />all items with index <code>n &gt;= high</code> have key &gt; <code>key</code>.</p>
+</blockquote>
+<p>Items in the slice defined by the range will all have key equal to <code>key</code>. This is one of the very few places where the input is a key value and <em>not</em> an item. Be careful about the boundary cases.</p>
+<blockquote>
+<p>(0, 0) means either “all items have keys greater than <code>key</code>, or the list is empty”, and<br />if the list is not empty, (len(self), len(self)) means “all items have keys less than <code>key</code>”.</p>
+</blockquote>
+<p>I seriously debated not making this method public for the obvious reason that, as I’ve said above, I think working with the positions of items directly when manipulating lists is not generally a great idea. It is not even particularly efficient in this kind of setup, where the position of an item has to be computed using the B-tree’s metadata. Lists are not arrays!</p>
+<h4 id="find_keykey"><code style="text-decoration: underline;">find_key(key)</code></h4>
+<p>The call returns the index of the first item in the list with the given key. The return value is -1 if the key is not found.</p>
+<h4 id="find_slice_rangestartnone-stopnone-inclusivetrue-reversedfalse"><code style="text-decoration: underline;">find_slice_range(start=None, stop=None, *, inclusive=True, reversed=False)</code></h4>
+<p>The arguments <code>start</code> and <code>stop</code> are items. The return value is the range for a traversal that starts at the items whose key is the same as <code>start</code>‘s’ and goes up to (and possibly including) those whose key is <code>stop</code>’s.</p>
+<p>If <code>start</code> is <code>None</code>, it is taken to be the first item in the list, and if <code>stop</code> is <code>None</code>, it is taken to be the last item.</p>
+<p>The keyword parameter <code>inclusive</code> is a boolean whose value determines whether the range is to include elements whose key is the same as <code>stop</code>’s. By default, it is <code>True</code>, which is a little at odds with Python conventions. It is ignored if <code>stop</code> is <code>None</code>.</p>
+<p>The keyword parameter <code>reversed</code> is also a boolean. If it is <code>True</code>, the range return yields the items in reverse sorted order. The default is traversal in sorted order.</p>
+<p><strong>IMPORTANT</strong>: In slicing and iterating methods that follow here, the arguments all have the same interpretation as those for <code>find_slice_range</code>. Indeed, those methods are all based on calls to <code>find_slice_range</code>.</p>
+<h4 id="find_item_key_rangeitem"><code style="text-decoration: underline;">find_item_key_range(item)</code></h4>
+<p>This is just a short-hand for <code>self.find_key_range(self._key(item))</code>.</p>
+<h4 id="slicestartnone-stopnone-inclusivetrue"><code style="text-decoration: underline;">slice(start=None, stop=None, *, inclusive=True)</code></h4>
+<p>The return value is a <code>SortedList</code> whose items are those whose keys place them in the range described by the items <code>start</code> and <code>stop</code>. This is implemented on top of <code>blist</code>’s slice code, which is pretty efficient (and tries to avoid making unnecessary copies). Nonetheless, if all you really need is to traverse the slice, call <code>slice_generator</code>, not <code>slice</code>.</p>
+<h4 id="slice_generatorstartnonestopnoneinclusivetruereversedfalse"><code style="text-decoration: underline;">slice_generator(start=None,stop=None,*,inclusive=True,reversed=False)</code></h4>
+<p>Return a generator that yields, in sorted or reverse sorted order, the items in the slice that would be computed from the same argument values.</p>
+<h4 id="key_countsstartnonestopnoneinclusivetruereversedfalse"><code style="text-decoration: underline;">key_counts(start=None,stop=None,*,inclusive=True,reversed=False)</code></h4>
+<p>This traversal yields 2-tuples <code>(key,</code> <code>count)</code> in which each key appears in sorted (or reverse) order together with the number of items having that key.</p>
+<h4 id="keysstartnonestopnoneinclusivetruereversedfalse"><code style="text-decoration: underline;">keys(start=None,stop=None,*,inclusive=True,reversed=False)</code></h4>
+<p>This traversal yields, in sorted order, all of the <em>distinct</em> keys.</p>
+<h4 id="itemsstartnonestopnoneinclusivetruereversedfalse"><code style="text-decoration: underline;">items(start=None,stop=None,*,inclusive=True,reversed=False)</code></h4>
+<p>This traversal yields the <em>distinct</em> items.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> <span class="ot">__getitem__</span>(<span class="ot">self</span>, n):
+      <span class="co"># Fetching is by integer index here, not by key or item, so we must drive home all additions</span>
+      <span class="ot">self</span>.restore_sorted_order()
+      <span class="kw">if</span> <span class="dt">isinstance</span>(n, <span class="dt">int</span>):
+         <span class="kw">return</span> blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, n)
+      <span class="kw">else</span>:
+         <span class="kw">return</span> SortedList(blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, n))
+
+   <span class="kw">def</span> <span class="ot">__setitem__</span>(<span class="ot">self</span>, n, newvalue):
+      <span class="co"># You should not be setting the &quot;n-th&quot; item in a sorted list unless you KNOW that the list </span>
+      <span class="co"># will remain sorted after you modify the entry? </span>
+      msg = <span class="st">&quot;&quot;&quot;Assigning an item to a given position is not supported in sorted lists.</span>
+<span class="st">      Use replace(olditem, newitem) to update an item&quot;&quot;&quot;</span>
+      <span class="kw">raise</span> su.IllegalOpError(msg)
+
+   <span class="kw">def</span> <span class="ot">__delitem__</span>(<span class="ot">self</span>, n):
+      <span class="ot">self</span>.restore_sorted_order()
+      blist.<span class="ot">__delitem__</span>(<span class="ot">self</span>, n)
+
+   <span class="kw">def</span> <span class="ot">__contains__</span>(<span class="ot">self</span>, item):
+      <span class="ot">self</span>.restore_sorted_order()
+      <span class="kw">return</span> blist.<span class="ot">__contains__</span>(<span class="ot">self</span>, item) 
+
+   <span class="kw">def</span> <span class="ot">__iter__</span>(<span class="ot">self</span>):
+      <span class="ot">self</span>.restore_sorted_order()
+      <span class="kw">return</span> blist.<span class="ot">__iter__</span>(<span class="ot">self</span>)
+
+   <span class="kw">def</span> <span class="ot">__reversed__</span>(<span class="ot">self</span>):
+      <span class="kw">raise</span> su.IllegalOpError(<span class="st">&quot;SortedList uses the key's native '&lt;', so reversing one makes no sense.&quot;</span>)
+
+   <span class="kw">def</span> index(<span class="ot">self</span>, item):
+      <span class="ot">self</span>.restore_sorted_order()
+      <span class="kw">return</span> blist.index(<span class="ot">self</span>, item)
+
+   <span class="kw">def</span> bisect_left(<span class="ot">self</span>, item):
+      r = <span class="ot">self</span>.find_key_range(<span class="ot">self</span>._key(item))
+      <span class="kw">return</span> r.start
+
+   <span class="kw">def</span> bisect_right(<span class="ot">self</span>, item):
+      r = <span class="ot">self</span>.find_key_range(<span class="ot">self</span>._key(item))
+      <span class="kw">return</span> r.stop
+
+   <span class="kw">def</span> last_lt(<span class="ot">self</span>, item, orelse = <span class="ot">None</span>):
+      n = <span class="ot">self</span>.bisect_left(<span class="ot">self</span>, item) <span class="co"># index of first item with key &gt;= argument's key</span>
+      <span class="kw">return</span> <span class="ot">self</span>[n<span class="dv">-1</span>] <span class="kw">if</span> n &gt; <span class="dv">0</span> <span class="kw">else</span> (
+         <span class="ot">None</span> <span class="kw">if</span> orelse is <span class="ot">None</span> <span class="kw">else</span> orelse(<span class="ot">self</span>, item))
+
+   <span class="kw">def</span> last_le(<span class="ot">self</span>, item, orelse = <span class="ot">None</span>):
+      n = <span class="ot">self</span>.bisect_right(<span class="ot">self</span>, item) <span class="co"># index of first item with key &gt; argument's key</span>
+      <span class="kw">return</span> <span class="ot">self</span>[n<span class="dv">-1</span>] <span class="kw">if</span> n &gt; <span class="dv">0</span> <span class="kw">else</span> (
+         <span class="ot">None</span> <span class="kw">if</span> orelse is <span class="ot">None</span> <span class="kw">else</span> orelse(<span class="ot">self</span>, item))
+
+   <span class="kw">def</span> first_ge(<span class="ot">self</span>, item, orelse = <span class="ot">None</span>):
+      n = <span class="ot">self</span>.bisect_left(<span class="ot">self</span>, item) 
+      <span class="kw">return</span> blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, n) <span class="kw">if</span> n &lt; <span class="dt">len</span>(<span class="ot">self</span>) <span class="kw">else</span> (
+         <span class="ot">None</span> <span class="kw">if</span> orelse is <span class="ot">None</span> <span class="kw">else</span> orelse(<span class="ot">self</span>, item))
+      
+   <span class="kw">def</span> first_gt(<span class="ot">self</span>, item, orelse = <span class="ot">None</span>):
+      n = <span class="ot">self</span>.bisect_right(<span class="ot">self</span>, item)
+      <span class="kw">return</span> blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, n) <span class="kw">if</span> n &lt; <span class="dt">len</span>(<span class="ot">self</span>) <span class="kw">else</span> (
+         <span class="ot">None</span> <span class="kw">if</span> orelse is <span class="ot">None</span> <span class="kw">else</span> orelse(<span class="ot">self</span>, item))
+
+   <span class="kw">def</span> find_slice_range(<span class="ot">self</span>, start=<span class="ot">None</span>, stop=<span class="ot">None</span>, *, inclusive = <span class="ot">True</span>, <span class="dt">reversed</span>=<span class="ot">False</span>):
+      <span class="ot">self</span>.restore_sorted_order()
+      startx = <span class="dv">0</span>  <span class="kw">if</span> start is <span class="ot">None</span> <span class="kw">else</span> <span class="ot">self</span>.bisect_left(start)
+      stopx  = <span class="dt">len</span>(<span class="ot">self</span>) <span class="kw">if</span> stop is <span class="ot">None</span> <span class="kw">else</span> (
+         <span class="ot">self</span>.bisect_right(stop) <span class="kw">if</span> inclusive <span class="kw">else</span> <span class="ot">self</span>.bisect_left(stop))
+      <span class="kw">if</span> not <span class="dt">reversed</span>:
+         <span class="kw">return</span> <span class="dt">range</span>(startx, stopx, <span class="dv">1</span>)
+      <span class="kw">else</span>:
+         startr = stopx - <span class="dv">1</span> <span class="kw">if</span> stopx &gt; <span class="dv">0</span> <span class="kw">else</span> <span class="dv">0</span>
+         stopr  = startx - <span class="dv">1</span> <span class="kw">if</span> startx &gt; <span class="dv">0</span> <span class="kw">else</span> <span class="dv">0</span>
+         <span class="kw">return</span> <span class="dt">range</span>(startr, stopr, -<span class="dv">1</span>)
+
+   <span class="kw">def</span> _find_key_range(<span class="ot">self</span>, key, restore):
+      <span class="kw">if</span> restore:
+         <span class="ot">self</span>.restore_sorted_order()
+      start = <span class="ot">None</span>
+      stop = <span class="ot">None</span>
+      high = <span class="ot">self</span>.<span class="ot">__len__</span>() - <span class="dv">1</span>
+      <span class="kw">if</span> high &lt; <span class="dv">0</span>:
+         <span class="kw">return</span> <span class="dt">range</span>(<span class="dv">0</span>, <span class="dv">0</span>)
+      highkey = <span class="ot">self</span>._key(blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, high))
+      <span class="kw">if</span> highkey &lt; key:
+         <span class="kw">return</span> <span class="dt">range</span>(<span class="ot">self</span>.<span class="ot">__len__</span>(), <span class="ot">self</span>.<span class="ot">__len__</span>()) <span class="co"># everything comes before `key`</span>
+      low = <span class="dv">0</span>
+      lowkey = <span class="ot">self</span>._key(blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, low))
+      <span class="kw">if</span> key &lt; lowkey:
+         <span class="kw">return</span> <span class="dt">range</span>(<span class="dv">0</span>, <span class="dv">0</span>) <span class="co"># everything comes after `key`</span>
+      <span class="co"># From this point on, we know that key will lie in the interval</span>
+      <span class="co">#    self._key(self[low]) &lt;= key &lt;= self._key(self[high])</span>
+      mid = (low + high) // <span class="dv">2</span>
+      <span class="co"># inside the loop, low &lt; mid &lt; high will hold</span>
+      midkey = <span class="ot">self</span>._key(blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, mid))
+      <span class="kw">while</span> low &lt; mid and key != midkey:  <span class="co"># let the binary search begin</span>
+         <span class="kw">if</span> midkey &gt; key:
+            high = mid
+         <span class="kw">else</span>: <span class="co"># must have midkey &gt; key because midkey != key</span>
+            low = mid
+         mid = (low + high)//<span class="dv">2</span>
+         midkey = <span class="ot">self</span>._key(blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, mid))
+      <span class="kw">for</span> m in <span class="dt">range</span>(mid, -<span class="dv">1</span>, -<span class="dv">1</span>): <span class="co"># find the leftmost item with key &lt; key</span>
+         key_m = <span class="ot">self</span>._key(blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, m))
+         <span class="kw">if</span> key_m &lt; key: 
+            <span class="kw">break</span>
+      <span class="kw">for</span> n in <span class="dt">range</span>(mid, high<span class="dv">+1</span>, <span class="dv">1</span>): <span class="co"># find the rightmost item with key &gt; key</span>
+         key_n = <span class="ot">self</span>._key(blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, n))
+         <span class="kw">if</span> key_n &gt; key: 
+            <span class="kw">break</span>
+         start = m <span class="kw">if</span> key == key_m <span class="kw">else</span> m<span class="dv">+1</span>
+         stop = n<span class="dv">+1</span> <span class="kw">if</span> key == key_n <span class="kw">else</span> n
+      <span class="kw">return</span> <span class="dt">range</span>(start, stop) <span class="kw">if</span> start is not <span class="ot">None</span> <span class="kw">else</span> <span class="ot">None</span>
+
+   <span class="kw">def</span> find_key_range(<span class="ot">self</span>, key):
+      <span class="kw">return</span> <span class="ot">self</span>._find_key_range(key, <span class="ot">True</span>)
+
+   <span class="kw">def</span> find_key(<span class="ot">self</span>, key):
+      r = <span class="ot">self</span>.find_key_range(key)
+      <span class="kw">if</span> r.start &lt; r.stop and <span class="ot">self</span>._key(blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, r.start)) == key:
+         <span class="kw">return</span> r.start
+      <span class="kw">else</span>:
+         <span class="kw">return</span> -<span class="dv">1</span>
+
+   <span class="kw">def</span> find_item_key_range(<span class="ot">self</span>, item):
+      <span class="kw">return</span> <span class="ot">self</span>.find_key_range(<span class="ot">self</span>._key(item))
+
+   <span class="kw">def</span> <span class="dt">slice</span>(start=<span class="ot">None</span>, stop=<span class="ot">None</span>, inclusive = <span class="ot">True</span>):
+      <span class="kw">if</span> <span class="ot">self</span>.<span class="ot">__len__</span>() == <span class="dv">0</span>:
+         <span class="kw">return</span> <span class="ot">self</span>.SortedList(key=<span class="ot">self</span>._key)
+      sg = <span class="ot">self</span>.slice_generator(start, stop, inclusive)
+      <span class="kw">return</span> SortedList(iterable=sg, key=<span class="ot">self</span>._key)
+
+   <span class="kw">def</span> slice_generator(start=<span class="ot">None</span>, stop=<span class="ot">None</span>, *, inclusive = <span class="ot">True</span>, <span class="dt">reversed</span> = <span class="ot">False</span>):
+      <span class="co"># get the starting item index and eliminate some more boundary cases</span>
+      r = <span class="ot">self</span>.find_slice_range(start, stop, inclusive=inclusive, <span class="dt">reversed</span>=<span class="dt">reversed</span>)
+      <span class="kw">return</span> (blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, n) <span class="kw">for</span> n in r)
+
+   <span class="kw">def</span> count(<span class="ot">self</span>, item):
+      <span class="ot">self</span>.restore_sorted_order()
+      <span class="kw">return</span> blist.count(<span class="ot">self</span>, item)
+
+   <span class="kw">def</span> reverse(<span class="ot">self</span>):
+      <span class="kw">raise</span> su.IllegalOpError(<span class="st">&quot;You cannot reverse a SortedList in place&quot;</span>)
+
+   <span class="kw">class</span> _CountIter:
+      <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, sl, start=<span class="ot">None</span>, stop=<span class="ot">None</span>, *, inclusive = <span class="ot">True</span>, <span class="dt">reversed</span> = <span class="ot">False</span>, both=<span class="ot">True</span>):
+         r = sl.find_slice_range(start, stop, inclusive=inclusive,<span class="dt">reversed</span>=<span class="dt">reversed</span>)
+         <span class="ot">self</span>.source = sl
+         <span class="ot">self</span>.startx = r.start
+         <span class="ot">self</span>.stopx  = r.stop
+         <span class="ot">self</span>.step   = r.step
+         <span class="ot">self</span>.both   = both
+      <span class="kw">def</span> <span class="ot">__next__</span>(<span class="ot">self</span>):
+         <span class="kw">if</span> <span class="ot">self</span>.startx &gt;= <span class="ot">self</span>.stopx:
+            <span class="kw">raise</span> <span class="ot">StopIteration</span>()
+         item = blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>.source,<span class="ot">self</span>.startx)
+         stop = <span class="ot">self</span>.startx + <span class="ot">self</span>.step
+         <span class="kw">while</span> stop &lt; <span class="ot">self</span>.stopx and <span class="ot">self</span>._key(item) == <span class="ot">self</span>._key(blist.<span class="ot">__getitem__</span>(sl, stop)):
+            stop += <span class="dv">1</span>
+         count = stop - <span class="ot">self</span>.startx
+         <span class="ot">self</span>.startx = stop
+         <span class="kw">return</span> (<span class="ot">self</span>._key(item), count) <span class="kw">if</span> both <span class="kw">else</span> <span class="ot">self</span>._key(item)
+
+   <span class="kw">def</span> key_counts(<span class="ot">self</span>, start=<span class="ot">None</span>, stop=<span class="ot">None</span>, *, inclusive = <span class="ot">True</span>, <span class="dt">reversed</span> = <span class="ot">False</span>):
+      <span class="kw">return</span> <span class="ot">self</span>._CountIter(<span class="ot">self</span>, start, stop, inclusive=inclusive, <span class="dt">reversed</span>=<span class="dt">reversed</span>)
+
+   <span class="kw">def</span> keys(<span class="ot">self</span>, start=<span class="ot">None</span>, stop=<span class="ot">None</span>, *, inclusive = <span class="ot">True</span>, <span class="dt">reversed</span> = <span class="ot">False</span>):
+      <span class="kw">return</span> <span class="ot">self</span>._CountIter(<span class="ot">self</span>, start, stop, inclusive=inclusive, <span class="dt">reversed</span>=<span class="dt">reversed</span>, both=<span class="ot">False</span>)
+
+   <span class="kw">class</span> _ItemIter:
+      <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, sl, start=<span class="ot">None</span>, stop=<span class="ot">None</span>, *, inclusive = <span class="ot">True</span>, <span class="dt">reversed</span> = <span class="ot">False</span>):
+         r = sl.find_slice_range(start, stop, inclusive=inclusive,<span class="dt">reversed</span>=<span class="dt">reversed</span>)
+         <span class="ot">self</span>.itemset = <span class="dt">set</span>()
+         <span class="ot">self</span>.currentkey = <span class="ot">None</span>
+         <span class="ot">self</span>.source = sl
+         <span class="ot">self</span>.startx = r.start
+         <span class="ot">self</span>.stopx  = r.stop
+      <span class="kw">def</span> <span class="ot">__next__</span>(<span class="ot">self</span>):
+         <span class="kw">if</span> <span class="ot">self</span>.startx &gt;= <span class="ot">self</span>.stopx:
+            <span class="kw">raise</span> <span class="ot">StopIteration</span>()
+         item = blist.<span class="ot">__getitem__</span>(<span class="ot">self</span>, <span class="ot">self</span>.startx)
+         <span class="ot">self</span>.startx += <span class="ot">self</span>.step
+         key = <span class="ot">self</span>._key(item)
+         <span class="kw">if</span> key == <span class="ot">self</span>.currentkey:
+            <span class="kw">if</span> item in <span class="ot">self</span>.itemset:
+               <span class="kw">return</span> <span class="ot">self</span>.<span class="ot">__next__</span>()
+            <span class="kw">else</span>:
+               <span class="dt">set</span>.itemset.add(item)
+               <span class="kw">return</span> item
+         <span class="kw">else</span>:
+            <span class="ot">self</span>.currentkey = key
+            <span class="ot">self</span>.itemset.clear()
+            <span class="ot">self</span>.itemset.add(item)
+            <span class="kw">return</span> item
+
+   <span class="kw">def</span> items(<span class="ot">self</span>, start=<span class="ot">None</span>, stop=<span class="ot">None</span>, *, inclusive = <span class="ot">True</span>, <span class="dt">reversed</span> = <span class="ot">False</span>):
+      <span class="kw">return</span> <span class="ot">self</span>._ItemIter(<span class="ot">self</span>, start, stop, inclusive=inclusive, <span class="dt">reversed</span>=<span class="dt">reversed</span>)
+</code></pre>
+<h2 id="the-class-checkedsortedlistsortedlist">The class <code>CheckedSortedList(SortedList)</code></h2>
+<p>A <code>CheckedSortedList</code> is a <code>SortedList</code> together with a vetter that raises an exception whenever an attempt is made to add inappropriate items to the list.</p>
+<h3 id="checkedsortedlistiterable-keynone-vetterlambda-x-x"><code style="text-decoration: underline;">CheckedSortedList(iterable=[], key=None, vetter=lambda x: x)</code></h3>
+<p><code>asAType</code>. <code>asAType</code>, if it is not <code>None</code>, must be callable (a function or constructor). If the pushed data does <em>not</em> have type <code>aType</code>, <code>asAType</code> will be called with the pushed data as its only argument. Its job is to transform the data into an instance of <code>aType</code>. It should return the transformed value when it succeeds; otherwise, it should raise an appropriate exception.</p>
+<p>The remaining arguments are simply passed through “as is” to <code>Stack</code>’s constructor.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> CheckedSortedList(SortedList):
+
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, iterable=[], key=<span class="ot">None</span>, vetter=<span class="kw">lambda</span> x: x):
+      <span class="ot">self</span>.itemtype = aType
+      <span class="dt">object</span>.<span class="ot">__setattr__</span>(<span class="ot">self</span>, <span class="st">&quot;vetter&quot;</span>, vetter)
+      SortedList.<span class="ot">__init__</span>(<span class="ot">self</span>, (vetter(item) <span class="kw">for</span> item in iterable), key=key)
+
+   <span class="kw">def</span> <span class="ot">__setattr__</span>(<span class="ot">self</span>, name, value):
+      <span class="kw">if</span> name is <span class="st">&quot;vetter&quot;</span>:
+         <span class="kw">raise</span> <span class="ot">AttributeError</span>(name+<span class="st">&quot; is a read-only attribute&quot;</span>)
+      <span class="kw">else</span>:
+         SortedList.<span class="ot">__setattr__</span>(<span class="ot">self</span>, name, value) <span class="co"># use SortedList.__... to avoid recursion</span>
+
+   <span class="kw">def</span> <span class="ot">__delattr__</span>(<span class="ot">self</span>, name):
+      <span class="kw">if</span> name is <span class="st">&quot;vetter&quot;</span>:
+         <span class="kw">raise</span> <span class="ot">AttributeError</span>(name+<span class="st">&quot; may not be deleted.&quot;</span>)
+      <span class="kw">else</span>:
+         SortedList.<span class="ot">__delattr__</span>(<span class="ot">self</span>, name)
+
+   <span class="kw">def</span> add(<span class="ot">self</span>, item):
+      SortedList.add(<span class="ot">self</span>, <span class="ot">self</span>.vetter(item))
+
+   <span class="kw">def</span> insert(<span class="ot">self</span>, item):
+      SortedList.insert(<span class="ot">self</span>, <span class="ot">self</span>.vetter(item))
+      </code></pre>
+<h2 id="the-class-sortedtypedlistsortedlist">The class <code>SortedTypedList(SortedList)</code></h2>
+<h3 id="the-constructor-iterable-keynone-atypeint-asatypenone">The constructor, <code style="text-decoration: underline;">iterable=[], key=None, aType=int, asAType=None)</code></h3>
+<p><code>SortedTypedList</code> returns a <code>Stack</code> with a vetter that raises an exception whenever an attempt is made to push data onto the stack whose type is not “aType”, or at least is convertible to that type via <code>asAType</code>. <code>asAType</code>, if it is not <code>None</code>, must be callable (a function or constructor). If the pushed data does <em>not</em> have type <code>aType</code>, <code>asAType</code> will be called with the pushed data as its only argument. Its job is to transform the data into an instance of <code>aType</code>. It should return the transformed value when it succeeds; otherwise, it should raise an appropriate exception.</p>
+<p>The remaining arguments are simply passed through “as is” to <code>Stack</code>’s constructor.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> TypedSortedList(CheckedSortedList):
+
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, iterable=[], key=<span class="ot">None</span>, aType=<span class="dt">str</span>, asAType=<span class="dt">str</span>):
+      <span class="ot">self</span>.itemtype = aType
+      <span class="kw">def</span> vetter(data):
+         <span class="kw">if</span> <span class="dt">isinstance</span>(data, aType):
+            <span class="kw">return</span> data
+         <span class="kw">elif</span> asAType is not <span class="ot">None</span>:
+            <span class="kw">try</span>:
+               <span class="kw">return</span> asAType(data)
+            <span class="kw">except</span>:
+               <span class="kw">pass</span>
+         msg = <span class="st">&quot;</span><span class="ot">{0}</span><span class="st"> was pushed, but </span><span class="ot">{1}</span><span class="st"> is expected.&quot;</span>
+         <span class="kw">raise</span> <span class="ot">TypeError</span>(msg.<span class="dt">format</span>(su.A_classname(data), su.a_classname(aType)))
+      CheckedSortedList.<span class="ot">__init__</span>(<span class="ot">self</span>, (vetter(item) <span class="kw">for</span> item in iterable), key=key, vetter=vetter)
+
+   <span class="kw">def</span> <span class="ot">__setattr__</span>(<span class="ot">self</span>, name, value):
+      <span class="kw">if</span> name is <span class="st">&quot;itemtype&quot;</span>:
+         <span class="kw">raise</span> <span class="ot">AttributeError</span>(name+<span class="st">&quot; is a read-only attribute&quot;</span>)
+      <span class="kw">else</span>:
+         CheckedSortedList.<span class="ot">__setattr__</span>(<span class="ot">self</span>, name, value) <span class="co"># use CheckedSortedList to avoid recursion</span>
+
+   <span class="kw">def</span> <span class="ot">__delattr__</span>(<span class="ot">self</span>, name):
+      <span class="kw">if</span> name is <span class="st">&quot;itemtype&quot;</span>:
+         <span class="kw">raise</span> <span class="ot">AttributeError</span>(name+<span class="st">&quot; may not be deleted.&quot;</span>)
+      <span class="kw">else</span>:
+         CheckedSortedList.<span class="ot">__delattr__</span>(<span class="ot">self</span>, name)
+
+</code></pre>
+<h2 id="the-class-sortedsetsortedlist">The class <code>SortedSet(<a href="sortedlist.html">SortedList</a>)</code></h2>
+<p>An instance is a set of items that has a “natural” order. The order is taken to be that implied by <code>__lt__()</code> method for the items and realized by the <code>&lt;</code> operator. It is a special case of a sorted list in which an item is its own key and may only appear once in the list.</p>
+<h3 id="the-constructor-sortedsetiterable-failondupfalse">The constructor SortedSet(iterable=(), failondup=False)</h3>
+<p>This is a very modest wrapper around the <code>SortedList</code> constructor. The two parameters are:</p>
+<blockquote>
+<p><strong><code>iterable</code></strong> is by default an empty tuple. It must be an iterable that yields items to be inserted initially.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>failondup</code></strong> is a Boolean. If it is <code>True</code>, attempts to insert a value into the set that is already there will raise a <code>ValueError</code>. Otherwise, such attempts will simply be ignored: start in wins. The default, as you might guess is: “ignore duplicates”.</p>
+</blockquote>
+<p>Very few of <code>SortedList</code>’s methods need changing here. They apply equally well to <code>SortedSet</code>s. One has to be careful about <code>copy</code> and <code>slice</code>, because both want to return a <code>SortedSet</code> rather than a <code>SortedList</code>. Also, adding an item has to take into account the need to police for duplicates.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> SortedSet(SortedList):
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, iterable = (), failondup = <span class="ot">False</span>):
+      SortedList.<span class="ot">__init__</span>(<span class="ot">self</span>)
+      <span class="ot">self</span>.failondup = failondup
+      <span class="kw">for</span> x in iterable:
+         <span class="ot">self</span>.add(x)
+
+   <span class="kw">def</span> __copy__(<span class="ot">self</span>):
+      <span class="kw">return</span> SortedSet(iterable=<span class="ot">self</span>, failondup=<span class="ot">self</span>.failondup)
+
+   <span class="kw">def</span> add(<span class="ot">self</span>, item):  
+      <span class="kw">if</span> failondup and item in <span class="ot">self</span>:
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;duplicate item {} not added.&quot;</span>.<span class="dt">format</span>(item))
+      sortedlist.add(<span class="ot">self</span>, item)
+
+   <span class="kw">def</span> insert(<span class="ot">self</span>, item):  
+      <span class="kw">if</span> failondup and item in <span class="ot">self</span>:
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;duplicate item {} not added.&quot;</span>.<span class="dt">format</span>(item))
+      sortedlist.insert(<span class="ot">self</span>, item)
+
+   <span class="kw">def</span> <span class="dt">slice</span>(start=<span class="ot">None</span>, stop=<span class="ot">None</span>, inclusive = <span class="ot">True</span>):
+      <span class="kw">if</span> <span class="ot">self</span>.<span class="ot">__len__</span>() == <span class="dv">0</span>:
+         <span class="kw">return</span> <span class="ot">self</span>.SortedSet(failondup=<span class="ot">self</span>.failondup)
+      sg = <span class="ot">self</span>.slice_generator(start, stop, inclusive)
+      <span class="kw">return</span> SortedSet(iterable=sg, failondup=<span class="ot">self</span>.failondup)
+</code></pre>
+<h2 id="the-class-sortedkeyedsetsortedlist">The class <code>SortedKeyedSet(<a href="sortedlist.html">SortedList</a>)</code></h2>
+<p>An instance is a set of items that have a key with a “natural” order. The order is taken to be that implied by <code>__lt__()</code> method for the keys. It is a special case of a sorted list in which only one item with a given key can be present. It differs from a <code>SortedSet</code> in how one might want to treat updates that involve keys already present in the set.</p>
+<h3 id="the-constructor-sortedkeyedsetiterable-keynone-ondupnew">The constructor SortedKeyedSet(iterable=(), key=None, ondup=“new”)</h3>
+<p>Like <code>SortedSet</code>, this is essentially just the <code>SortedList</code> constructor. The three parameters are:</p>
+<blockquote>
+<p><strong><code>iterable</code></strong> is by default an empty tuple. It must be an iterable that yields items to be inserted initially.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>key</code></strong> is either <code>None</code> or a function of a single argument that maps an item to its key.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>ondup</code></strong> is one of the strings <em><code>&quot;fail&quot;</code></em>, <em><code>&quot;same&quot;</code></em>, <em><code>&quot;value&quot;</code></em>, <em><code>&quot;new&quot;</code></em>, and <em><code>&quot;old&quot;</code></em>. The value determines what should happen when an item <code>newitem</code> is added to a set that already contains an entry <code>olditem</code> with the same key. Because there are two values at stake, namely the item’s value and the key’s value, there are a number of possiblities:</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p><strong><code>&quot;fail&quot;</code></strong> is the strictest possible check: there is no case in which the same key should appear more than once, so <em>fail</em>.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<blockquote>
+<p><strong><code>&quot;same&quot;</code></strong> is the next strictest possible check: if <code>newitem</code> is not the very <em>same</em> item as <code>olditem</code>, it is an error. In other words, if the expression <em><code>newitem</code> <code>is</code> <code>olditem</code></em> evaluates to <code>False</code>, a <code>ValueError</code> is raised . The object <em>reference</em> is required to be unique to the key, not just the object value. This is probably rarely what you want, but I provide it just to make sure that users are reminded that it <em>may</em> be the right thing to do.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<blockquote>
+<p><strong><code>&quot;value&quot;</code></strong> : if <code>newitem</code> and <code>olditem</code> do not have the same <em>value</em>, it is an error. In other words, if the expression <code>newitem</code> <code>==</code> <code>olditem</code> evaluates to <code>False</code>, a <code>ValueError</code> is raised. The key is expected to determine the item’s value, but not its identity. This might seem a bit on the strict side, too, but consider the use case in which the items are catalogue entries, the keys are item-number code, and the catalogue is known not be mutable in the course of building this set. Two different values with the same key would definitely signal a problem. You might well get two different object references with the same value, if, for example, the set consists for e-books that a shopper has selected, the shopper mistakenly selects the same book twice.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<blockquote>
+<p><strong><code>&quot;new&quot;</code></strong> is the default: the <em>new</em> item replaces the old one. A natural use case to keep in mind is that of database records that may be updated over time. This allows you to update a record in any way that does not affect the record’s key and then plop it into the set. No comparison of <code>olditem</code> versus <code>newitem</code> is made.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<blockquote>
+<p><strong><code>&quot;old&quot;</code></strong>: the <em>old</em> item remains and the new one is discarded. This makes sense when there are no differences among the various possible values with a given key that are important insofar as this application is concerned. All that matters is what keys appear, so we get all we need from the first item we see, end of story.</p>
+</blockquote>
+</blockquote>
+<p><code>ondup</code> is actually a virtual field (or “property”, if you prefer). It may be set at any time during the propgram’s execution. The value to be assigned will be lower-cased and, if the result is a prefix of one of the expected values, will update the field’s value accordingly.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> _ondup_value:
+   tags = <span class="dt">set</span>((<span class="st">&quot;fail&quot;</span>, <span class="st">&quot;old&quot;</span>, <span class="st">&quot;new&quot;</span>, <span class="st">&quot;same&quot;</span>, <span class="st">&quot;value&quot;</span>))
+   value2tag = {<span class="st">&quot;e&quot;</span>: <span class="st">&quot;error&quot;</span>, <span class="st">&quot;f&quot;</span>: <span class="st">&quot;fail&quot;</span>, <span class="st">&quot;o&quot;</span>: <span class="st">&quot;old&quot;</span>, <span class="st">&quot;n&quot;</span>: <span class="st">&quot;new&quot;</span>, <span class="st">&quot;s&quot;</span>: <span class="st">&quot;same&quot;</span>, <span class="st">&quot;v&quot;</span>: <span class="st">&quot;value&quot;</span>}
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>):
+       <span class="co">&quot;e&quot;</span>
+   <span class="kw">def</span> <span class="ot">__get__</span>(<span class="ot">self</span>, obj, <span class="dt">type</span>=<span class="ot">None</span>):      
+      <span class="kw">return</span> <span class="ot">self</span>.ondup
+   <span class="kw">def</span> <span class="ot">__set__</span>(<span class="ot">self</span>, obj, value):
+      lowered = value.lower()
+      initial = lowered[<span class="dv">0</span>]
+      full_name = <span class="ot">self</span>.value2tag[initial]
+      <span class="kw">if</span> full_name.startswith(lowered):
+         <span class="ot">self</span>.ondup = initial
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.ondup = <span class="st">&quot;e&quot;</span> <span class="co"># as in &quot;error&quot;</span>
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Unexpected dup handler: '</span><span class="ot">{0}</span><span class="st">'. Expected one of </span><span class="ot">{1}</span><span class="st">&quot;</span>.<span class="dt">format</span>(value,tags))
+   <span class="kw">def</span> <span class="ot">__delete__</span>(<span class="ot">self</span>, obj):
+      <span class="kw">raise</span> <span class="ot">AttributeError</span>(<span class="st">&quot;The dup handler's strategy tag may not be deleted&quot;</span>)
+   <span class="kw">def</span> <span class="ot">__repr__</span>(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="st">&quot;ondup('{}')&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.value2tag[<span class="ot">self</span>.ondup])
+   <span class="kw">def</span> <span class="ot">__str__</span>(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="st">&quot;'{}'&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.value2tag[<span class="ot">self</span>.ondup])
+
+<span class="kw">class</span> SortedKeyedSet(SortedList):
+   ondup = _ondup_value()
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, iterable = (), key=<span class="ot">None</span>, ondup=<span class="st">&quot;new&quot;</span>):
+      SortedList.<span class="ot">__init__</span>(<span class="ot">self</span>, key)
+      <span class="ot">self</span>.ondup = ondup
+      <span class="kw">for</span> x in iterable:
+         <span class="ot">self</span>.add(x)
+
+   <span class="kw">def</span> __copy__(<span class="ot">self</span>):
+      <span class="kw">return</span> SortedKeyedSet(<span class="ot">self</span>.failondup, <span class="ot">self</span>)
+
+   <span class="kw">def</span> _fail(<span class="ot">self</span>, item, prior, key):
+      msg = <span class="st">&quot;duplicate item, {}, with key '{}' cannot replace {}.&quot;</span>
+      <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(item, key, prior))
+
+   <span class="kw">def</span> add(<span class="ot">self</span>, item):
+      itemkey = <span class="ot">self</span>._key(item) 
+      prior = <span class="ot">self</span>.last_le(item)
+      priorkey = <span class="ot">self</span>._key(prior)
+      <span class="kw">if</span> priorkey != itemkey: <span class="co"># new key, new item, no problems</span>
+         sortedlist.add(<span class="ot">self</span>, item)
+      <span class="kw">elif</span> <span class="ot">self</span>.ondup == <span class="st">'f'</span>: <span class="co"># same key, must fail</span>
+         <span class="ot">self</span>._fail(item, prior, priorkey)
+      <span class="kw">elif</span> <span class="ot">self</span>.ondup == <span class="st">'s'</span>: <span class="co"># fail only if new object id</span>
+         <span class="kw">if</span> item is not prior:
+            <span class="ot">self</span>._fail(item, prior, priorkey)
+      <span class="kw">elif</span> <span class="ot">self</span>.ondup == <span class="st">'v'</span>: <span class="co"># fail only if new value</span>
+         <span class="kw">if</span> item != prior:
+            <span class="ot">self</span>._fail(item, prior, priorkey)
+      <span class="kw">elif</span> <span class="ot">self</span>.ondup == <span class="st">'n'</span>: <span class="co"># new item wins: out with the old, in with the new</span>
+         <span class="kw">if</span> item != prior:
+            <span class="ot">self</span>.remove(prior)
+            sortedlist.add(<span class="ot">self</span>, item)
+
+   <span class="kw">def</span> <span class="dt">slice</span>(start=<span class="ot">None</span>, stop=<span class="ot">None</span>, inclusive = <span class="ot">True</span>):
+      <span class="kw">if</span> <span class="ot">self</span>.<span class="ot">__len__</span>() == <span class="dv">0</span>:
+         <span class="kw">return</span> <span class="ot">self</span>.SortedKeyedSet(key=<span class="ot">self</span>._key, ondup=<span class="ot">self</span>.ondup)
+      sg = <span class="ot">self</span>.slice_generator(start, stop, inclusive)
+      <span class="kw">return</span> SortedKeyedSet(iterable=sg, key=<span class="ot">self</span>._key, ondup=<span class="ot">self</span>.ondup)</code></pre>
+</body>
+</html>

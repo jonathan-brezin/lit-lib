@@ -1,0 +1,100 @@
+""" <head> 
+Title: The <span class="titleCode">ReadonlyDictAPI</span> class
+Author: Jonathan Brezin
+Date: November, 2015
+Show source: yes
+""" # </head>
+
+from delegator import *
+from copy import copy
+import sysutils as su
+
+""" <md>
+
+## The abstract base class <code>ReadonlyDictAPI</code> ##
+
+`ReadonlyDictAPI` defines the minimal API for an object that can serve as a proxy for a 
+read-only `dict`.  This is an abstract class, which is why I called it "`ReadonlyDictAPI`" and
+not just "`ReadonlyDict`".
+
+To qualify as a implementing the `ReadonlyDictAPI`, an object must implement
+
+<blockquote><table>
+<tr><td>  __`[]`__ , <td>maps a key to its value</td></tr>
+<tr><td>__`copy()`__ </td><td> creates a shallow copy of the instance,</td></tr>
+<tr><td>__`__iter__()`__  </td><td> makes `for`...`in` looping available,</td></tr>
+<tr><td>__`keys()`__  </td><td> creates an iterator yielding the instance's keys,</td></tr>
+<tr><td>__`items()`__ </td><td> creates an iterator yielding the instance's (key, value) pairs,</td></tr>
+<tr><td>__`values()`__ </td><td> creates an iterator yielding the instance's values,</td></tr>
+</table></blockquote>
+
+Default implementations delegating `__iter__()` and `get()` are provided and should suffice for
+most purposes. Rather than override them, I think you will normally be better served by
+inventing new method names.  For `dict`'s API, see  [the Python
+Reference](https://docs.python.org/3/library/stdtypes.html#mapping-types-dict).
+
+All of  `dict`s methods may be present, but those that update the store, when called, should
+raise a  [_`NotImplementedError`_](https://docs.python.org/3/library/exceptions.html).  Again,
+defaults have been supplied for all of them that do just that, but if you need more control to
+handle the error, by all means override, but it is good manners to exit the override by raising
+a `NotImplementedError`.
+
+Classes that extend `ReadonlyDictAPI` should normally also have their own versions of two other
+important methods: `__repr__()` and `__str__()`, but this is more a debugging and good taste
+issue than a requirement.
+
+""" # </md>
+
+class ReadonlyDictAPI():
+   # The required methods not implemented here:
+   def __contains__(self, key): su.SUBCLASS_MUST_IMPLEMENT(self, "__contains__")
+   def __getitem__(self, key): su.SUBCLASS_MUST_IMPLEMENT(self, "__getitem__")
+   def __len__(self):  su.SUBCLASS_MUST_IMPLEMENT(self, "__getitem__")
+   def copy(): su.SUBCLASS_MUST_IMPLEMENT(self, "copy")
+   def items(self): su.SUBCLASS_MUST_IMPLEMENT(self, "items")
+   def keys(self): su.SUBCLASS_MUST_IMPLEMENT(self, "keys")
+   def values(self): su.SUBCLASS_MUST_IMPLEMENT(self, "values")
+   # required methods that can be implemented in terms of those above:
+   def __iter__(self): return iter(self.keys())
+   def get(self, key, default=None):
+      '''Return the value for `key` if present, `default` otherwise.'''
+      try:
+         return self[key]
+      except:
+         return default
+   # methods that enforce the read-only discipline:
+   def __setitem__(self, key, value): su.DOES_NOT_IMPLEMENT_ASSIGNMENT(self)
+   def __delitem__(self, key): su.DOES_NOT_IMPLEMENT_DELETIONS(self)
+   def clear(self): su.DOES_NOT_IMPLEMENT_DELETIONS(self)
+   def pop(self, key, default = None): su.DOES_NOT_IMPLEMENT_DELETIONS(self)
+   def popkey(self): su.DOES_NOT_IMPLEMENT_DELETIONS(self)
+   def setdefault(self, key, default=None): su.DOES_NOT_IMPLEMENT_ASSIGNMENT(self)
+   def update(self, other): su.DOES_NOT_IMPLEMENT_ASSIGNMENT(self)
+
+   """ <md>
+
+   ### The class method <code>isimplementedby(anObject)</code>###
+
+   `isimplementedby` returns `True` if `anObject` either extends `ReadonlyDictAPI`, or has the
+   appropriate method attributes for the positive part of the API; otherwise, it returns
+   `False`.  The reason for not simply demanding that the object be an instance of
+   `ReadonlyDictAPI` is that the object's class may be part of a foreign library, so the user
+   has no control over its declaration, but may wish to extend it by adding this class to the
+   library class's bases.
+
+    """ # </md>
+
+   def isimplementedby(anObject):
+      if su.isinstance(anObject, ReadonlyDictAPI):
+         return True
+      elif not su.implements(anObject, (
+         "__getitem__", "__contains__", "__len__", "copy", "get", "items", "keys", "values"
+      )):
+         return False
+      else:
+         return (
+            su.isindexable(anObject) and 
+            su.isiterable(anObject.items()) and 
+            su.isiterable(anObject.keys()) and 
+            su.isiterable(anObject.values())
+         ) 

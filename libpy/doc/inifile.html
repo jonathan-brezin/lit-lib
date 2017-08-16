@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Inifile Property Lists</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title"><span class="titleCode">Inifile</span> Property Lists</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">November, 2015</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#raison-detre">Raison d’etre</a></li>
+<li><a href="#the-section-dictionaries-class-sectiondict">The section dictionaries class: <code>SectionDict</code></a><ul>
+<li><a href="#the-constructor-sectiondictmapping">The constructor <code>SectionDict(mapping={})</code></a></li>
+<li><a href="#getkey-defaultnone"><code>get(key, default=None)</code></a></li>
+<li><a href="#getintkey-defaultnone"><code>getint(key, default=None)</code></a></li>
+<li><a href="#getfloatkey-defaultnone"><code>getfloat(key, default=None)</code></a></li>
+<li><a href="#getbooleankey-defaultnone"><code>getboolean(key, default=None)</code></a></li>
+<li><a href="#getlistkey-separatorsectiondict.list_separator-default"><code>getlist(key, separator=SectionDict.LIST_SEPARATOR, default=[])</code></a></li>
+<li><a href="#getstrkey-defaultnone"><code>getstr(key, default=None)</code></a></li>
+</ul></li>
+<li><a href="#inifile-class-methods-reading-and-combining-sets-of-inifiles"><code>Inifile</code> class methods: reading and combining sets of inifiles</a><ul>
+<li><a href="#readonebasename-paths"><code>readOne(baseName, *paths)</code></a></li>
+<li><a href="#readallbasename-paths-ondupraiseerror"><code>readAll(baseName, *paths, ondup=raiseError)</code></a></li>
+<li><a href="#firstwinssection-key-source-target"><code>firstWins(section, key, source, target)</code></a></li>
+<li><a href="#lastwinssection-key-source-target"><code>lastWins(section, key, source, target)</code></a></li>
+<li><a href="#keepbothsection-key-source-target-separator"><code>keepBoth(section, key, source, target, separator=“,”)</code></a></li>
+<li><a href="#raiseerrorsection-key-source-target"><code>raiseError(section, key, source, target)</code></a></li>
+<li><a href="#readoptionalbasename-paths-defaultsinifile"><code>readOptional(baseName, *paths, defaults=Inifile())</code></a></li>
+<li><a href="#readall-one-optional-ondupraiseerror-defaultsinifile"><code>read(all=[], one=[], optional=[], ondup=raiseError, defaults=Inifile())</code></a></li>
+</ul></li>
+<li><a href="#the-inifile-constructor">The <code>Inifile</code> constructor</a><ul>
+<li><a href="#inifilepath-cmnt_re-keyend_ress-no_twstrue"><code>Inifile(path, cmnt_re=“^[#;]”, keyend_re=“\s*[;=]\s*”, no_tws=True)</code></a></li>
+</ul></li>
+<li><a href="#the-inifile-api">The <code>Inifile</code> API</a><ul>
+<li><a href="#the-operator">The <code>[]</code> operator</a></li>
+<li><a href="#getargs"><code>get(*args)</code></a></li>
+<li><a href="#getintargs"><code>getint(*args)</code></a></li>
+<li><a href="#getfloatargs"><code>getfloat(*args)</code></a></li>
+<li><a href="#getbooleanargs"><code>getboolean(*args)</code></a></li>
+<li><a href="#getlistargs-separatorsectiondict.list_separator"><code>getlist(*args, separator=SectionDict.LIST_SEPARATOR)</code></a></li>
+<li><a href="#getstrargs"><code>getstr(*args)</code></a></li>
+<li><a href="#hassections"><code>hassection(s)</code></a></li>
+<li><a href="#haskeys-k"><code>haskey(s, k=’’)</code></a></li>
+<li><a href="#getsections-default-sectiondict"><code>getsection(s, default = SectionDict())</code></a></li>
+<li><a href="#addsectionname"><code>addsection(name)</code></a></li>
+<li><a href="#addentrysection-key-value"><code>addentry(section, key, value)</code></a></li>
+<li><a href="#mergeother-ondupraiseerror"><code>merge(other, ondup=raiseError)</code></a></li>
+<li><a href="#mergetargetwinssource"><code>mergeTargetWins(source)</code></a></li>
+<li><a href="#mergesourcewinssource"><code>mergeSourceWins(source)</code></a></li>
+<li><a href="#mergekeepbothself-source-separator"><code>mergeKeepBoth(self, source, separator=‘,’)</code></a></li>
+<li><a href="#write_to_f_outf_out-keyend-indent"><code>write_to_f_out(f_out, keyend=“:”, indent=&quot; “)</code></a></li>
+<li><a href="#writepathnone-keyend-indent-backups-0"><code>write(path=None, keyend=“:”, indent=&quot; “, backups = 0)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> collections <span class="ch">import</span> namedtuple, defaultdict
+<span class="ch">import</span> idbg
+<span class="ch">import</span> math
+<span class="ch">from</span> fileutils <span class="ch">import</span> expandPathList, fopen
+<span class="ch">import</span> os
+<span class="ch">import</span> re
+<span class="ch">import</span> sys
+<span class="ch">import</span> sysutils <span class="ch">as</span> su
+</code></pre>
+<h2 id="raison-detre">Raison d’etre</h2>
+<p>I’m going to assume that you are familiar with “ini files” or “config files”–if you are not, <a href="https://en.wikipedia.org/wiki/Configuration_file">Wikipedia</a> will tell you what you need to know. Python has long since had code to read and write such files. For their documentation, see <a href="https://docs.python.org/3/library/configparser.html">docs.python.org/3/library/configparser.html</a>.</p>
+<p>Because an ini file is just a text file that represents a collection of dictionaries, all of the fun is in describing the format of that text file. Originally, the format was: just one dictionary, keys on the left, values on the right, whitespace in between. This is easy to read and easy to parse, but for all kinds of reasons, it is not adequate as a general configuration specification. The next step in the evolution was to partition the ini file into named “sections”, and then to give each section its own dictionary. To give just one trivial example, one might have sections for “model”, “view” and “controller”. One can then have “cart” as a key both in “model” and “view” without any confusion. Of course, once you start down the slippery slope of partitioning, you can go hog wild and implement collections of collections of … to your heart’s content. Java property lists have been known to implement this by using dotted names like “<code>sys.boom.bah</code>” for the sections, so that one has an implied hierarchy of sections.</p>
+<p>You may well ask: why not use Python’s module? The answer is, configurable though it is, it does not solve one problem of mine: I don’t want to require sections to be contiguous in the input file. Among other things, I want to be able to merge two config <em>files</em> simply by concatenating those two text files. As of the time I wrote this, the Python code got very unhappy if all of the keys for a given section were not contiguous in the input file.</p>
+<p>Another major issue is how one should handle duplicate keys. The Python library’s module leaves this open–presumably last in wins or the values are just concatenated, but the important point here is not what it does, but that there are no guarantees. See the description of the <code>read()</code> methods in the <a href="https://docs.python.org/3/library/configparser.html#configparser-objects">Python documentation</a>. I give the caller complete control over this situation when merging <code>Inifile</code> objects, but within a single file, I am strict: if a (section, key) pair appears twice in a single file, and if the two values differ, it is an error. Period.</p>
+<blockquote>
+<p>My approach may seem to be inconsistent, but the reason for the difference between one file and many is simple. As I said in the previous paragraph, I want to be able to “cat” a bunch of ini files and get a valid ini file. Once these files get at all large (and inevitably they do), it is just too easy when looking at the final file yourself not to notice a conflict in the values assigned to a given key, particularly because the entries for a given section need not be contiguous. The last thing you want, then, is for the ini file reader to “do you a favor” and pick a winner for you.</p>
+</blockquote>
+<h2 id="the-section-dictionaries-class-sectiondict">The section dictionaries class: <code>SectionDict</code></h2>
+<p>In a better world, we could use a plain <code>dict</code> for each section’s key/data pairs. That turns out to be a little inconvenient, though, because one would like to be able to write code for our <code>Inifile</code> instance “<code>ini</code>” like:</p>
+<pre class="exampleCode">
+
+view_keys = ini[&quot;view&quot;]
+# ... and then some time later, we execute 
+width = view_keys.getint(&quot;width&quot;, 1080)
+
+</pre>
+
+<p>That is, we pass around a section’s dictionary to all who need it, and they can extract values of the type they need–int, float, boolean… The charm of this “get” call is that we can provide a default value, “<code>1080</code>”. It doesn’t have to be constant, as I showed it here for simplicity, but something computed in real time that may be different in different parts of the code or at different times–in this example, it may happen that we have different width displays alive at once, and this is just one of them we are dealing with when control reaches here, so it is not just a matter of tinkering with <code>ini</code> to provide a sensible default.</p>
+<p>If I had used an ordinary <code>dict</code>, then to get the value, one needs to execute</p>
+<pre class="exampleCode">
+
+int(view_keys.get(&quot;width&quot;, 1080))
+
+</pre>
+
+<p>This seems to me unnecessarily clumsy.</p>
+<p>In addition to the “typed getters” being desirable, there are two conventions one should like to enforce in a section dictionary. The first has to do with keys, and the second with values.</p>
+<blockquote>
+<p><em>Key lookup is <strong>not</strong> case-sensitive.</em> In practice, the keys are lower-cased. This is not my convention. It seems to have a long history and to be enforced by Python. Not to be consistent with Python would be to invite some really hard to detect errors. <em>Be careful, though, because this convention is <strong>not</strong> the case for section names, which are case-sensitive.</em> One reason for the difference is that it has become common nowadays to use class names as section names, and class names are case sensitive.</p>
+</blockquote>
+<blockquote>
+<p><em>The value assigned to a key must be a string.</em> There are two ways I could enforce that: blow you out of the water if you pass anything else in, or simply use <code>str(value)</code> to get a string. I chose the latter. Thus if you try to set some key to the boolean value <code>True</code>, what will be assigned is the string <code>&quot;True&quot;</code>, but <code>getboolean</code> will get the value back for you as <code>True</code>.</p>
+</blockquote>
+<h4 id="the-constructor-sectiondictmapping">The constructor <code>SectionDict(mapping={})</code></h4>
+<p>The argument must map string keys to values that are either strings or convert naturally to strings (as numbers or booleans do) via a call to <code>str()</code>. The instance is initialized from the mapping by lower-casing its keys and applying <code>str()</code> to its values.</p>
+<h4 id="getkey-defaultnone"><code>get(key, default=None)</code></h4>
+<p>returns the value associated with the key if it is found. Otherwise <code>default</code> is return “as is”.</p>
+<h4 id="getintkey-defaultnone"><code>getint(key, default=None)</code></h4>
+<p>If the key is found, its value is converted to an <code>int</code> and returned; otherwise, <code>default</code> is returned “as is”.</p>
+<h4 id="getfloatkey-defaultnone"><code>getfloat(key, default=None)</code></h4>
+<p>If the key is found, its value is converted to a <code>float</code> and returned; otherwise, <code>default</code> is returned “as is”.</p>
+<h4 id="getbooleankey-defaultnone"><code>getboolean(key, default=None)</code></h4>
+<p>If the key is found, its value is converted to a <code>boolean</code> and returned; otherwise, <code>default</code> is returned “as is”.</p>
+<h4 id="getlistkey-separatorsectiondict.list_separator-default"><code>getlist(key, separator=SectionDict.LIST_SEPARATOR, default=[])</code></h4>
+<p>If the key is found, its value is converted to a <code>list</code> and returned; otherwise, <code>default</code> is returned “as is”. The string value is converted to a list whose items are separated by the string or regular expression passed in as <code>separator</code>. By default, the separator is a comma, possibly followed by some whitespace.</p>
+<h4 id="getstrkey-defaultnone"><code>getstr(key, default=None)</code></h4>
+<p>is a synonym for <code>get()</code>, for situations where you want to underline that it is a string you really want.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> SectionDict(<span class="dt">dict</span>):
+   LIST_SEPARATOR = re.<span class="dt">compile</span>(<span class="st">&quot;,\s*&quot;</span>)
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, mapping = {}):
+      <span class="dt">dict</span>.<span class="ot">__init__</span>(<span class="ot">self</span>)
+      <span class="kw">for</span> key in mapping: <span class="ot">self</span>[key.lower()] = mapping[key]
+   <span class="kw">def</span> <span class="ot">__setitem__</span>(<span class="ot">self</span>, key, value):
+      <span class="dt">dict</span>.<span class="ot">__setitem__</span>(<span class="ot">self</span>, key.lower(), <span class="dt">str</span>(value))
+   <span class="kw">def</span> get(<span class="ot">self</span>, key, default = <span class="ot">None</span>):
+      <span class="kw">if</span> key in <span class="ot">self</span>:
+         <span class="kw">return</span> <span class="ot">self</span>[key]
+      <span class="kw">else</span>:
+         <span class="kw">return</span> default
+   <span class="kw">def</span> getint(<span class="ot">self</span>, key, default=<span class="ot">None</span>):
+      <span class="kw">if</span> key in <span class="ot">self</span>:
+         <span class="kw">return</span> su.str2int(<span class="ot">self</span>[key])
+      <span class="kw">else</span>:
+         <span class="kw">return</span> default
+   <span class="kw">def</span> getfloat(<span class="ot">self</span>, key, default=<span class="ot">None</span>):
+      <span class="kw">if</span> key in <span class="ot">self</span>:
+         <span class="kw">return</span> <span class="dt">float</span>(<span class="ot">self</span>[key])
+      <span class="kw">else</span>:
+         <span class="kw">return</span> default
+   <span class="kw">def</span> getboolean(<span class="ot">self</span>, key, default=<span class="ot">None</span>):
+      <span class="kw">if</span> key in <span class="ot">self</span>:
+         <span class="kw">return</span> su.asboolean(<span class="ot">self</span>[key])
+      <span class="kw">else</span>:
+         <span class="kw">return</span> default
+   <span class="kw">def</span> getlist(key, separator=LIST_SEPARATOR, default=[]):
+      <span class="kw">if</span> key in <span class="ot">self</span>:
+         <span class="kw">return</span> separator.split(<span class="ot">self</span>[key])
+      <span class="kw">else</span>:
+         <span class="kw">return</span> default
+   <span class="kw">def</span> getstr(<span class="ot">self</span>, key, default = <span class="ot">None</span>):
+      <span class="kw">if</span> key in <span class="ot">self</span>:
+         <span class="kw">return</span> <span class="ot">self</span>[key]
+      <span class="kw">else</span>:
+         <span class="kw">return</span> default
+</code></pre>
+<h2 id="inifile-class-methods-reading-and-combining-sets-of-inifiles"><code>Inifile</code> class methods: reading and combining sets of inifiles</h2>
+<p>As I have been saying, there are often situations in which a number of configuration files must be merged together to get the full context for an application. It would be nice if one could just “cat” them all into a single file once and for all and be done with things, but that turns out not to be practical in general. For one thing, the individual files may change over time. In addition, there may be several possible directories to look at where the file might be found, such as the current directory, the user’s home directory, and some system-wide directory. If you “cat’d” the system-wide version in, you may have missed some local modifications or additions that are essential to your application in its actual run-time environment. Rather than try to make the constructor general enough to handle this, as Python’s <code>configparser</code> does, I decided to add several class methods.</p>
+<blockquote>
+<p>Not only may a single config file be in one of several places, some config files may be required, and some not. For example: it could be that some system file should always be there, but the local version of that file–in the user’s home directory, say–may be optional. When both are available, you need to make sure that conflicting keys are correctly resolved. Sometimes the local file is the only one to read, other times it just fleshes out the system file.</p>
+</blockquote>
+<p>The first class two class methods worry about a set of files with single “base name” that may occur in one of several places.</p>
+<h4 id="readonebasename-paths"><code>readOne(baseName, *paths)</code></h4>
+<p>handles the situation where a single file might be found in one of several directories. The first argument is the base name for the file, and the remaining arguments are either directory paths or “paths” in the sense of OS environment variables: a string that is list of directory paths separated by the operating-system dependent path separator (“:” or “;”). The first match for <em><code>directory/base</code></em> is opened and read into an <code>Inifile</code> instance. An <code>IOError</code> is raised if no match is found.</p>
+<h4 id="readallbasename-paths-ondupraiseerror"><code>readAll(baseName, *paths, ondup=raiseError)</code></h4>
+<p>is like <code>readOne</code>, except that <em>all</em> of the matches are read and merged into a single <code>Inifile</code> instance in the order read. The final argument, <code>ondup</code>, is function whose signature is <code>ondup(section, key, source, target)</code>. The “<code>source</code>” is an <code>Inifile</code> instance which we are merging into another <code>Inifile</code> instance “<code>target</code>”. The first two arguments pin down a key that appears in both the <code>source</code> and the <code>target</code>. I provide four class methods that you can use for <code>ondup</code>, <code>raiseError</code> being the default.</p>
+<h4 id="firstwinssection-key-source-target"><code>firstWins(section, key, source, target)</code></h4>
+<h4 id="lastwinssection-key-source-target"><code>lastWins(section, key, source, target)</code></h4>
+<h4 id="keepbothsection-key-source-target-separator"><code>keepBoth(section, key, source, target, separator=“,”)</code></h4>
+<h4 id="raiseerrorsection-key-source-target"><code>raiseError(section, key, source, target)</code></h4>
+<p>Each handles a duplicate key, <code>key</code>, in section, <code>section</code>. “First wins” means that the value already in the target is kept, and the new value is discarded. “Last wins” is, of course, the opposite: the source’s value is kept. “Keep both” appends of the value of <code>separator</code> to the source value and then apppends the target’s value. And you know what <code>raiseError</code> does.</p>
+<h4 id="readoptionalbasename-paths-defaultsinifile"><code>readOptional(baseName, *paths, defaults=Inifile())</code></h4>
+<p>is like <code>readOne</code>, but uses an <code>Inifile</code> “<code>defaults</code>” (which is an empty <code>Inifile</code> by default) for all of the values if no match is found, as well as to supply any values missing from the file when it <em>is</em> found.</p>
+<h4 id="readall-one-optional-ondupraiseerror-defaultsinifile"><code>read(all=[], one=[], optional=[], ondup=raiseError, defaults=Inifile())</code></h4>
+<p>is the omnibus call. Each of the arguments is an iterable (list or tuple) each of whose members is a list or tuple that used as the <code>(baseName, *paths)</code> arguments for the corresponding read function: <code>readAll</code>, <code>readOne</code>, or <code>readOptional</code> For the <code>readAll</code>, the <code>ondup</code> provided here is used for its <code>ondup</code> argument. For <code>readOptional</code>, an empty defaults <code>Inifile</code> is used, but, once all the files have been read, the <code>defaults</code> argument here is merged in, “first wins”, so that any default values are added, but only when their keys are not already present.</p>
+<p>Each file is read into an <code>Inifile</code> and the results are merged together into a single <code>Inifile</code>. The merge is done in the order in which the files appear in the argument lists: first the “all”, etc. The return value is the result of these merges.</p>
+<p>I wish I could tell you I found a less clumsy signature, but the truth is that the complexity here is probably real.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> Inifile(defaultdict, idbg.DbgClient):
+   comment_start = <span class="st">&quot;^[#;]&quot;</span>
+   key_end = <span class="st">&quot;\s*[:=]\s*&quot;</span>
+   no_trailing_whitespace = <span class="ot">True</span>
+   idbg.DbgClient.start_debugging()
+
+   <span class="kw">def</span> firstWins(section, key, source, target):
+      <span class="co"># do nothing, so the target remains as it was</span>
+      <span class="kw">pass</span>
+
+   <span class="kw">def</span> lastWins(section, key, source, target):
+      <span class="co"># the source being merged into the target overwrites the target's value</span>
+      target[key] = source[key]
+
+   <span class="kw">def</span> keepBoth(section, key, source, target, separator=<span class="st">&quot;, &quot;</span>):
+      <span class="co"># the values are always strings, so we can just concatenate with a separator </span>
+      target[key] += separator+source[key]
+
+   <span class="kw">def</span> raiseError(section, key, source, target):
+      msg = <span class="st">&quot;Conflicting duplicate entries for key [</span><span class="ot">{0}</span><span class="st">]</span><span class="ot">{1}</span><span class="st"> in </span><span class="ot">{2}</span><span class="st">.&quot;</span>
+      <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(section, key, source.path))
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> readOne(<span class="ot">self</span>, baseName, *paths):
+      <span class="kw">if</span> <span class="dt">len</span>(paths) is <span class="dv">0</span>:
+         (abspath, baseName) = os.path.split(os.path.abspath(baseName))
+         paths = [abspath]
+      <span class="kw">for</span> path in expandPathList(paths):
+         inipath = os.path.join(path, baseName)
+         <span class="ot">self</span>.dbg_write(<span class="st">&quot;ini_read&quot;</span>, <span class="st">&quot;Try </span><span class="ot">{0}</span><span class="st">.&quot;</span>.<span class="dt">format</span>(inipath))
+         <span class="kw">if</span> os.path.exists(inipath):
+            <span class="ot">self</span>.dbg_write(<span class="st">&quot;ini_read&quot;</span>, <span class="st">&quot;Use </span><span class="ot">{0}</span><span class="st">.&quot;</span>.<span class="dt">format</span>(inipath))
+            <span class="kw">return</span> Inifile(inipath)
+      <span class="kw">raise</span> <span class="ot">IOError</span>(<span class="st">&quot;File not found, </span><span class="ot">{0}</span><span class="st"> in any of </span><span class="ot">{1}</span><span class="st">&quot;</span>, baseName, paths)
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> readAll(<span class="ot">self</span>, baseName, *paths, ondup=raiseError):
+      <span class="kw">if</span> <span class="dt">len</span>(paths) is <span class="dv">0</span>:
+         (abspath, baseName) = os.path.split(os.path.abspath(baseName))
+         paths = [abspath]
+      inifiles = []
+      <span class="kw">for</span> path in expandPathList(paths):
+         inipath = os.path.join(path, baseName)
+         <span class="kw">if</span> os.path.exists(inipath):
+            <span class="ot">self</span>.dbg_write(<span class="st">&quot;ini_read&quot;</span>, <span class="st">&quot;Use </span><span class="ot">{0}</span><span class="st">.&quot;</span>.<span class="dt">format</span>(inipath))
+            inifiles.append(Inifile(inipath))
+         <span class="kw">else</span>:
+            <span class="ot">self</span>.dbg_write(<span class="st">&quot;ini_read&quot;</span>, <span class="st">&quot;No </span><span class="ot">{0}</span><span class="st">.&quot;</span>.<span class="dt">format</span>(inipath))
+      <span class="kw">if</span> <span class="dt">len</span>(inifiles) is <span class="dv">0</span>:
+         <span class="kw">return</span> Inifile()
+      <span class="kw">else</span>:
+         answer = inifiles[<span class="dv">0</span>]
+         <span class="kw">for</span> ini in inifiles[<span class="dv">1</span>:]:
+            answer.merge(ini, ondup)
+         <span class="kw">return</span> answer
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> readOptional(<span class="ot">self</span>, baseName, *paths, defaults=<span class="ot">None</span>):
+      <span class="kw">if</span> defaults is <span class="ot">None</span>:
+         defaults = Inifile()
+      <span class="kw">if</span> <span class="dt">len</span>(paths) is <span class="dv">0</span>:
+         (abspath, baseName) = os.path.split(os.path.abspath(baseName))
+         paths = [abspath]
+      <span class="kw">for</span> path in expandPathList(paths):
+         inipath = os.path.join(path, baseName)
+         <span class="ot">self</span>.dbg_write(<span class="st">&quot;ini_read&quot;</span>, <span class="st">&quot;Try </span><span class="ot">{0}</span><span class="st">.&quot;</span>.<span class="dt">format</span>(inipath))
+         <span class="kw">if</span> os.path.exists(inipath):
+            <span class="ot">self</span>.dbg_write(<span class="st">&quot;ini_read&quot;</span>, <span class="st">&quot;Use </span><span class="ot">{0}</span><span class="st">.&quot;</span>.<span class="dt">format</span>(inipath))
+            <span class="kw">return</span> Inifile(inipath)
+      <span class="ot">self</span>.dbg_write(<span class="st">&quot;ini_read&quot;</span>, <span class="st">&quot;Use </span><span class="ot">{0}</span><span class="st">.&quot;</span>.<span class="dt">format</span>(defaults))
+      <span class="kw">return</span> defaults
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> read(<span class="ot">self</span>, <span class="dt">all</span>=[], one=[], optional=[], ondup=raiseError, defaults=<span class="ot">None</span>):
+      <span class="kw">if</span> defaults is <span class="ot">None</span>:
+         defaults = Inifile()
+      final = Inifile()
+      <span class="kw">for</span> args in <span class="dt">all</span>:
+         final.merge(<span class="ot">self</span>.readAll(*args, ondup=ondup), ondup)
+      <span class="kw">for</span> args in one:
+         final.merge(<span class="ot">self</span>.readOne(*args), ondup)
+      <span class="kw">for</span> args in optional:
+         final.merge(<span class="ot">self</span>.readOptional(*args), ondup)
+      final.mergeTargetWins(defaults)
+      <span class="kw">return</span> final
+</code></pre>
+<h2 id="the-inifile-constructor">The <code>Inifile</code> constructor</h2>
+<h4 id="inifilepath-cmnt_re-keyend_ress-no_twstrue"><code>Inifile(path, cmnt_re=“^[#;]”, keyend_re=“\s*[;=]\s*”, no_tws=True)</code></h4>
+<p>constructs an inifile whose data is provided by the file named by its first argument, <code>path</code>. The remaining arguments guide the syntax to be used.</p>
+<blockquote>
+<p><strong><code>cmnt_re</code></strong> is a regular expression used to recognize the beginning of a comment,<br /><strong><code>keyend_re</code></strong> is a regular expression used to recognize the end of the key and<br /><strong><code>no_tws</code></strong> is a Boolean: <code>True</code> means “strip off any trailing whitespace on a line”</p>
+</blockquote>
+<p>The input file is read a line at a time. A legal line has one of four types:</p>
+<ol type="1">
+<li><p><em>A comment:</em> a line whose beginning matches the <code>Inifile.comment_start</code> regular expression, which by default is “<code>[#;]</code>” Be careful here: “beginning” means just that: no leading whitespace.</p></li>
+<li><p><em>A section header:</em> a line that, in plain English, consists of an essentially arbitrary piece of text enclosed in square brackets, or, to be precise, matches the regular expression “<code>^\[([^[\]\n]*)\]$</code>”. The bracketed text names the section and may itself contain no opening or closing square brackets. One could insist that section names be legal identifiers, but I suppose I would say that is more a matter of good taste than necessity. Thus</p></li>
+</ol>
+<blockquote>
+<p><code>[this is a section name]</code></p>
+</blockquote>
+<blockquote>
+<p>is a valid section name line. Whether it is a useful one is not so obvious. By the way, key definitions that appear <em>before the first section header line</em> are treated as being in the section whose name is the empty string. You can continue that section later in the input file in the obvious way: use a section header line consisting of <code>[]</code> and nothing else.</p>
+</blockquote>
+<ol start="3" type="1">
+<li>A key definition: a line that, in plain English, is</li>
+</ol>
+<blockquote>
+<blockquote>
+<p>a key name (any string not containing a match for the key-ending reg-exp,<br />followed by a match for the key ending reg-exp,<br />followed by the beginning of, or all of, the key’s value.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<p>You may provide your own key-ending regular expression by setting <code>Inifile.key_end</code>.</p>
+</blockquote>
+<ol start="4" type="1">
+<li><em>A key definition continuation:</em> a line that immediately follows a key definition or another key definition continuation <em>and is indented.</em> The value is any text left after stripping the leading whitespace. It is appended, following a single newline, to the key’s value. <em>Trailing whitespace is stripped by default.</em> Truth be told, I think that if you really need whitespace, you should quote the value to make that whitespace visible. Also, <em>some IDEs silently truncate trailing whitespace.</em> You have been warned.</li>
+</ol>
+<blockquote>
+<p>You are permitted to have comment lines in the middle of a set of key continuations, but you are apt to create problems for yourself if you do, if only should you need to use other inifile parsers.</p>
+</blockquote>
+<p>As should be clear, there are problems about how to handle whitespace. I’ve talked about trailing whitespace. The other place there is a problem is whitespace surrounding the key terminator: how should I handle “<code>x = 3</code>”? How often do you really want the key to be “<code>x</code> ” and not “<code>x</code>”? Or the value to be “ <code>3</code>” and not “<code>3</code>”? Almost never, right? For that reason, the default regular expression for the key end allows for whitespace around the the actual ender, which is either “<code>:</code>” or “<code>=</code>”. The effect is that “<code>x=3</code>” and “<code>x = 3</code>” will both produce a key “<code>x</code>” with value “<code>3</code>”. You can quote the value if it begins with whitespace and strip the surrounding quotation marks when you use the value–that is, make the value a <em>string literal value</em>, not just a string value. Alternatively, you can replace my regular expression with one that does not match whitespace before or after the ender.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> _debug_key(<span class="ot">self</span>, msg, section, key, lineno):
+      <span class="kw">if</span> <span class="ot">self</span>.dbg_is_active(<span class="st">&quot;ini_key&quot;</span>):
+         leader = <span class="st">&quot;Line {}: [{}]&quot;</span>.<span class="dt">format</span>(lineno, section)
+         <span class="kw">if</span> key:
+            leader += <span class="st">&quot;[{}]&quot;</span>.<span class="dt">format</span>(key)
+         <span class="ot">self</span>.debug_output(<span class="st">&quot;ini_key&quot;</span>, <span class="st">&quot;{} {}&quot;</span>.<span class="dt">format</span>(leader, msg))
+
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, path=<span class="ot">None</span>, 
+         cmnt_re=comment_start, keyend_re=key_end, no_tws=no_trailing_whitespace
+   ):
+      defaultdict.<span class="ot">__init__</span>(<span class="ot">self</span>, SectionDict) <span class="co"># that is: super.__init__(...)</span>
+      idbg.DbgClient.<span class="ot">__init__</span>(<span class="ot">self</span>)
+      <span class="ot">self</span>.path = path
+      <span class="kw">if</span> path is <span class="ot">None</span>:
+         <span class="kw">return</span>
+      commentRe = re.<span class="dt">compile</span>(cmnt_re)
+      keyendRe = re.<span class="dt">compile</span>(keyend_re)
+      <span class="co"># a section name is a square-bracket-free string in square brackets:</span>
+      sectionNameRe = re.<span class="dt">compile</span>(<span class="st">&quot;^\[([^[\]]*)\]$&quot;</span>) 
+      <span class="co"># capture leading whitespace and &quot;the rest&quot;, except for the trailing newline:</span>
+      lws_re = re.<span class="dt">compile</span>(<span class="st">&quot;^(\s*)([^</span><span class="ch">\n</span><span class="st">]*)&quot;</span>)
+      <span class="co"># we begin in the &quot;anonymous&quot; section</span>
+      sectionName = <span class="st">&quot;&quot;</span>
+       <span class="co"># a dict for the current section's key/data pairs</span>
+      currentDictionary = <span class="ot">self</span>[sectionName] 
+      <span class="kw">with</span> <span class="dt">open</span>(path, <span class="st">'r'</span>) <span class="ch">as</span> f:
+         linenowidth = <span class="dv">3</span>
+         justify = <span class="kw">lambda</span> x: <span class="dt">repr</span>(x).rjust(linenowidth)
+         lineno = <span class="dv">0</span>
+         line = <span class="st">''</span>
+         <span class="kw">def</span> nextLine():
+            <span class="kw">nonlocal</span> f, line, lineno, commentRe, no_tws, lws_re
+            line = f.readline()
+            <span class="kw">if</span> <span class="dt">len</span>(line) == <span class="dv">0</span>:
+               <span class="kw">return</span> (-<span class="dv">1</span>, <span class="ot">None</span>)
+            lineno += <span class="dv">1</span>
+            <span class="ot">self</span>.debug_output(<span class="st">&quot;ini_all&quot;</span>, <span class="st">&quot;Line </span><span class="ot">{0}</span><span class="st">: </span><span class="ot">{1}</span><span class="st">&quot;</span>.<span class="dt">format</span>(justify(lineno), line))
+            <span class="kw">if</span> commentRe.match(line):
+               <span class="kw">return</span> nextLine()
+            (whitespace, rest) = lws_re.match(line).groups()
+            <span class="kw">if</span> rest == <span class="st">''</span>:  <span class="co"># it is a blank line</span>
+               <span class="kw">return</span> nextLine()
+            <span class="kw">if</span> no_tws:
+               rest = rest.rstrip() <span class="co"># the initial match left trailing spaces and tabs on the right</span>
+            <span class="kw">return</span>((<span class="dt">len</span>(whitespace) &gt; <span class="dv">0</span>), rest)
+         (indented, rest) = nextLine()
+         <span class="kw">while</span> rest is not <span class="ot">None</span>:
+            <span class="co"># this is either a section name line or the start of a key/data pair: no indent!</span>
+            <span class="kw">if</span> indented: 
+               <span class="kw">raise</span> <span class="ot">SyntaxError</span>(<span class="st">&quot;Line </span><span class="ot">{0}</span><span class="st"> should not be indented!&quot;</span>.<span class="dt">format</span>(lineno)) 
+            <span class="kw">if</span> rest[<span class="dv">0</span>] == <span class="st">'['</span>: <span class="co"># the line names a section and must end with  a ']'</span>
+               <span class="kw">if</span> rest[-<span class="dv">1</span>] != <span class="st">&quot;]&quot;</span>: 
+                  msg = <span class="st">&quot;Line </span><span class="ot">{0}</span><span class="st">: missing ']' in section start, </span><span class="ch">\&quot;</span><span class="ot">{1}</span><span class="ch">\&quot;</span><span class="st">&quot;</span>
+                  <span class="kw">raise</span> <span class="ot">SyntaxError</span>(msg.<span class="dt">format</span>(justify(lineno), rest))
+               match = sectionNameRe.match(rest)
+               <span class="kw">if</span> match is <span class="ot">None</span>:
+                  msg = <span class="st">&quot;Line </span><span class="ot">{0}</span><span class="st">: illegal character, '[' or ']', in the section name '</span><span class="ot">{1}</span><span class="st">'&quot;</span>
+                  <span class="kw">raise</span> <span class="ot">SyntaxError</span>(msg.<span class="dt">format</span>(justify(lineno), rest[<span class="dv">1</span> : -<span class="dv">1</span>]))
+               sectionName = rest[<span class="dv">1</span> : -<span class="dv">1</span>]
+               <span class="ot">self</span>._debug_key(<span class="st">&quot;change section.&quot;</span>, sectionName, <span class="ot">None</span>, lineno)
+               currentDictionary = <span class="ot">self</span>[sectionName]
+               (indented, rest) = nextLine()
+            <span class="kw">else</span>: <span class="co"># the line begins a key/data pair </span>
+               match = keyendRe.search(rest)
+               <span class="kw">if</span> match is <span class="ot">None</span>:
+                  <span class="kw">raise</span> <span class="ot">SyntaxError</span>(<span class="st">&quot;line </span><span class="ot">{0}</span><span class="st">: missing key terminator&quot;</span>.<span class="dt">format</span>(lineno))
+               key  = rest[<span class="dv">0</span>:match.start()] 
+               data = rest[match.end():] 
+               key_start = lineno
+               (indented, rest) = nextLine()
+               <span class="kw">while</span> indented and rest is not <span class="ot">None</span>:
+                  data += <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span> + rest <span class="co"># 'rest' has no leading whitespace!            </span>
+                  (indented, rest) = nextLine()
+               <span class="kw">if</span> <span class="dt">len</span>(data) is <span class="dv">0</span>:
+                  msg = <span class="st">&quot;line </span><span class="ot">{0}</span><span class="st">: no data after the key terminator&quot;</span>
+                  <span class="kw">raise</span> <span class="ot">SyntaxError</span>(msg.<span class="dt">format</span>(lineno))
+               <span class="kw">if</span> key in currentDictionary:
+                  oldValue = currentDictionary[key]
+                  <span class="co"># both data and oldValue are strings.  If they are unequal as strings,</span>
+                  <span class="co"># they may still imply the same Boolean value: e.g. &quot;yes&quot; and &quot;on&quot;, or</span>
+                  <span class="co"># 'no' and 'off'. I assume that if both name Booleans and have the</span>
+                  <span class="co"># same value as Booleans, then there is no conflict.</span>
+                  <span class="kw">if</span> data != oldValue and not su.sameboolean(data, oldValue):
+                     msg = <span class="st">&quot;line </span><span class="ot">{0}</span><span class="st">: duplicate key '</span><span class="ot">{1}</span><span class="st">' with differing values&quot;</span>
+                     <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(key_start, key))
+                  <span class="kw">else</span>:
+                     msg = <span class="st">&quot;== {} dup'd&quot;</span>.<span class="dt">format</span>(oldValue)
+                     <span class="ot">self</span>._debug_key(msg, sectionName, key, key_start)
+               <span class="kw">else</span>:
+                  currentDictionary[key] = data
+                  <span class="ot">self</span>._debug_key(<span class="st">&quot;== {}.&quot;</span>.<span class="dt">format</span>(data), sectionName, key, key_start)
+</code></pre>
+<h2 id="the-inifile-api">The <code>Inifile</code> API</h2>
+<p><code>Inifile</code> extends the builtin class <code>dict</code>. The dictionary maps a section name to another dictionary that maps keys to values. Section names and keys must be strings, as must the value, because what I am constructing is just a view onto a (human readable) text file. The view knows nothing about the semantics or intended use of the values.</p>
+<h4 id="the-operator">The <code>[]</code> operator</h4>
+<p>Let <code>ini</code> be an <code>Inifile</code>. Because <code>ini</code> inherits from <code>dict</code>, you can use <code>ini[x]</code> to get the dictionary for the section that is named by the value of <code>x</code>. Taking that one step further, <code>ini[x][key]</code> gives you the value associated with key named by the value of <code>key</code>. Of course, this shorthand has the same limitation as the original in <code>dict</code>: if either <code>x</code> or <code>key</code> has a value that is not present, an exception is raised. You may also use <code>ini[&quot;[</code><em><code>xxx</code></em><code>]</code><em><code>yyy</code></em><code>&quot;]</code> for what would otherwise be written <code>ini[&quot;</code><em><code>xxx</code></em><code>&quot;][&quot;</code><em><code>yyy</code></em><code>&quot;]</code>. Some folks find the former more suggestive than the latter.</p>
+<h4 id="getargs"><code>get(*args)</code></h4>
+<p>may be called with one, two or three arguments. If only one argument is passed, it must be a full section-key name. The default value will be taken to be <code>None</code>. If two arguments are passed, there are two cases. The first argument is the full section-key name, in which case the second argument is the default value to use, or the first argument is the section name (no square brackets), and the second is the key. Since no default is provided in this last case, <code>None</code> will be used. Finally, if three arguments are passed, they are expected to be the section name (no square brackets), the key, and the default value. I remind you that the section name may be the empty string.</p>
+<p>Examples:</p>
+<table>
+<tr><td><pre><code>ini.get(&quot;[sec]k&quot;)
+ini.get(&quot;sec&quot;, &quot;k&quot;)
+ini.get(&quot;sec&quot;, &quot;k&quot;, None)</code></pre></td><td>
+ all return the value found or <code>None</code>
+</td></tr>
+<tr><td><pre><code>ini.get(&quot;[sec]k&quot;, stuff)
+ini.get(&quot;sec&quot;, &quot;k&quot;, stuff)</code></pre></td><td>
+ both return the value found or <code>stuff</code>
+</td></tr>
+</table>
+
+<p>The “<code>get...</code>” calls that follow here use the same argument conventions for <code>*args</code> as <code>get()</code>.</p>
+<h4 id="getintargs"><code>getint(*args)</code></h4>
+<p>If the key is found, its value is converted to an <code>int</code> and returned; otherwise, <code>default</code> is returned “as is”.</p>
+<h4 id="getfloatargs"><code>getfloat(*args)</code></h4>
+<p>If the key is found, its value is converted to a <code>float</code> and returned; otherwise, <code>default</code> is returned “as is”.</p>
+<h4 id="getbooleanargs"><code>getboolean(*args)</code></h4>
+<p>If the key is found, its value is converted to a <code>boolean</code> and returned; otherwise, <code>default</code> is returned “as is”.</p>
+<h4 id="getlistargs-separatorsectiondict.list_separator"><code>getlist(*args, separator=SectionDict.LIST_SEPARATOR)</code></h4>
+<p>If the key is found, its value is converted to a <code>list</code> and returned; otherwise, <code>default</code> is returned “as is”. The string value is converted to a list whose items are separated by the string or regular expression passed in as <code>separator</code>. By default, the separator is a comma, possibly followed by some whitespace.</p>
+<h4 id="getstrargs"><code>getstr(*args)</code></h4>
+<p>is a synonym for <code>get()</code>, for situations where you want to underline that it is a string you really want.</p>
+<h4 id="hassections"><code>hassection(s)</code></h4>
+<p>returns <code>True</code> if <code>s</code> names a section and <code>False</code> otherwise.</p>
+<h4 id="haskeys-k"><code>haskey(s, k=’’)</code></h4>
+<p>If called with a single argument <code>s</code>, the argument must be a full key name: <code>&quot;[sec]key&quot;</code>. <code>sec</code> may be the empty string. The default value for the second argument <code>k</code> will be ignored. If both <code>s</code> and <code>k</code> are passed, <code>s</code> must be the section name (no brackets), and <code>k</code> the key. <code>True</code> will be returned if there is an entry with the given section name and key; otherwise, <code>False</code> will be returned.</p>
+<h4 id="getsections-default-sectiondict"><code>getsection(s, default = SectionDict())</code></h4>
+<p>returns a clone of the <code>SectionDict</code> associated with the section named by its argument, <code>s</code>. If there is no such section, the value <code>default</code> is returned. By default, <code>default</code> is an empty <code>SectionDict</code>.</p>
+<h4 id="addsectionname"><code>addsection(name)</code></h4>
+<p>creates a dictionary for the section named <code>name</code>, if one does not already exist.</p>
+<h4 id="addentrysection-key-value"><code>addentry(section, key, value)</code></h4>
+<p>adds the entry with key <code>key</code> and value <code>value</code> to the section <code>section</code>. All three <em>must</em> be strings. The section name may be the empty string (that is the default section in an inifile). It <em>must</em> be a key in <code>self</code>, otherwise an error is raised. No conversions are done to any of the parameters. The only advantage of this over simply using the assignment <code>ini[section][key]</code> <code>=</code> <code>value</code> is the type checking and section-name spelling check.</p>
+<h4 id="mergeother-ondupraiseerror"><code>merge(other, ondup=raiseError)</code></h4>
+<p>copies all of an <code>Inifile</code> <code>other</code>’s data into itself.</p>
+<p>If there are duplicate keys with different values, the default is to raise an exception, but you may provide a function</p>
+<blockquote><pre>
+   ondup(section, key, sourceSection, targetSection)
+</pre></blockquote>
+
+<p>See the <a href="#class-methods-reading-and-combining-sets-if-inifiles">discussion above</a> of the <code>read...</code> methods for more about <code>ondup()</code>.</p>
+<p>I provide three instance methods that wrap <code>merge()</code> in order to handle the most common situations. In each, <code>self</code> is the target being updated, and <code>source</code> is an <code>Inifile</code> being merged into the target:</p>
+<h4 id="mergetargetwinssource"><code>mergeTargetWins(source)</code></h4>
+<p>the target entry wins, and the source entry is ignored.</p>
+<h4 id="mergesourcewinssource"><code>mergeSourceWins(source)</code></h4>
+<p>the source entry replaces the target’s.</p>
+<h4 id="mergekeepbothself-source-separator"><code>mergeKeepBoth(self, source, separator=‘,’)</code></h4>
+<p>keeps both by appending first the value of <code>separator</code> and then the target’s value to the source’s value. The separator string may be the empty string.</p>
+<p>Finally, although I think this will be a relatively rare method to use, I provide methods for writing an <code>Inifile</code> instance to your favorite output stream.</p>
+<h4 id="write_to_f_outf_out-keyend-indent"><code>write_to_f_out(f_out, keyend=“:”, indent=&quot; “)</code></h4>
+<p>does exactly what its name says: writes the <code>Inifile</code> out to the output stream <code>f_out</code>.</p>
+<p>The other two parameters for this method are the string to use to separate the keys from their values and the indentation string to use to begin continuation lines.</p>
+<p>Sections are written out in lexicographic order, and within each section, keys are written out in lexicographic order. This is of no particular importance, but it should make it easier for a human reader to scan. There is no provision for writing comments into the output stream.</p>
+<h4 id="writepathnone-keyend-indent-backups-0"><code>write(path=None, keyend=“:”, indent=&quot; “, backups = 0)</code></h4>
+<p>writes the <code>Inifile</code> out to the path (or output stream) that is its argument. If <code>path</code> is <code>None</code>, and <code>self.path</code> is neither <code>None</code> nor the empty string, the path used will be <code>self.path</code>, which is normally the path used to initialize the <code>Inifile</code> instance. Otherwise, when <code>path</code> is <code>None</code>, the output will be written to <code>stdout</code>.</p>
+<p>The file is opened for writing when a path is given, which means that if there is an existing file, that file will be overwritten. If the keyword argument <code>backups</code> is given a positive value, a backup will be made to the “bak” subdirectory of the directory where <code>path</code> will put the new file. The value of <code>backups</code> is the maximum number of copies to keep. By default it is <code>0</code>, which means: “don’t back up the file.” Use <code>backups=1</code> to keep a single copy. Once the limit on backups is reached, the earliest backup will be deleted. So: keeping 1 backup does what you usually want: you can recover the version in play immediately before this “write”.</p>
+<p>When <code>path</code> is a stream, it is <em>not</em> closed once the write completes.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> _get_args(<span class="ot">self</span>, args, default=<span class="ot">None</span>):
+      arg0 = args[<span class="dv">0</span>]
+      <span class="kw">if</span> arg0.startswith(<span class="st">'['</span>):
+         sectionend = arg0.index(<span class="st">']'</span>)
+         s = arg0[<span class="dv">1</span>:sectionend<span class="dv">-1</span>]
+         k = arg0[sectionend<span class="dv">+1</span>:]
+      <span class="kw">else</span>:
+         s = arg0
+         k = <span class="ot">None</span>
+      argcount = <span class="dt">len</span>(args)
+      <span class="kw">if</span> argcount is <span class="dv">1</span>:
+         <span class="kw">if</span> k is <span class="ot">None</span>:
+            <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;No key specified in the argument, '</span><span class="ot">{0}</span><span class="st">'&quot;</span>.<span class="dt">format</span>(s))
+      <span class="kw">elif</span> argcount is <span class="dv">2</span>:
+         <span class="kw">if</span> k is <span class="ot">None</span>:
+            k = args[<span class="dv">1</span>]
+         <span class="kw">else</span>:
+            default = args[<span class="dv">1</span>]
+      <span class="kw">elif</span> argcount &gt; <span class="dv">3</span> or k is not <span class="ot">None</span>:
+         <span class="kw">raise</span> <span class="ot">Exception</span>(<span class="st">&quot;Too many arguments: </span><span class="ot">{0}</span><span class="st">&quot;</span>.<span class="dt">format</span>(args))
+      <span class="kw">else</span>: <span class="co"># argcount is 3 and all we need is k and default</span>
+         k = args[<span class="dv">1</span>]
+         default = args[<span class="dv">2</span>]
+      <span class="kw">return</span> (s, k, default)
+
+   <span class="kw">def</span> get(<span class="ot">self</span>, *args):
+      (s, k, default) = <span class="ot">self</span>._get_args(args)
+      <span class="kw">return</span> <span class="ot">self</span>[s][k] <span class="kw">if</span> s in <span class="ot">self</span> and k in <span class="ot">self</span>[s] <span class="kw">else</span> default
+
+   <span class="kw">def</span> getboolean(<span class="ot">self</span>, *args):
+      <span class="kw">return</span> su.asboolean(<span class="ot">self</span>.get(*args))
+
+   <span class="kw">def</span> getfloat(<span class="ot">self</span>, *args):
+      raw = <span class="ot">self</span>.get(*args)
+      <span class="kw">if</span> raw is <span class="ot">None</span>:
+         <span class="kw">return</span> math.nan
+      <span class="kw">else</span>:
+         <span class="kw">return</span> <span class="dt">float</span>(raw)
+    
+   <span class="kw">def</span> getint(<span class="ot">self</span>, *args):
+      raw = <span class="ot">self</span>.get(*args).lower()
+      <span class="kw">if</span> raw is <span class="ot">None</span>:
+         <span class="kw">return</span> <span class="ot">None</span>
+      <span class="kw">else</span>:
+         <span class="kw">return</span> su.str2int(raw)
+
+   <span class="kw">def</span> getlist(<span class="ot">self</span>, *args, separator=SectionDict.LIST_SEPARATOR):
+      (s, k, default) = <span class="ot">self</span>._get_args(args, default=[])
+      <span class="kw">return</span> separator.split(<span class="ot">self</span>[s][k]) <span class="kw">if</span> s in <span class="ot">self</span> and k in <span class="ot">self</span>[s] <span class="kw">else</span> default
+
+   <span class="kw">def</span> getstr(<span class="ot">self</span>, *args):
+      <span class="kw">return</span> <span class="ot">self</span>.get(*args)
+   
+   <span class="kw">def</span> hassection(<span class="ot">self</span>, aString):
+      <span class="kw">return</span> s in <span class="ot">self</span>
+
+   <span class="kw">def</span> haskey(<span class="ot">self</span>, s, k=<span class="st">''</span>):
+      <span class="kw">if</span> s.startswith(<span class="st">'['</span>):
+         (s, k) = s[<span class="dv">1</span>:].split(<span class="st">']'</span>)
+      <span class="kw">return</span> s in <span class="ot">self</span> and k in <span class="ot">self</span>[s]
+
+   <span class="kw">def</span> sectionswithkey(key):
+      answer = []
+      <span class="kw">for</span> s in <span class="ot">self</span>:
+         <span class="kw">if</span> key in <span class="ot">self</span>[s]:
+            answer.append(s)
+      <span class="kw">return</span> answer
+    
+   <span class="kw">def</span> getsection(<span class="ot">self</span>, s, default = SectionDict()): 
+      <span class="kw">return</span> <span class="dt">dict</span>(<span class="ot">self</span>[s]) <span class="kw">if</span> s in <span class="ot">self</span> <span class="kw">else</span> default
+
+   <span class="kw">def</span> getsectionkeys(<span class="ot">self</span>):
+      <span class="kw">if</span> s in <span class="ot">self</span>:
+         asList = <span class="dt">list</span>(<span class="ot">self</span>[s].keys())
+         asList.sort()
+         <span class="kw">return</span> asList
+
+   <span class="kw">def</span> getsections(<span class="ot">self</span>):
+      asList = <span class="dt">list</span>(<span class="ot">self</span>.keys())
+      asList.sort()
+      <span class="kw">return</span> asList
+
+   <span class="kw">def</span> addsection(<span class="ot">self</span>, name):
+      <span class="kw">if</span> not name in <span class="ot">self</span>:
+         <span class="ot">self</span>[name] = {}
+
+   <span class="kw">def</span> badType(name, theType):
+      msg = <span class="st">&quot;Expected a string for the </span><span class="ot">{0}</span><span class="st">, but was passed a </span><span class="ot">{1}</span><span class="st">&quot;</span>
+      <span class="kw">raise</span> <span class="ot">TypeError</span>(msg.<span class="dt">format</span>(name, su.aOrAn(<span class="dt">str</span>(theType))))
+
+   <span class="kw">def</span> addentry(<span class="ot">self</span>, section=<span class="st">&quot;&quot;</span>, key=<span class="st">&quot;&quot;</span>, value=<span class="st">&quot;&quot;</span>):
+      <span class="kw">if</span> <span class="dt">type</span>(section) is not <span class="dt">str</span>:
+         badType(<span class="st">&quot;section&quot;</span>, <span class="dt">type</span>(section))
+      <span class="kw">elif</span> section not in <span class="ot">self</span>:
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Section </span><span class="ot">{0}</span><span class="st"> not found.&quot;</span>.<span class="dt">format</span>(section))
+      <span class="kw">elif</span> <span class="dt">type</span>(key) is not <span class="dt">str</span>:
+         badType(<span class="st">&quot;key&quot;</span>, <span class="dt">type</span>(key))
+      <span class="kw">elif</span> <span class="dt">type</span>(value) != <span class="dt">str</span>:
+         badType(<span class="st">&quot;value&quot;</span>, <span class="dt">type</span>(value))
+      <span class="kw">else</span>:
+         <span class="ot">self</span>[section][key] = value
+
+   <span class="kw">def</span> merge(<span class="ot">self</span>, anInifile, ondup=raiseError):
+      <span class="kw">for</span> section in anInifile:
+         <span class="kw">if</span> section not in <span class="ot">self</span>:
+            <span class="ot">self</span>[section] = anInifile.getsection(section)
+         <span class="kw">else</span>:
+            source = anInifile[section]
+            target = <span class="ot">self</span>[section]
+            <span class="kw">for</span> key in source:
+               <span class="kw">if</span> key not in target: target[key] = source[key]
+               <span class="kw">elif</span> target[key] != source[key]:
+                  ondup(section, key, source, target)
+
+   <span class="kw">def</span> mergeTargetWins(<span class="ot">self</span>, anInifile):
+      <span class="ot">self</span>.merge(<span class="ot">self</span>, anInifile, firstWins) 
+
+   <span class="kw">def</span> mergeSourceWins(<span class="ot">self</span>, anInifile): 
+      <span class="ot">self</span>.merge(<span class="ot">self</span>, anInifile, lastWins)
+
+   <span class="kw">def</span> mergeKeepBoth(<span class="ot">self</span>, anInifile, separator=<span class="st">','</span>): 
+      <span class="ot">self</span>.merge(<span class="ot">self</span>, anInifile, keepBoth) 
+
+   <span class="kw">def</span> write_to_f_out(<span class="ot">self</span>, f_out, keyend=<span class="st">&quot;: &quot;</span>, indent=<span class="st">&quot;   &quot;</span>):
+      section_names = <span class="dt">list</span>(<span class="ot">self</span>)
+      section_names.sort()
+      <span class="kw">for</span> name in section_names:
+         <span class="kw">if</span> <span class="dt">len</span>(name) &gt; <span class="dv">0</span>:
+            f_out.write(<span class="st">&quot;[</span><span class="ot">{0}</span><span class="st">]</span><span class="ch">\n</span><span class="st">&quot;</span>.<span class="dt">format</span>(name))
+         sectionDict = <span class="ot">self</span>[name]
+         keys = <span class="dt">list</span>(sectionDict)
+         keys.sort()
+         line_end = <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>+indent
+         <span class="kw">for</span> key in keys:
+            value = sectionDict[key].replace(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>,line_end)
+            f_out.write(<span class="st">&quot;</span><span class="ot">{0}{2}{1}</span><span class="ch">\n</span><span class="st">&quot;</span>.<span class="dt">format</span>(key, value, keyend))
+
+   <span class="kw">def</span> write(<span class="ot">self</span>, path=<span class="ot">None</span>, keyend=<span class="st">&quot;: &quot;</span>, indent=<span class="st">&quot;   &quot;</span>, backups=<span class="dv">0</span>):
+      <span class="kw">if</span> path is <span class="ot">None</span>:
+         path = <span class="ot">self</span>.path <span class="kw">if</span> <span class="ot">self</span>.path <span class="kw">else</span> sys.stdout
+      <span class="kw">if</span> <span class="dt">type</span>(path) is <span class="dt">str</span>: <span class="co"># it is a real path: use &quot;with&quot; to guaranty closure</span>
+         <span class="kw">with</span> fopen(path, mode=<span class="st">&quot;w&quot;</span>, encoding=<span class="st">&quot;utf-8&quot;</span>, where=<span class="st">&quot;bak&quot;</span>, toKeep=backups) <span class="ch">as</span> f_out:
+            <span class="ot">self</span>.write_to_f_out(f_out, keyend, indent)
+      <span class="kw">else</span>: <span class="co"># &quot;path&quot; must be a stream: do NOT close it, as a &quot;with&quot; would</span>
+         <span class="ot">self</span>.write_to_f_out(path, keyend, indent)</code></pre>
+</body>
+</html>

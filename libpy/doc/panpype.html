@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Processing .pype files into .html and .py files</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link href="data:text/css;charset=utf-8,%0A%40media%20print%20%7B%20body%20%7B%20font%2Dsize%3A%2018pt%3B%20%7D%0Acode%20%7Bfont%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2012pt%3B%20%7D%0A%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2EsourceCode%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%2Dmoz%2Dtab%2Dsize%3A%203%3B%0A%2Do%2Dtab%2Dsize%3A%203%3B%0A%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%2Dms%2Dtab%2Dsize%3A%203%3B%0Atab%2Dsize%3A%203%3B%0Aline%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Ah4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%2EsourceCode%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%7B%20text%2Dalign%3A%20center%3B%20%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2024pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2EtitleText%20%7B%20font%2Dsize%3A%2016pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A" rel="stylesheet">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header>
+<h1 class="title">Processing .pype files into .html and .py files</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">September, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#what-panpype-does">What <code>panpype</code> does</a></li>
+<li><a href="#the-three-section-types">The three section types</a><ul>
+<li><a href="#panpype-syntax"><code>panpype</code> Syntax:</a></li>
+<li><a href="#head-sections">Head Sections</a></li>
+<li><a href="#pandoc-sections">Pandoc Sections</a></li>
+<li><a href="#python-sections">Python sections</a></li>
+</ul></li>
+<li><a href="#command-line-interface">Command-line Interface</a><ul>
+<li><a href="#outputoptionsoptionsdefaultsnone"><code>outputOptions(options={},defaults=None)</code></a></li>
+<li><a href="#directoriesspec"><code>directories(spec = {})</code></a></li>
+</ul></li>
+<li><a href="#the-section-class-and-its-extensions">The <code>Section</code> class and its extensions</a><ul>
+<li><a href="#the-sectionstarttag-stoptag-opns-body-constructor">The <code>Section(starttag, stoptag, opns, body)</code> constructor</a><ul>
+<li><a href="#ishead"><code>isHead()</code></a></li>
+<li><a href="#ispandoc"><code>isPandoc()</code></a></li>
+<li><a href="#ispython"><code>isPython()</code></a></li>
+</ul></li>
+<li><a href="#the-pythonsectionstarttag-stoptag-opns-body-constructor">The <code>PythonSection(starttag, stoptag, opns, body)</code> constructor</a></li>
+<li><a href="#the-pandocsectionstarttag-stoptag-opns-body-constructor">The <code>PandocSection(starttag, stoptag, opns, body)</code> constructor</a></li>
+<li><a href="#the-headsectionstarttag-stoptag-opns-body-constructor">The <code>HeadSection(starttag, stoptag, opns, body)</code> constructor</a><ul>
+<li><a href="#defaulttitle-hidefalse"><code>default(title=“”, hide=False)</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#the-class-parsedinputsrcpath-options">The class <code>ParsedInput(srcpath, options)</code></a><ul>
+<li><a href="#findthesectionsoptions"><code>findTheSections(options)</code></a></li>
+<li><a href="#makesectionfromtagname-starttag-stopdscr-stoptag"><code>makeSectionFromTag(name, starttag, stopdscr, stoptag)</code></a></li>
+<li><a href="#assigncodetoasectionstart-stop-prior"><code>assignCodeToASection(start, stop, prior)</code></a></li>
+</ul></li>
+<li><a href="#the-main-class-panpypepathsnone-optionsnone">The Main Class: <code>Panpype(paths=None, options=None)</code></a><ul>
+<li><a href="#turnondbgflagname"><code>turnOnDbgFlag(name)</code></a></li>
+<li><a href="#turnoffdbgflagname"><code>turnOffDbgFlag(name)</code></a></li>
+<li><a href="#updateoutputoptionkey-newvalue"><code>updateOutputOption(key, newValue)</code></a></li>
+<li><a href="#setomitsrcflagyesorno"><code>setOmitSrcFlag(yesOrNo)</code></a></li>
+<li><a href="#settabstabsize"><code>setTabs(tabsize)</code></a></li>
+<li><a href="#computepathstousepath"><code>computePathsToUse(path)</code></a></li>
+<li><a href="#processpaths-options"><code>process(paths, options={})</code></a></li>
+<li><a href="#processafilesrcname-srcdir-paths-options"><code>processAFile(srcname, srcdir, paths, options)</code></a></li>
+</ul></li>
+<li><a href="#processing-and-then-writing-the-parsed-content">Processing and then writing the parsed content</a><ul>
+<li><a href="#vettheoutputpathspypefilename-filetype-outputpath-backups-bak"><code>vetTheOutputPaths(pypefilename, filetype, outputPath, backups, bak)</code></a></li>
+<li><a href="#writethepythonfilepypefilename-sections-paths-options"><code>writeThePythonFile(pypefilename, sections, paths, options)</code></a></li>
+<li><a href="#writethemdfilepypefilename-head-sections-paths-options"><code>writeTheMDFile(pypefilename, head, sections, paths, options)</code></a></li>
+<li><a href="#writethehtmlfilepypefilename-mdpath-paths-options"><code>writeTheHTMLFile(pypefilename, mdpath, paths, options)</code></a></li>
+</ul></li>
+<li><a href="#command-line-arguments">Command line arguments</a><ul>
+<li><a href="#setcmdlineargsparser"><code>setCmdLineArgs(parser)</code></a></li>
+<li><a href="#fromcmdlineargs"><code>fromCmdline(args)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="co">#!/usr/bin/env python3.5</span>
+</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+<span class="im">from</span> collections <span class="im">import</span> namedtuple, defaultdict
+<span class="im">from</span> dbg <span class="im">import</span> DbgKeys <span class="im">as</span> Dbg
+<span class="im">from</span> io <span class="im">import</span> StringIO
+<span class="im">import</span> json                    <span class="co"># for pretty-printing a Section value</span>
+<span class="im">import</span> fileutils
+<span class="im">import</span> os
+<span class="im">import</span> re
+<span class="im">import</span> subprocess <span class="im">as</span> sp
+<span class="im">import</span> sys
+<span class="im">import</span> sysutils <span class="im">as</span> su
+<span class="im">from</span> traceback <span class="im">import</span> print_exception
+
+</code></pre></div>
+<h2 id="what-panpype-does">What <code>panpype</code> does</h2>
+<p>The idea is to create a document format that any Python editor will recognize as legal Python, while still permitting one to include <a href="http://pandoc.org">Pandoc</a> markdown that allows one to turn the file easily into a <a href="http://pandoc.org/MANUAL.html#pandocs-%20markdown">“markdown” document</a> (file type “<code>.md</code>”), which Pandoc can then transform into HTML. I extend the markdown conventions only by using Python’s triple-quoted strings that open with an identifying tag (three carats, “<code>^^^</code>”, as it happens) to guide this code in separating Python source from markdown.</p>
+<p>I’ll get to the details of panpype syntax shortly, but first a few more words on what it is I am and am <em>not</em> trying to accomplish.</p>
+<p>What I am definitely not trying to accomplish is to replace rich development environments like <a href="http://jupyter.org">Jupyter</a>. I just wanted something minimal for the short kinds of projects (5,000 to 10,000 lines of source) that I dabble in, and being new to Python, I’ve implemented <code>panpype</code> as one exercise in learning to become Pythonic.</p>
+<p>Now for the positive side! Having discovered <a href="http://coffeescript.org"><code>CoffeeScript</code></a> and its “literate” dialect, <code>litcoffee</code>, a few years ago, I found myself much more inclined than I ever had been before (and for me, “before” goes back to 1979 at Bell Labs) to produce the kind of documentation for my code that I knew that I should, and that a year or so later I knew I would appreciate. The sheer simplicity (indented source code, all else comments) and the relatively uncluttered final source document were an invitation to “write big”.</p>
+<p>Somehow, even relatively accessible tools, like <a href="http://www.oracle.com/technetwork/java/javase/documentation/index-jsp-135444.html">Javadoc,</a> never made me want to write enough. Thinking about it now, I believe the new ingredient that tipped the balance was markdown, as implemented by <a href="http://pandoc.org">Pandoc</a>. I can’t tell you why that is so, because it was not all that hard to produce attractive, readable documentation with Javadoc. One factor is that the discpline that Javadoc imposes on you with the various “<code>@</code>” tags is not always what I’d like, and it leads to source that is cluttered. Its formalized output has the virtue of providing the reader with a clear mental picture even before the details come into focus, but the same formalism makes the commentary feel utterly authoritative, which imposes on the authors a responsibility to keep it accurate. It is one thing to enforce that behavior if, say, you’re writing some code for Oracle that will be widely publicised and used. It is quite another to enforce it if it is just a couple of you, you’re building a prototype, and you’re not sure what code will survive.</p>
+<p>Another virtue of <code>litcoffee</code> is that it allows one to produce output that contains some or all of the source code together with the commentary in an elegant format, syntax coloring included. It was not easy to do that with Javadoc in its early days when I was using it extensively. <a href="http://docs.oracle.com/javase/1.5.0/docs/guide/javadoc/doclet/overview.html">Perhaps things are different now.</a> The example of <a href="http://www.javadoq.com">JavaDoq</a> would seem to say that it might be.</p>
+<h2 id="the-three-section-types">The three section types</h2>
+<p>A <code>panpype</code> source file is partitioned into “sections”, of which there are some small number of different types–three, as it happens. There is the Python source, of course. The other two section types are the “<code>head</code>”, analogous to an HTML <code>&lt;head&gt;</code> element, and “<code>pandoc</code>” sections containing markdown commentary on the code. <code>pandoc</code> sections are passed directly to the “<code>.md</code>” output for processing by <code>pandoc</code>. The shell command <code>pypetohtml</code> wraps the <code>pandoc</code> command to make this easy to do.</p>
+<h3 id="panpype-syntax"><code>panpype</code> Syntax:</h3>
+<p>A triply-quoted string will be treated as a panpype section if it begins a line (no leading whitespace!), and the string begins with a panpype tag, so it looks like:</p>
+<blockquote>
+<p><code>''' ^^^ head</code>,<br />
+ <code>''' ^^^ pandoc</code>, <em>or</em><br />
+ <code>''' ^^^ python</code></p>
+</blockquote>
+<p>Of course, either single or double quotes may be used. Spaces and tabs are permitted after the opening quotes and around the carats, but no newlines are permitted between the opening quotes and the carats. <em>Any line that starts this way is a tag: I am not in the business of parsing Python.</em></p>
+<p><em>The section ends at the matching triple quote.</em> and consists of two parts: a <em>“descriptor”</em>, followed by a <em>“body”</em>.</p>
+<blockquote>
+<p>The descriptor is used for specifying options. The syntax for the options is like that for command line arguments: <code>-key</code> or <code>-key = value</code>, the <code>=</code> sign being optional. The value is limited to one of three types, a number, a comma-separated list of strings that are syntactically legal Python identifiers, or a “Boolean literal”, as defined by <a href="sysutils.html#asbooleanvalue"><code>sysutils.asboolean</code></a>. <em>The descriptor ends at the first occurence of the string</em> <code>^^^\n</code> <em>that follows the tag.</em> Note the newline following the carats.</p>
+</blockquote>
+<blockquote>
+<p>The body consists of everything following the descriptor in the long string. For Pandoc sections, the body is the markdown text; for the head, it is the title/author/date metadata; and for a Python, it is Python source code.</p>
+</blockquote>
+<p><em>Nota bene</em>: Let me say it again: tags begin at the beginning of a line, and the descriptor ends at a line end, as must the tag-ending quote marks. If this seems severe, remember that Python syntax is all about indentation, and I do not want to have to worry about where text following a closing set of quotes belongs rel the left margin.</p>
+<p>Since each option looks like <code>-key</code> followed possibly by some whitespace and other characters, up to the end of the tag body or the next <code>-</code>, whichever comes first, splitting the descriptor at each <code>-</code> will yield a list with exactly one entry per option keyword. An option may or may not have a value, but if it does, the value must be a string of non-whitespace characters. An optional <code>=</code> and whitespace may separate the keyword from its value. The upshot is that splitting an option string at whitespace yields one of three kinds of tuples <code>(key,)</code>, <code>(key,value)</code>, or <code>(key, '=', value)</code>. The interpretation of the value is not generic and is therefore left to the various concrete extensions of <code>Section</code> to winkle out.</p>
+<p>A missing value for an option always implies a value of <code>True</code>–for example <code>-hide</code> by itself is taken to mean “yes: I want to hide the source”. The default is to include the code. Suppose there are a lot of code sections and only one or two that you want to include. You can say <code>-hide</code> in the <code>head</code> to make hiding the default, and then in the one or two you do want to include, you can say <code>-hide no</code>. See the discussion of <code>HeadSection</code> below.</p>
+<h3 id="head-sections">Head Sections</h3>
+<p>A <code>head</code> section, if present at all, normally begins the document and serves two purposes. First, it is where you put the document title, author and date information that is to be inserted at the start of the “.md” file. This data is separated from the rest of the markdown because of the peculiar syntax that Pandoc expects: its main entries are lines beginning with <code>%</code>, which confuses some syntax-directed Python editors. The head’s second purpose is to allow you to provide some defaults as to what is included in the markdown output:</p>
+<blockquote>
+<blockquote>
+<p>By default, all of the Python source is copied into the <code>.md</code> file. The head provides an option that makes the default to hide <em>all</em> of the source, or just to hide that in a set of “named groups”. This is a default you are establishing, not an unbreakable rule. Individual sections may override it as they please.</p>
+</blockquote>
+</blockquote>
+<p>A “head” section’s descriptor has the syntax</p>
+<blockquote>
+<code>''' ^^^ head [-hide[[ = ]...]] ^^^</code>.
+</blockquote>
+<p>There is at most one head section, and good taste requires that it come at the start of the file, except possibly for some leading <code>import</code> statements, or a <code>#!</code> comment.</p>
+<p>The <strong><code>hide</code></strong> option governs whether the Python source is included in the html file. The default is to include it. If <code>-hide</code> appears by itself, the default is for <em>no</em> source code to appear in the markdown output. Otherwise, <code>-hide</code> may be followed by an optional <code>=</code> sign, possibly with surrounding whitespace, followed next by a comma-separated list of identifiers that will be interpreted as naming groups of source sections that are not to appear in the Pandoc.</p>
+<p>The head section’s body is either empty, or must be valid input for the Pandoc title meta-data block, <em>except that the leading <code>%</code> on each line should not appear</em>. I will put it in when I write out the markdown. The problem, to say it again, is that some syntax-directed Python editors get upset about the leading <code>%</code>.</p>
+<h3 id="pandoc-sections">Pandoc Sections</h3>
+<p>A “pandoc” section’s descriptor is a single line that has the syntax:</p>
+<blockquote>
+<code>''' ^^^ pandoc ^^^</code>
+</blockquote>
+<p>There are no options to supply. The body is where you put your markdown text.</p>
+<p>In the body, sample code that is to be part of the Pandoc documentation can be supplied as an HTML <code>&lt;pre&gt;</code> section of class <code>example-code</code>.</p>
+<h3 id="python-sections">Python sections</h3>
+<p>A “python” section’s descriptor has the syntax</p>
+<blockquote>
+<code>''' ^^^ python [-hide [=no]] [-group=...]  ^^^</code>.
+</blockquote>
+<p>All of the input file that does not appear in a Pandoc tag or immediately following a <code>python</code> tag is treated as Python source. A “python” tag is only required to precede a source section that is to be omitted from the markdown output or placed in a group that may, or may not, be omitted.</p>
+<p>Use <code>-hide</code> or <code>-hide=no</code> to override the file-wide default for whether the source code that follows appears in the Pandoc output. The normal default is to include the Python source.</p>
+<p>The <code>-group</code> option’s value is a comma-separated set of syntactically valid Python identifers that name sets of Python sections. The only use of groups is to make it easy to hide or to include a subset of the Python sections.</p>
+<h2 id="command-line-interface">Command-line Interface</h2>
+<p>The command-line interface is used to control what output is generated and where it is left. The values are kept in a “<code>namedtuple</code>” called an “<code>OutputOptionsTuple</code>”. The attributes of that tuple and their default values are:</p>
+<blockquote>
+<table>
+<caption><em>Parsing and output command line options:</em></caption>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><em><code>assure</code></em></td>
+<td style="text-align: left;">create any missing output directories</td>
+<td style="text-align: right;"><code>True</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>debug</code></em></td>
+<td style="text-align: left;">comma-separated keys to constrain debugging output</td>
+<td style="text-align: right;"><code>&quot;&quot;</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>html</code></em></td>
+<td style="text-align: left;">if <code>True</code>, produce the HTML output file; otherwise do not.</td>
+<td style="text-align: right;"><code>True</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>md</code></em></td>
+<td style="text-align: left;">if <code>True</code>, save the intermediate markdown (“.md”) file;</td>
+<td style="text-align: right;"><code>True</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>omitsrc</code></em></td>
+<td style="text-align: left;">if <code>True</code>, do not include the Python source in the markdown file.</td>
+<td style="text-align: right;"><code>False</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>py</code></em></td>
+<td style="text-align: left;">if <code>True</code>, produce the Python (“.py”) output file.</td>
+<td style="text-align: right;"><code>True</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>backups</code></em></td>
+<td style="text-align: left;">the number of backups of the various output files to keep.</td>
+<td style="text-align: right;">25</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>errors</code></em></td>
+<td style="text-align: left;">the number of parse errors allowed before we bail out.</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>tabs</code></em></td>
+<td style="text-align: left;">the size of a tab stop–more on this attribute below.</td>
+<td style="text-align: right;">3</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<p>The <code>tabs</code> attribute requires a few words of explanation. Tabs in the input source will be replaced with spaces before any parsing is done, and the detabbed source will be used for the Python output. If the value is 0, no cleanup of the input is done. The tab size can be supplied for each file individually by calling the method <code>processAFile</code> directly. The <code>tabs</code> parameter here is used as the default, so that one can do a whole directory in one call to the <code>process</code> method. Any integer from 1 to 8 is okay for the value. Any positive value <code>n</code> other than 0 will be replaced by <code>1+(n-1)%8</code>. Default: 3 (I like 3 spaces for my tabs).</p>
+<p>The options that govern the parse and what gets written out are put in an <code>OutputOptionsTuple</code> by calling:</p>
+<h3 id="outputoptionsoptionsdefaultsnone"><code>outputOptions(options={},defaults=None)</code></h3>
+<p>On entry, <code>options</code> is expected to be a dictionary-like object (some of) whose keys are the names of fields in an <code>OutputOptionsTuple</code>. The second argument, <code>defaults</code>, if supplied, is expected to be an <code>OutputOptionsTuple</code>. A new <code>OutputOptionsTuple</code> is created and returned in which any values not supplied by the keys in <code>options</code> are taken from <code>defaults</code>. No vetting or processing is done on the values used from either argument. They are simply passed “as is” to the <code>OutputOptionsTuple</code> constructor.</p>
+<blockquote>
+<table>
+<caption><em>Input and output paths command line options:</em></caption>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><em><code>root</code></em></td>
+<td style="text-align: left;">relative paths are all interpreted with respect to this path</td>
+<td style="text-align: left;">current directory</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>src</code></em></td>
+<td style="text-align: left;">where to find the “<code>.pype</code>” source files</td>
+<td style="text-align: left;"><em><code>root</code></em>/src</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>py</code></em></td>
+<td style="text-align: left;">where to write the “<code>.py</code>” Python files</td>
+<td style="text-align: left;"><em><code>root</code></em>/py</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>md</code></em></td>
+<td style="text-align: left;">where to write the “<code>.md</code>” Python files</td>
+<td style="text-align: left;"><em><code>root</code></em>/md</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>doc</code></em></td>
+<td style="text-align: left;">where to write the “<code>.doc</code>” Python files</td>
+<td style="text-align: left;"><em><code>root</code></em>/doc</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em><code>css</code></em></td>
+<td style="text-align: left;">where to find any “<code>.css</code>” Python files</td>
+<td style="text-align: left;"><em><code>root</code></em>/doc/css</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><em><code>bak</code></em></td>
+<td style="text-align: left;">path for backups relative to directory backed up</td>
+<td style="text-align: left;">“bak”</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<p>The command line options that govern where files are to be found and/or written is kept in another <code>namedtuple</code> type, a “<code>DirectoriesTuple</code>”. The tuple is most easily created by calling:</p>
+<h3 id="directoriesspec"><code>directories(spec = {})</code></h3>
+<p>The argument <code>spec</code> is a <code>dict</code> whose keys describe the various output paths. Command line arguments are translated into an appropriate dictionary by <a href="#fromCmdlineargs"><code>fromCmdline()</code></a>; otherwise, you are on your own. The keys for <code>spec</code> are the option names as in the table above.</p>
+<p>The situation is a little more complicated than you might guess from the table above alone. If neither “<code>root</code>” nor “<code>src</code>” is supplied, the current working directory is used for the root, and the source directory for the “<code>.pype</code>” files is its “<code>src</code>” subdirectory. If only the “<code>src</code>” is supplied, then <code>root</code> is taken to be the parent directory of that directory. <em>The idea is that the remaining output directories should normally be siblings of the source directory.</em></p>
+<p>Programming notes: At the moment, no use is made of the <code>css</code> option. I put it there to remind myself that at some point I might want to add a <code>link</code> element to the HTML output specifying a local <code>.css</code> file. Also, you may have noticed that <code>directories</code> has a less flexible interface than <code>outputOptions</code> in that there is no way of expressing defaults (the second argument of <code>outputOptions</code>). The reason is that <code>directories</code> really is just called as part of the bootstrapping of the app, whereas <code>outputOptions</code> is used internally to create option tuples for individual files and parts of those files. For <code>outputOptions</code> initially, the defaults are the defaults before the command line has been read–as shown in the table above. The result of that initial call to <code>outputOptions</code> is taken to be the <code>defaults</code> tuple for later uses, and the first argument is used to provide a local value for one or two options that need to be adjusted.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+OutputOptionsTuple <span class="op">=</span> namedtuple(<span class="st">'OutputOptionsTuple'</span>,
+   <span class="co">'assure debug html md omitsrc py backups errors tabs'</span>
+)
+<span class="kw">def</span> outputOptions(options<span class="op">=</span>{},defaults<span class="op">=</span><span class="va">None</span>):
+   <span class="cf">if</span> defaults <span class="op">is</span> <span class="va">None</span>:
+      defaults <span class="op">=</span> OutputOptionsTuple(<span class="va">True</span>,<span class="st">&quot;&quot;</span>,<span class="va">True</span>,<span class="va">True</span>,<span class="va">False</span>,<span class="va">True</span>,<span class="dv">25</span>,<span class="dv">12</span>,<span class="dv">3</span>)
+   <span class="cf">return</span> OutputOptionsTuple(
+      su.getitem(options, <span class="st">'assure'</span>, defaults.assure),
+      su.getitem(options, <span class="st">'debug'</span>, defaults.debug),
+      su.getitem(options, <span class="st">'html'</span>, defaults.html),
+      su.getitem(options, <span class="st">'md'</span>, defaults.md),
+      su.getitem(options, <span class="st">'omitsrc'</span>, defaults.omitsrc),
+      su.getitem(options, <span class="st">'py'</span>, defaults.py),
+      su.getitem(options, <span class="st">'backups'</span>, defaults.backups),
+      su.getitem(options, <span class="st">'errors'</span>, defaults.errors),
+      su.getitem(options, <span class="st">'tabs'</span>, defaults.tabs)
+   )
+
+DirectoriesTuple <span class="op">=</span> namedtuple(<span class="st">'DirectoriesTuple'</span>,
+   <span class="co">'root src py md doc css bak'</span>
+)
+
+<span class="kw">def</span> directories(spec <span class="op">=</span> {}):
+   root <span class="op">=</span> spec.get(<span class="st">&quot;root&quot;</span>)
+   src <span class="op">=</span> spec.get(<span class="st">&quot;src&quot;</span>)
+   <span class="cf">if</span> root <span class="op">is</span> <span class="op">not</span> <span class="va">None</span>:
+      root <span class="op">=</span> os.path.abspath(root)
+      src <span class="op">=</span> fileutils.normalizeAPath(root, <span class="st">&quot;src&quot;</span>, src)
+   <span class="cf">elif</span> src <span class="op">is</span> <span class="op">not</span> <span class="va">None</span>:
+      src <span class="op">=</span> os.path.abspath(src)
+      (root, srcdirname) <span class="op">=</span> os.path.split(src) <span class="co"># don't need srcdirname really, just src's parent</span>
+   <span class="cf">else</span>: 
+      root <span class="op">=</span> os.getcwd()
+      src <span class="op">=</span> os.path.join(root, <span class="st">&quot;src&quot;</span>)
+   py  <span class="op">=</span> fileutils.normalizeAPath(root, <span class="st">&quot;py&quot;</span>, spec.get(<span class="st">&quot;py&quot;</span>))
+   md  <span class="op">=</span> fileutils.normalizeAPath(root, <span class="st">&quot;md&quot;</span>, spec.get(<span class="st">&quot;md&quot;</span>))
+   doc <span class="op">=</span> fileutils.normalizeAPath(root, <span class="st">&quot;doc&quot;</span>, spec.get(<span class="st">&quot;doc&quot;</span>))
+   css <span class="op">=</span> fileutils.normalizeAPath(root, <span class="st">&quot;doc/css&quot;</span>, spec.get(<span class="st">&quot;css&quot;</span>))
+   bak <span class="op">=</span> spec.get(<span class="st">&quot;bak&quot;</span>)
+   <span class="cf">return</span> DirectoriesTuple(root, src, py, md, doc, css, bak)
+
+<span class="co"># What we use to delimit Python source in the markdown file: feel free to use your own.</span>
+_START_PYTHON <span class="op">=</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">~~~~~{.python}</span><span class="ch">\n</span><span class="st">&quot;</span>
+_END_PYTHON   <span class="op">=</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">~~~~~~~~~~~~~~</span><span class="ch">\n</span><span class="st">&quot;</span>
+</code></pre></div>
+<h2 id="the-section-class-and-its-extensions">The <code>Section</code> class and its extensions</h2>
+<h3 id="the-sectionstarttag-stoptag-opns-body-constructor">The <code>Section(starttag, stoptag, opns, body)</code> constructor</h3>
+<p>The abstract <code>Section</code> class represents what is common to all 3 types of sections. Not surprisingly, it has 3 concrete extensions corresponding to these types. The entire source file is partitioned into a sequence of <code>Sections</code>, each of which is represented in the code as an instance of one of the <code>Section</code> extensions. The list of these <code>Section</code> instances serves as the immediate working input for the Panpype output routines.</p>
+<p>The first two arguments, <code>starttag</code> and <code>stoptag</code> are line numbers that are the limits for the <code>range</code> of lines that is occupied by the tag. The <code>opns</code> are what you think: the output options to be honored. <code>body</code> is the body of the tag, which is to say, everything following the descriptor’s closing 3 carats up to the closing 3 quotes.</p>
+<p><code>Section</code> has three instance methods:</p>
+<blockquote>
+<h4 id="ishead"><code>isHead()</code></h4>
+<p>Returns a boolean, “<code>True</code>” meaning that the section is a <code>HeadSection</code></p>
+<h4 id="ispandoc"><code>isPandoc()</code></h4>
+<p>Returns a boolean, “<code>True</code>” meaning that the section is a <code>PandocSection</code></p>
+<h4 id="ispython"><code>isPython()</code></h4>
+Returns a boolean, “<code>True</code>” meaning that the section is a <code>PythonSection</code>
+</blockquote>
+<h3 id="the-pythonsectionstarttag-stoptag-opns-body-constructor">The <code>PythonSection(starttag, stoptag, opns, body)</code> constructor</h3>
+<p>The arguments have the same interpretation as for <code>Section</code>. The body will always be part of the .py output, and depending on the options, it may or may not appear in the HTML. The options used here are:</p>
+<blockquote>
+<p><strong><code>group</code></strong>: a comma-separated list of Python identifiers that specifies named sets of code sections to which this piece of code belongs. A section need belong to no group, nor need a group contain more than one section.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>hide</code></strong>: if this appears by itself, the implication is “whatever the default, do not display this code in the Pandoc output.” If this appears with a value, it must be a valid Boolean string (as in <a href="sysutils.html#asbooleanvalue">sysutils.asboolean</a>) and the corresponding boolean overrides whatever default the head section would have established for this section.</p>
+</blockquote>
+<h3 id="the-pandocsectionstarttag-stoptag-opns-body-constructor">The <code>PandocSection(starttag, stoptag, opns, body)</code> constructor</h3>
+<p>The body is the contents of the pandoc section and will be interpreted as markdown to be copied as is to the “.md” intermediate file. This tag has no options. There are no special attributres for a <code>PandocSection</code> beyond those for a plain <code>Section</code>.</p>
+<h3 id="the-headsectionstarttag-stoptag-opns-body-constructor">The <code>HeadSection(starttag, stoptag, opns, body)</code> constructor</h3>
+<p>A valid parsed PanPype document has at most one <code>HeadSection</code>, and by convention, its tag should appear at or very near the beginning of the file. The descriptor for the tag is intended to convey file-wide defaults, of which there is, at the moment, only one that we need to worry about here, namely whether to include the Python source in the Pandoc output. The body of the tag is interpreted as <a href="http://pandoc.org/README.html#metadata-blocks">Pandoc head metadata</a>.</p>
+<p>By default, all Python source appears in the Pandoc output. If the option <strong><code>-hide</code></strong> appears without a value, all source is “hidden” from the Pandoc output–that is to say: it is not included in the markdown intermediate file. If <strong><code>hide</code></strong> does have a value, it must be a comma- separated list of syntactically valid Python identifiers, as in <code>-hide a,b</code>. The identifiers name groups of <code>PythonSections</code> that are to be hidden.</p>
+<p>This state for the <code>-hide</code> option is saved in two fields. One, <code>self.hideAll</code>, is a boolean, and if it is <code>True</code>, all of the Python source is hidden by default. The second, <code>self.hide</code> is a set of group names whose member sections are to be hidden. It comes into play only when <code>self.hideAll</code> is <code>False</code>. Individual code sections may override this option, as need be, by specifying their own <code>-hide</code> option value (as a boolean only!).</p>
+<h4 id="defaulttitle-hidefalse"><code>default(title=“”, hide=False)</code></h4>
+<p>This is a class method. It creates a HeadSection with the given title metadata and with “hide” value the second argument, <code>hide</code>. The value of <code>hide</code> must be either a boolean or a comma- separated list of identifiers. The intended use of this method is to create a <code>HeadSection</code> immediately after the initial (command line) options have been processed. If the <code>.pype</code> supplies its own, its content will be merged with this default.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Section:
+
+   <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, starttag, stoptag, opns, body):
+      <span class="va">self</span>.tagstart  <span class="op">=</span> starttag <span class="co"># the number of the line at which the opening quotes are seen</span>
+      <span class="va">self</span>.tagstop   <span class="op">=</span> stoptag  <span class="co"># the number of the line one beyond the closing quotes</span>
+      <span class="va">self</span>.body      <span class="op">=</span> body     <span class="co"># the contents of the string that follow the closing ^^^</span>
+      <span class="va">self</span>.options   <span class="op">=</span> opns     <span class="co"># the key-value pairs from the tag's descriptor</span>
+      <span class="va">self</span>.<span class="bu">id</span>        <span class="op">=</span> <span class="op">-</span><span class="dv">1</span>       <span class="co"># will be filled in by the main loop of findTheSections() </span>
+      <span class="va">self</span>.dbg       <span class="op">=</span> Dbg(su.getitem(opns, <span class="st">&quot;debug&quot;</span>, <span class="st">&quot;&quot;</span>)) 
+
+   <span class="kw">def</span> isHead(<span class="va">self</span>): <span class="cf">return</span> <span class="va">False</span>
+   <span class="kw">def</span> isPandoc(<span class="va">self</span>): <span class="cf">return</span> <span class="va">False</span>
+   <span class="kw">def</span> isPython(<span class="va">self</span>): <span class="cf">return</span> <span class="va">False</span>
+
+   <span class="kw">def</span> _makeSet(options, key):
+      <span class="co"># translate a comma-separated list into a set of strings</span>
+      raw <span class="op">=</span> su.getitem(options, key, <span class="bu">set</span>())
+      <span class="cf">return</span> raw <span class="cf">if</span> <span class="bu">type</span>(raw) <span class="op">is</span> <span class="bu">set</span> <span class="cf">else</span> <span class="bu">set</span>(raw.split(<span class="st">&quot;,&quot;</span>))
+   <span class="kw">def</span> _keylist(x):
+      <span class="co"># x is a tuple or a string: if it is a tuple, join its entries into a comma-separated list</span>
+      <span class="cf">return</span> x[<span class="dv">0</span>]<span class="op">+</span><span class="st">':'</span><span class="op">+</span><span class="st">','</span>.join(x[<span class="dv">1</span>]) <span class="cf">if</span> <span class="bu">type</span>(x) <span class="op">is</span> <span class="bu">tuple</span> <span class="cf">else</span> <span class="bu">str</span>(x)
+   <span class="kw">def</span> <span class="fu">__str__</span>(<span class="va">self</span>):
+      <span class="cf">try</span>:
+         body <span class="op">=</span> <span class="va">self</span>.body[<span class="dv">0</span>:<span class="bu">min</span>(<span class="bu">len</span>(<span class="va">self</span>.body),<span class="dv">20</span>)] <span class="cf">if</span> <span class="va">self</span>.body <span class="cf">else</span> <span class="st">&quot;no body&quot;</span>
+         code <span class="op">=</span> <span class="va">self</span>.code[<span class="dv">0</span>:<span class="bu">min</span>(<span class="bu">len</span>(<span class="va">self</span>.code),<span class="dv">20</span>)] <span class="cf">if</span> <span class="va">self</span>.code <span class="cf">else</span> <span class="st">&quot;no code&quot;</span>
+         options <span class="op">=</span> <span class="op">\</span>
+            json.dumps(<span class="va">self</span>.options, sort_keys<span class="op">=</span><span class="va">True</span>, indent<span class="op">=</span><span class="dv">4</span>) <span class="cf">if</span> <span class="va">self</span>.options <span class="cf">else</span> <span class="st">&quot;no options&quot;</span>
+         fmtstr  <span class="op">=</span> <span class="st">&quot;</span><span class="sc">{0}</span><span class="st">[</span><span class="sc">{5}</span><span class="st">:</span><span class="sc">{6}</span><span class="st">](</span><span class="sc">{1}{2}{3}</span><span class="st">): </span><span class="ch">\n</span><span class="st">   </span><span class="sc">{4}</span><span class="st">&quot;</span>
+         <span class="cf">return</span> fmtstr.<span class="bu">format</span>(<span class="va">self</span>.__class__.<span class="va">__name__</span>, <span class="va">self</span>.name, body, code, options,
+            <span class="va">self</span>.tagstart,<span class="va">self</span>.codestart)
+      <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:
+         <span class="cf">return</span> (<span class="st">&quot;str(section(0})) failed:</span><span class="ch">\n\t</span><span class="sc">{1}</span><span class="st">&quot;</span>.<span class="bu">format</span>(<span class="va">self</span>.<span class="bu">id</span>, e))
+
+<span class="kw">class</span> PythonSection(Section):
+   <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, starttag, stoptag, opns, body):
+      Section.<span class="fu">__init__</span>(<span class="va">self</span>, starttag, stoptag, opns, body)
+      <span class="va">self</span>.name      <span class="op">=</span> <span class="st">&quot;python&quot;</span>
+      <span class="va">self</span>.codestart <span class="op">=</span> stoptag  <span class="co"># line number immediately following the tag</span>
+      <span class="va">self</span>.codestop  <span class="op">=</span> <span class="va">None</span>     <span class="co"># line number before the next tag </span>
+      <span class="va">self</span>.code      <span class="op">=</span> <span class="va">None</span>     <span class="co"># the text of the code held in these lines</span>
+
+      options <span class="op">=</span> <span class="va">self</span>.options
+      <span class="va">self</span>.groups <span class="op">=</span> Section._makeSet(options, <span class="st">&quot;group&quot;</span>)
+      <span class="va">self</span>.hide   <span class="op">=</span> su.getitem(options, <span class="st">&quot;hide&quot;</span>,  <span class="va">None</span>)
+      <span class="cf">if</span> <span class="op">not</span> <span class="va">self</span>.hide <span class="op">is</span> <span class="va">None</span>:
+         <span class="va">self</span>.hide <span class="op">=</span> su.asboolean(<span class="va">self</span>.hide)
+
+   <span class="kw">def</span> fillInDefaults(<span class="va">self</span>, head):
+      <span class="co">&quot;&quot;&quot;</span>
+<span class="co">      hide this code if this section is in an interval or group that the head says should be</span>
+<span class="co">      hidden.  Of course, if self.hide has already been set, respect that setting!</span>
+<span class="co">      &quot;&quot;&quot;</span>
+      <span class="cf">if</span> <span class="va">self</span>.hide <span class="op">is</span> <span class="va">None</span>:
+         <span class="cf">if</span> head.hideAll:
+            <span class="va">self</span>.hide <span class="op">=</span> <span class="va">True</span> 
+         <span class="cf">else</span>:
+            <span class="va">self</span>.hide <span class="op">=</span> <span class="bu">len</span>(<span class="va">self</span>.groups.intersection(head.hide)) <span class="op">&gt;</span> <span class="dv">0</span>
+
+   <span class="kw">def</span> ingroup(<span class="va">self</span>, groupname):
+      <span class="cf">return</span> <span class="va">False</span> <span class="cf">if</span> <span class="op">not</span> <span class="va">self</span>.groups <span class="cf">else</span> groupname.lower() <span class="op">in</span> <span class="va">self</span>.groups
+
+   <span class="kw">def</span> isPython(<span class="va">self</span>): <span class="cf">return</span> <span class="va">True</span>
+   <span class="kw">def</span> getCode(<span class="va">self</span>): <span class="cf">return</span> <span class="va">self</span>.code
+
+<span class="kw">class</span> PandocSection(Section):
+   <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, starttag, stoptag, opns, body):
+      Section.<span class="fu">__init__</span>(<span class="va">self</span>, starttag, stoptag, opns, body)
+      <span class="va">self</span>.name <span class="op">=</span> <span class="st">&quot;pandoc&quot;</span>
+      <span class="co">#print(&quot;PANDOC: '{0}'&quot;.format(body))</span>
+
+   <span class="kw">def</span> isPandoc(<span class="va">self</span>): <span class="cf">return</span> <span class="va">True</span>
+
+<span class="kw">class</span> HeadSection(Section):
+   <span class="kw">def</span> default(title<span class="op">=</span><span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>, hide<span class="op">=</span><span class="va">False</span>):
+      <span class="cf">if</span> title[<span class="op">-</span><span class="dv">1</span>] <span class="op">!=</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>:
+         title <span class="op">+=</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>
+      <span class="cf">return</span> HeadSection(<span class="dv">0</span>, <span class="dv">0</span>, {<span class="st">&quot;hide&quot;</span>: hide, <span class="st">&quot;debug&quot;</span>: <span class="st">&quot;&quot;</span>}, title)
+
+   <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, starttag, stoptag, opns, body):
+      Section.<span class="fu">__init__</span>(<span class="va">self</span>, starttag, stoptag, opns, body)
+      <span class="va">self</span>.name <span class="op">=</span> <span class="st">&quot;head&quot;</span>
+      <span class="co">#print(&quot;head {0}:\n{1}&quot;.format(opns, self.body))</span>
+      <span class="cf">if</span> <span class="st">&quot;hide&quot;</span> <span class="op">not</span> <span class="op">in</span> <span class="va">self</span>.options:
+         <span class="va">self</span>.hideAll <span class="op">=</span> <span class="va">False</span><span class="op">;</span> <span class="va">self</span>.hide <span class="op">=</span> <span class="bu">set</span>()
+      <span class="cf">else</span>: 
+         value <span class="op">=</span> <span class="va">self</span>.options[<span class="st">&quot;hide&quot;</span>]
+         <span class="cf">if</span> <span class="bu">type</span>(value) <span class="op">is</span> <span class="bu">bool</span>:
+            <span class="va">self</span>.hideAll <span class="op">=</span> value<span class="op">;</span> <span class="va">self</span>.hide <span class="op">=</span> <span class="bu">set</span>()
+         <span class="cf">else</span>:
+            <span class="va">self</span>.hideAll <span class="op">=</span> <span class="va">False</span><span class="op">;</span> <span class="va">self</span>.hide <span class="op">=</span> Section._makeSet(opns, <span class="st">&quot;hide&quot;</span>)
+      bodylines <span class="op">=</span> [line <span class="cf">for</span> line <span class="op">in</span> <span class="va">self</span>.body.split(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>) <span class="cf">if</span> <span class="bu">len</span>(line) <span class="op">&gt;</span> <span class="dv">1</span>]
+      <span class="cf">if</span> <span class="bu">len</span>(bodylines) <span class="op">is</span> <span class="dv">0</span>:
+         <span class="va">self</span>.body <span class="op">=</span> <span class="st">&quot;&quot;</span>
+      <span class="cf">else</span>:
+         asMetadata <span class="op">=</span> []
+         <span class="cf">for</span> line <span class="op">in</span> bodylines:
+            stripped <span class="op">=</span> line.rstrip()
+            <span class="cf">if</span> <span class="bu">len</span>(stripped) <span class="op">is</span> <span class="dv">0</span>:
+               asMetadata.append(<span class="st">'%'</span>)
+            <span class="cf">elif</span> stripped[<span class="dv">0</span>] <span class="op">in</span> <span class="st">' </span><span class="ch">\t</span><span class="st">'</span>:
+               asMetadata.append(stripped) 
+            <span class="cf">else</span>:
+               asMetadata.append(<span class="st">&quot;%&quot;</span><span class="op">+</span>stripped)
+         <span class="cf">for</span> n <span class="op">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="bu">len</span>(asMetadata)): <span class="co"># remove trailing empty lines</span>
+            <span class="cf">if</span> <span class="bu">len</span>(asMetadata[<span class="op">-</span>n]) <span class="op">&gt;</span> <span class="dv">1</span>:
+               <span class="cf">break</span>
+         <span class="va">self</span>.body <span class="op">=</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>.join(asMetadata) <span class="op">+</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>
+
+   <span class="kw">def</span> isHead(<span class="va">self</span>): <span class="cf">return</span> <span class="va">True</span>
+</code></pre></div>
+<h2 id="the-class-parsedinputsrcpath-options">The class <code>ParsedInput(srcpath, options)</code></h2>
+<p>This is code to partitions Panpype input into sections that facilitate generating the Python and Pandoc output. Basically, the drill is that, unless you tell me otherwise, your input is Python code. You tell me otherwise by inserting a triply quoted Python “long string” that begins a line and that continues with <code>^^^</code> followed by a valid section type name and some options, and that ends at the next occurrence of <code>^^^\n</code>. The options constrain the section’s later processing.</p>
+<p>The syntax of a Panpype source file is line-oriented. It uses Python “long strings” beginning with the string <code>&quot;^^^&quot;</code> to partition the file. Content outside of these strings is treated as Python source code. The effect is to partition the file into a sequence of “sections”, of which there are four types:</p>
+<blockquote>
+<p>two types of documentation sections: “head sections” for administrative stuff analogous to HTML’s head tag, and “Pandoc sections” for commentary. For these tags, the long string is the entire content of the section.</p>
+</blockquote>
+<blockquote>
+<p>tagged code sections: Python source code sections that wind up populating the “.py” file. A code section consists of its long string, together with any Python source that immediately follows it, up to the next tag, or to the end of the input file.</p>
+</blockquote>
+<blockquote>
+<p>untagged code sections: the source lines that immediately follow a non-code section form a section with an “implied tag” that makes it look like a tagged code section that has all of its properties set to their default values. This sort of section has the same type as an explicitly tagged Python section. In fact, at the moment, the only reason for having an explicit tagged Python section is to override the default for whether it should appear in the Pandoc output.</p>
+</blockquote>
+<p>The syntax for a tag in its long string is designed to allow pretty printing like:</p>
+<pre class="exampleCode"> 
+   ''' ^^^ head
+        -hide silverware
+    ^^^
+   '''
+</pre>
+<p>In practice, one is more likely to see</p>
+<pre class="exampleCode"> 
+   ''' ^^^ head -hide silverware ^^^ ''',
+</pre>
+<p>but tastes differ, and the value for the option can be long enough to justify the extra lines. The opening quotes, carats and section type name must appear on the same line as shown. You can omit the space on either side of the carats. Tags must begin and end at line boundaries.</p>
+<p>For those who know litcoffee, our default for what is code, and what is not, is the opposite of theirs: in a litcoffee file, the documentation is what need not be tagged. The reason for the difference is that I want a Panpype file to be handled by syntax-directed editors as if it were simply Python source.</p>
+<p>The constructor reads in a single gulp the input file specified by the path that is its first argument. It compiles a small set of regular expressions that are needed to do the parsing, and then computes a <code>list</code> of <code>Section</code>s that the caller will eventually write out to the .py and .md output files as appropriate. The second parameter, <code>options</code>, is an <code>OutputOptionsTuple</code>. The relevant options here are <code>debug</code>, which turns on some verbose output, <code>tabs</code>, which governs the indentation, and <code>errorlimit</code>, which limits the number of errors the parser will allow before bailing out. <code>self.errors</code> buffers a <code>list</code> of error messages. The test for a successful parse is that the length of this list is 0.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> ParsedInput:
+
+   <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, srcpath, options):
+      tabstop <span class="op">=</span> <span class="dv">1</span> <span class="op">+</span> (options.tabs<span class="dv">-1</span>)<span class="op">%</span><span class="dv">8</span> <span class="cf">if</span> options.tabs <span class="cf">else</span> <span class="dv">0</span>
+      <span class="cf">with</span> <span class="bu">open</span>(srcpath, <span class="st">&quot;r&quot;</span>) <span class="im">as</span> filein:
+         <span class="cf">if</span> tabstop <span class="op">is</span> <span class="dv">0</span>: 
+            content <span class="op">=</span> <span class="bu">list</span>(filein)
+         <span class="cf">else</span>: 
+            content <span class="op">=</span> <span class="bu">list</span>(line.expandtabs(tabstop) <span class="cf">for</span> line <span class="op">in</span> filein)
+      <span class="va">self</span>.content <span class="op">=</span> content                    <span class="co"># input as a list of lines</span>
+      <span class="va">self</span>.srcpath <span class="op">=</span> srcpath                    <span class="co"># input file path</span>
+      <span class="va">self</span>.srcname <span class="op">=</span> os.path.basename(srcpath)  <span class="co"># file name part of the path </span>
+      <span class="va">self</span>.debug <span class="op">=</span> Dbg(options.debug)           <span class="co"># verbose output</span>
+      <span class="va">self</span>.errorlimit <span class="op">=</span> options.errors          <span class="co"># when to bail out</span>
+      <span class="va">self</span>.errors <span class="op">=</span> []                          <span class="co"># lists all the error messages</span>
+      <span class="va">self</span>.head <span class="op">=</span> <span class="va">None</span>                          <span class="co"># file-wide defaults</span>
+      <span class="va">self</span>.sections <span class="op">=</span> []                        <span class="co"># a list of all the sections</span>
+      <span class="co">#</span>
+      <span class="va">self</span>.name2type <span class="op">=</span> {<span class="st">&quot;head&quot;</span>: HeadSection, <span class="st">&quot;pandoc&quot;</span>:PandocSection, <span class="st">&quot;python&quot;</span>:PythonSection}
+      <span class="va">self</span>.opentag <span class="op">=</span> re.<span class="bu">compile</span>(<span class="st">&quot;^('''|</span><span class="ch">\&quot;\&quot;\&quot;</span><span class="st">)[ </span><span class="ch">\t</span><span class="st">]*\^\^\^ *(head|python|pandoc|console)&quot;</span>, re.I)
+      <span class="va">self</span>.dashre  <span class="op">=</span> re.<span class="bu">compile</span>(<span class="st">&quot;\s*-&quot;</span>)
+      <span class="va">self</span>.dbre    <span class="op">=</span> re.<span class="bu">compile</span>(<span class="st">&quot;([^^]+)\^\^\^(.*)&quot;</span>)
+      <span class="va">self</span>.kvre    <span class="op">=</span> re.<span class="bu">compile</span>(<span class="st">&quot;([a-z]+)\s*=?\s*([a-z0-9,]*!?)&quot;</span>, re.I)
+      <span class="va">self</span>.findTheSections(options)
+      <span class="cf">if</span> <span class="bu">len</span>(<span class="va">self</span>.debug): <span class="co"># print a message to stderr only if we are also putting out debugging</span>
+         errorsFound <span class="op">=</span> <span class="bu">len</span>(<span class="va">self</span>.errors)
+         <span class="cf">if</span> errorsFound <span class="op">&gt;=</span> <span class="va">self</span>.errorlimit:
+            <span class="bu">print</span>(<span class="st">&quot;Parse terminated early: too many errors:</span><span class="ch">\n</span><span class="st">   &quot;</span>, <span class="bu">file</span><span class="op">=</span>sys.stderr)
+         <span class="cf">elif</span> errorsFound <span class="op">&gt;</span> <span class="dv">0</span>: 
+            <span class="bu">print</span>(<span class="st">&quot;Errors found in parse:</span><span class="ch">\n</span><span class="st">   &quot;</span><span class="op">+</span><span class="st">&quot;</span><span class="ch">\n</span><span class="st">   &quot;</span>.join(<span class="va">self</span>.errors), <span class="bu">file</span><span class="op">=</span>sys.stderr)
+</code></pre></div>
+<h3 id="findthesectionsoptions"><code>findTheSections(options)</code></h3>
+<p><code>findTheSections</code> partitions the source into a list of sections. It looks for lines starting with either three apostrophes or three quotation marks followed by some whitespace, three carats, some more whitespace, and section type name. The tag consists of this line, together with as many of the lines that follow until the string-ending quotation marks. A second string of three carats in the string separates the tag’s descriptor from its body. The section is constructed from the type name, the parsed descriptor, and the body.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> findTheSections(<span class="va">self</span>, options):
+      content <span class="op">=</span> <span class="va">self</span>.content
+      stop <span class="op">=</span> <span class="bu">len</span>(content)
+      n <span class="op">=</span> <span class="dv">0</span>
+      startPython <span class="op">=</span> n
+      lastTaggedSection <span class="op">=</span> <span class="va">None</span>
+      <span class="cf">while</span> n <span class="op">&lt;</span> stop <span class="op">and</span> <span class="bu">len</span>(<span class="va">self</span>.errors) <span class="op">&lt;</span> <span class="va">self</span>.errorlimit:
+         line <span class="op">=</span> content[n]
+         <span class="cf">if</span> <span class="st">&quot;input&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug:
+            <span class="bu">print</span>(<span class="st">&quot;Line(</span><span class="sc">{0}</span><span class="st">): </span><span class="sc">{1}</span><span class="st">&quot;</span>.<span class="bu">format</span>(n, line[:<span class="op">-</span><span class="dv">1</span>]))
+         match <span class="op">=</span> <span class="va">self</span>.opentag.match(line)
+         <span class="cf">if</span> <span class="op">not</span> match:
+            n <span class="op">+=</span> <span class="dv">1</span>
+         <span class="cf">else</span>:
+            <span class="cf">if</span> <span class="st">&quot;all&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug: 
+               <span class="bu">print</span>(<span class="st">&quot;   startPython=</span><span class="sc">{0}</span><span class="st">, n=</span><span class="sc">{1}</span><span class="st">&quot;</span>.<span class="bu">format</span>(startPython, n))
+            <span class="cf">if</span> n <span class="op">&gt;</span> startPython:
+               <span class="va">self</span>.assignCodeToASection(startPython, n, lastTaggedSection)
+               startPython <span class="op">=</span> stop <span class="op">+</span> <span class="dv">1</span> <span class="co"># so we can't inadvertently add stuff!</span>
+            lastTaggedSection <span class="op">=</span> <span class="va">None</span>
+            firstUnmatched <span class="op">=</span> match.end()
+            delimiter <span class="op">=</span> match.group(<span class="dv">1</span>)
+            tagname   <span class="op">=</span> match.group(<span class="dv">2</span>).lower()
+            <span class="co"># inner loop over the descriptor and body</span>
+            start <span class="op">=</span> n
+            line <span class="op">=</span> content[n][firstUnmatched:]
+            content[n] <span class="op">=</span> line
+            stopdscr <span class="op">=</span> <span class="op">-</span><span class="dv">1</span>
+            stoptag   <span class="op">=</span> <span class="op">-</span><span class="dv">1</span>
+            <span class="cf">if</span> <span class="st">&quot;tags&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug: <span class="bu">print</span>(<span class="st">&quot;   '</span><span class="sc">{0}</span><span class="st">' starts a tag&quot;</span>.<span class="bu">format</span>(line[:<span class="op">-</span><span class="dv">1</span>]))
+            sawdscend <span class="op">=</span> <span class="va">False</span>
+            <span class="cf">while</span> stoptag <span class="op">&lt;</span> <span class="dv">0</span>:
+               <span class="cf">if</span> <span class="op">not</span> sawdscend:
+                  firstcarats <span class="op">=</span> line.find(<span class="st">'^^^'</span>)
+                  <span class="cf">if</span> firstcarats <span class="op">&gt;=</span> <span class="dv">0</span>: 
+                     stopdscr <span class="op">=</span> n <span class="op">+</span> <span class="dv">1</span> <span class="co"># ie descriptor is start:stopdscr</span>
+                     sawdscend <span class="op">=</span> <span class="va">True</span>
+                     line <span class="op">=</span> line.replace(<span class="st">'^^^'</span>, <span class="st">''</span>)
+                     content[n] <span class="op">=</span> line
+                     <span class="cf">if</span> <span class="st">&quot;all&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug:
+                        msg <span class="op">=</span> <span class="st">&quot;   stop dscr is </span><span class="sc">{0}</span><span class="st">, line now '</span><span class="sc">{1}</span><span class="st">' &quot;</span> 
+                        <span class="bu">print</span>(msg.<span class="bu">format</span>(stopdscr, content[n][:<span class="op">-</span><span class="dv">1</span>]))
+               rightDelimiter <span class="op">=</span> line.rfind(delimiter)
+               <span class="cf">if</span> rightDelimiter <span class="op">&gt;=</span> <span class="dv">0</span>:
+                  stoptag <span class="op">=</span> n <span class="op">+</span> <span class="dv">1</span>
+                  content[n] <span class="op">=</span> line[<span class="dv">0</span>:rightDelimiter].strip()<span class="op">+</span><span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>
+                  <span class="cf">if</span> <span class="st">&quot;tags&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug:
+                     <span class="bu">print</span>(<span class="st">&quot;   tag </span><span class="sc">{0}</span><span class="st"> stop is '</span><span class="sc">{1}</span><span class="st">'&quot;</span>.<span class="bu">format</span>(tagname, stoptag))
+               n <span class="op">+=</span> <span class="dv">1</span>
+               <span class="cf">if</span> n <span class="op">&gt;=</span> stop: 
+                  <span class="cf">break</span>
+               line <span class="op">=</span> content[n]
+            startPython <span class="op">=</span> stoptag
+            <span class="cf">if</span> stopdscr <span class="op">&gt;=</span> <span class="dv">0</span>:
+               newsection <span class="op">=</span> (<span class="va">self</span>.makeSectionFromTag(tagname, start, stopdscr, stoptag))
+               lastTaggedSection <span class="op">=</span> newsection
+               <span class="cf">if</span> newsection.isHead():
+                  <span class="cf">if</span> <span class="va">self</span>.head <span class="op">is</span> <span class="va">None</span>:
+                     <span class="va">self</span>.head <span class="op">=</span> newsection
+                  <span class="cf">else</span>:
+                     _addErrorMessage(<span class="st">&quot;Unexpected HEAD section at line {}&quot;</span>.<span class="bu">format</span>(start))
+               <span class="cf">else</span>:
+                  newsection.<span class="bu">id</span> <span class="op">=</span> <span class="bu">len</span>(<span class="va">self</span>.sections)
+                  <span class="va">self</span>.sections.append(newsection)
+                  <span class="cf">if</span> <span class="st">&quot;tags&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug:
+                     msg <span class="op">=</span> <span class="st">&quot;   </span><span class="sc">{2}</span><span class="st">(</span><span class="sc">{3}</span><span class="st">) [</span><span class="sc">{0}</span><span class="st">:</span><span class="sc">{1}</span><span class="st">]&quot;</span>
+                     <span class="bu">print</span>(msg.<span class="bu">format</span>(start, stoptag, tagname, newsection.<span class="bu">id</span>))
+            <span class="cf">else</span>:
+               msg <span class="op">=</span> <span class="st">&quot;Descriptor not closed in tag: see lines[</span><span class="sc">{0}</span><span class="st">:</span><span class="sc">{1}</span><span class="st">]&quot;</span>.<span class="bu">format</span>(start, stoptag)
+               <span class="va">self</span>._addErrorMessage(msg)
+      <span class="cf">if</span> startPython <span class="op">&lt;</span> stop: <span class="co"># pick up any source following the last tag (if any!)</span>
+         <span class="va">self</span>.assignCodeToASection(startPython, stop, lastTaggedSection)
+      <span class="cf">if</span> <span class="va">self</span>.head <span class="op">is</span> <span class="va">None</span>:
+         <span class="va">self</span>.head <span class="op">=</span> HeadSection.default(<span class="va">self</span>.srcname, options.omitsrc)
+      head <span class="op">=</span> <span class="va">self</span>.head
+      <span class="cf">for</span> section <span class="op">in</span> <span class="va">self</span>.sections:
+         <span class="cf">if</span> section.isPython():
+            section.fillInDefaults(head)
+</code></pre></div>
+<h3 id="makesectionfromtagname-starttag-stopdscr-stoptag"><code>makeSectionFromTag(name, starttag, stopdscr, stoptag)</code></h3>
+<p><code>makeSectionFromTag</code> parses a tag to isolate its descriptor from its body, and then parses the descriptor into key/value pairs that are saved in a dictionary. This information is passed to the constructor for the <code>Section</code> type implied by the <code>name</code> argument. The return value is that <code>Section</code>.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> makeSectionFromTag(<span class="va">self</span>, name, starttag, stopdscr, stoptag):
+      body    <span class="op">=</span> <span class="st">&quot;&quot;</span>.join(<span class="va">self</span>.content[stopdscr:stoptag]) <span class="co"># keep the newline...do NOT rstrip</span>
+      dscr    <span class="op">=</span> <span class="st">&quot;&quot;</span>.join(<span class="va">self</span>.content[starttag:stopdscr]).strip().lower()
+      <span class="cf">if</span> <span class="st">&quot;tags&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug:
+         <span class="bu">print</span>(<span class="st">&quot;      makeSectionFromTag from '</span><span class="sc">{0}</span><span class="st">(</span><span class="sc">{1}</span><span class="st">)'&quot;</span>.<span class="bu">format</span>(name, dscr.rstrip()))
+      <span class="cf">if</span> <span class="bu">len</span>(dscr) <span class="op">&gt;</span> <span class="dv">0</span>: 
+         opnslist <span class="op">=</span> <span class="op">\</span>
+            (opn.strip() <span class="cf">for</span> opn <span class="op">in</span> <span class="va">self</span>.dashre.split(dscr)) <span class="co"># a list of key[=]value entries</span>
+      <span class="cf">else</span>:
+         opnslist <span class="op">=</span> []
+      opnsdict <span class="op">=</span> {}
+      opnscount <span class="op">=</span> <span class="dv">0</span>
+      <span class="cf">for</span> opn <span class="op">in</span> opnslist:
+         <span class="cf">if</span> <span class="bu">len</span>(opn) <span class="op">&gt;</span> <span class="dv">0</span>: 
+            opnscount <span class="op">+=</span> <span class="dv">1</span>
+            match <span class="op">=</span> <span class="va">self</span>.kvre.match(opn)
+            <span class="cf">if</span> <span class="st">&quot;alltags&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug:
+               <span class="bu">print</span>(<span class="st">&quot;         </span><span class="sc">{0}</span><span class="st"> match is </span><span class="sc">{1}</span><span class="st">&quot;</span>.<span class="bu">format</span>(opn, match.groups()))
+            <span class="cf">if</span> match:
+               <span class="cf">if</span> <span class="st">&quot;tags&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug:
+                  msg <span class="op">=</span> <span class="st">&quot;         assign </span><span class="sc">{0}</span><span class="st"> to opnsdict[</span><span class="sc">{1}</span><span class="st">]&quot;</span>
+                  <span class="bu">print</span>(msg.<span class="bu">format</span>(match.group(<span class="dv">2</span>), match.group(<span class="dv">1</span>)))
+               value <span class="op">=</span> match.group(<span class="dv">2</span>)
+               opnsdict[match.group(<span class="dv">1</span>)] <span class="op">=</span> <span class="st">'True'</span> <span class="cf">if</span> value <span class="op">is</span> <span class="va">None</span> <span class="op">or</span> value<span class="op">==</span><span class="st">''</span> <span class="cf">else</span> value
+      <span class="cf">if</span> opnscount <span class="op">&gt;</span> <span class="bu">len</span>(opnsdict):
+         <span class="va">self</span>._addErrorMessage(<span class="st">&quot;Descriptor '</span><span class="sc">{0}</span><span class="st">' has a syntax error&quot;</span>.<span class="bu">format</span>(dscr))
+      <span class="cf">for</span> opn <span class="op">in</span> opnsdict: <span class="co"># option values are either ints, bools, or lists of strings</span>
+         <span class="cf">if</span> <span class="st">&quot;options&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug: 
+            <span class="bu">print</span>(<span class="st">&quot;         splitting '</span><span class="sc">{0}</span><span class="st">':&quot;</span>.<span class="bu">format</span>(opnsdict[opn]))
+         opnsdict[opn] <span class="op">=</span> [x <span class="cf">for</span> x <span class="op">in</span> opnsdict[opn].split(<span class="st">&quot;,&quot;</span>) <span class="cf">if</span> <span class="bu">len</span>(x)<span class="op">&gt;</span><span class="dv">0</span>]
+         <span class="cf">if</span> <span class="st">&quot;options&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug:
+            <span class="bu">print</span>(<span class="st">&quot;         assigns </span><span class="sc">{1}</span><span class="st"> to </span><span class="sc">{0}</span><span class="st">&quot;</span>.<span class="bu">format</span>(opn, opnsdict[opn]))
+      <span class="cf">if</span> name <span class="op">==</span> <span class="st">&quot;pandoc&quot;</span>:
+         <span class="cf">return</span> PandocSection(starttag, stoptag, opnsdict, body) 
+      <span class="cf">elif</span> name <span class="op">==</span> <span class="st">&quot;python&quot;</span>:
+         <span class="cf">return</span> PythonSection(starttag, stoptag, opnsdict, body)
+      <span class="cf">elif</span> name <span class="op">==</span> <span class="st">&quot;head&quot;</span>:
+         <span class="cf">return</span> HeadSection(starttag, stoptag, opnsdict, body)
+      <span class="cf">else</span>:
+         <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">&quot;Unknown section type: '</span><span class="sc">{0}</span><span class="st">'&quot;</span>.<span class="bu">format</span>(name))
+</code></pre></div>
+<h3 id="assigncodetoasectionstart-stop-prior"><code>assignCodeToASection(start, stop, prior)</code></h3>
+<p><code>start</code> and <code>stop</code> are line numbers. The lines from <code>start</code> to <code>stop</code> is a sequence of Python source code lines. If <code>prior</code> is non-null, it is a <code>PythonSection</code> to which the code belongs. Otherwise, a <code>PythonSection</code> must be created to hold the code–I call it an “implied” section in the comments to follow.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> assignCodeToASection(<span class="va">self</span>, start, stop, prior):
+      between <span class="op">=</span> <span class="st">&quot;&quot;</span>.join(<span class="va">self</span>.content[start : stop])
+      <span class="cf">if</span> prior <span class="op">and</span> prior.isPython():
+         prior.code <span class="op">=</span> between
+         prior.codestop  <span class="op">=</span> stop
+         <span class="cf">if</span> <span class="st">&quot;code&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug:
+            <span class="bu">print</span>(<span class="st">&quot;   python(</span><span class="sc">{2}</span><span class="st">) [</span><span class="sc">{0}</span><span class="st">:</span><span class="sc">{1}</span><span class="st">] code completed&quot;</span>.<span class="bu">format</span>(start, stop, prior.<span class="bu">id</span>))
+         <span class="cf">if</span> start <span class="op">!=</span> prior.codestart:
+            msg <span class="op">=</span> <span class="st">&quot;      Code start mismatch: tag end </span><span class="sc">{0}</span><span class="st">, apparent start </span><span class="sc">{1}</span><span class="st">&quot;</span>
+            <span class="cf">if</span> <span class="bu">len</span>(<span class="va">self</span>.debug)<span class="op">&gt;</span><span class="dv">0</span>: <span class="bu">print</span>(msg.<span class="bu">format</span>(prior.codestart, start))
+      <span class="cf">elif</span> between:
+         section <span class="op">=</span> PythonSection(start, stop, {}, <span class="va">None</span>)
+         section.codestart <span class="op">=</span> start
+         section.codestop  <span class="op">=</span> stop
+         section.code      <span class="op">=</span> between
+         section.<span class="bu">id</span>        <span class="op">=</span> <span class="bu">len</span>(<span class="va">self</span>.sections)
+         <span class="cf">if</span> <span class="st">&quot;code&quot;</span> <span class="op">in</span> <span class="va">self</span>.debug:
+            <span class="bu">print</span>(<span class="st">&quot;   implied(</span><span class="sc">{2}</span><span class="st">) [</span><span class="sc">{0}</span><span class="st">:</span><span class="sc">{1}</span><span class="st">]&quot;</span>.<span class="bu">format</span>(start, stop, <span class="bu">id</span>))
+         <span class="va">self</span>.sections.append(section)
+ 
+   <span class="kw">def</span> _addErrorMessage(<span class="va">self</span>, msg):
+      <span class="cf">if</span> <span class="bu">len</span>(<span class="va">self</span>.errors) <span class="op">&lt;</span> <span class="va">self</span>.errorlimit:
+         <span class="va">self</span>.errors.append(msg)
+</code></pre></div>
+<h2 id="the-main-class-panpypepathsnone-optionsnone">The Main Class: <code>Panpype(paths=None, options=None)</code></h2>
+<p>A Panpype instance sets up the environment for a transforming some, or all, of a directory of Python source files that are marked up with panpype conventions into the corresponding</p>
+<ol type="1">
+<li><p>Python (<code>.py</code>) file that includes all of the (implied and explicitly bracketed) <code>python</code> sections,</p></li>
+<li><p>Pandoc markdown (<code>.md</code>) file, and</p></li>
+<li><p>HTML (<code>.html</code>) file got by letting <code>pandoc</code> transform the <code>.md</code> file</p></li>
+</ol>
+<p>The two arguments are</p>
+<blockquote>
+<p><code>paths</code>, which is a <code>DirectoriesTuple</code> that determines where any output goes, and</p>
+</blockquote>
+<blockquote>
+<p><code>options</code>, which is an <code>OutputOptionsTuple</code> that determines what output is created and some parameters, like the tab size and the maximum backup count.</p>
+</blockquote>
+<p>The two parameters are assigned, as is, to the corresponding attributes of the instance. In addition, the “<code>dbg</code>” option is used to initialize a <a href="dbg.html">debugging keys manager</a> that is saved as the “<code>dbg</code>” attribute of the new <code>Panpype</code> instance, and the “<code>errors</code>” value is copied into the “<code>errorLimit</code>” attribute.</p>
+<p>Following the now commonplace <em>Ruby on Rails</em> mantra, I prefer conventions over configuration. Mine are:</p>
+<blockquote>
+<p>The source file type is <em>“<code>.pype</code>”.</em></p>
+</blockquote>
+<blockquote>
+<p>There is a parent directory, the “root”, that has “<code>src</code>”, “<code>py</code>”, “<code>md</code>”, and “<code>doc</code>” subdirectories to hold the source file and the three output files. By default, the root is the current working directory. The “<code>md</code>” directory is optional: you only need it if you choose to keep the markdown files. The Python goes to the “<code>py</code>” directory, and the HTML to “<code>doc</code>”</p>
+</blockquote>
+<p>The constructor allows you to put the output files whereever your heart desires. The simplest invocation specifies the “root directory” to be used as the parent with the conventions just mentioned. You can override one or all of these conventions simply by providing your own values for the corresponding options as described in the comand line option discussion. All of the subdirectory paths are interpreted as relative to the root directory unless they are absolute. <em>NB.</em> <code>./xxx</code>, <code>../xxx</code> and <code>~/xxx</code> are relative paths with an implied absolute path <em>and will therefore be treated as absolute</em>.</p>
+<p>The convention for backing up the output files is to keep a “<code>bak</code>” subdirectory of each output directory. See the <a href="fileutils.html"><code>fileutils</code></a> module for the ins and outs of backing up a file on opening it for writing. You can limit the number of backups for each source file by specifying the <code>backups</code> option. The default is 25–probably too large, but a way to allow those doing frequent compiles to get more than a few minute’s history. Use 0 to get no backups, or <code>all</code> to keep all of the backups. It’s your disc! Enjoy!</p>
+<p>The <code>.html</code> output is created by the <code>pandoc</code> command and requires a <code>.css</code> file. The constructor allows one to specify a <code>css</code> directory or the file itself. The default is to use a <code>css</code> subdirectory of <code>doc</code>, and if you do not provide a .css file, I will supply one name <code>panpype.css</code>. If you just supply the directory, I will look for <code>panpype.css</code> there, and if I do not find it, I create it there.</p>
+<p>The options allow you to specify what the output you want. The default is to create all three: the Python, the markdown, and the HTML. Include <code>{&quot;md&quot;:False}</code> in the argument for <code>outputOptions</code>, if you wish to discard the <code>.md</code> file. The analogous convention holds for the other two, but it would be rare to use it. Take a look at <a href="#fromcmdlineargs">fromCmdline</a> for an example of how to set up the options.</p>
+<p>All of the options are updatable once the constructor returns, but it is on your head to assure the timeliness and integrity of any changes. Use the methods immediately following the constructor here to make the changes. One thing to be careful of: once the <code>head</code> section for an input has been processed, the tab size is set for that file and all its tabs are replaced with the appropriate number of spaces.</p>
+<h3 id="turnondbgflagname"><code>turnOnDbgFlag(name)</code></h3>
+<p>Request the debugging key manager to turn on the debugging output for the key <em><code>name</code></em>.</p>
+<h3 id="turnoffdbgflagname"><code>turnOffDbgFlag(name)</code></h3>
+<p>Request the debugging key manager to turn off the debugging output for the key <em><code>name</code></em>.</p>
+<h3 id="updateoutputoptionkey-newvalue"><code>updateOutputOption(key, newValue)</code></h3>
+<p>Update the paths and options to reflect a new value <em><code>newValue</code></em> for the option <em><code>key</code></em></p>
+<h3 id="setomitsrcflagyesorno"><code>setOmitSrcFlag(yesOrNo)</code></h3>
+<p>By default, the Python source code goes into the markdown file along with all of the commentary. The argument, <code>yesOrNo</code>, is a Boolean or a <a href="sysutils.html#">string literal for a Boolean</a>. If the value is “true”, the source will not be copied into the markdown file.</p>
+<h3 id="settabstabsize"><code>setTabs(tabsize)</code></h3>
+<p>Tabs are replaced with spaces, and by default the tab size is my favorite, 3. Call this method with the argument <code>tabsize</code> an integer (or integer literal) in the range 0 through 8 (inclusive). A tab size of 0 implies that tabs are to be left as is.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">    
+<span class="kw">class</span> Panpype:
+   <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>,  paths<span class="op">=</span>directories(), options<span class="op">=</span>outputOptions()):
+      <span class="va">self</span>.paths <span class="op">=</span> paths
+      <span class="va">self</span>.options <span class="op">=</span> options
+      <span class="va">self</span>.dbg <span class="op">=</span> Dbg(options.debug) 
+      <span class="va">self</span>.errorLimit <span class="op">=</span> options.errors
+      <span class="cf">if</span> options.assure:
+         fileutils.assureDirectory(paths.py, paths.md, paths.doc)
+
+   <span class="kw">def</span> turnOnDbgFlag(<span class="va">self</span>, name):
+      <span class="va">self</span>.dbg.add(name)
+
+   <span class="kw">def</span> turnOffDbgFlag(<span class="va">self</span>, name):
+      <span class="va">self</span>.dbg.remove(name)
+
+   <span class="kw">def</span> updateOutputOption(<span class="va">self</span>, name, newValue):
+      <span class="va">self</span>.options <span class="op">=</span> outputOptions({name: value}, <span class="va">self</span>.options)
+
+   <span class="kw">def</span> setOmitSrcFlag(<span class="va">self</span>, newDefault):
+      <span class="va">self</span>.updateOutputOption(<span class="st">&quot;omitsrc&quot;</span>, su.asboolean(newDefault))
+
+   <span class="kw">def</span> setTabs(<span class="va">self</span>, tabsize):
+      sizeAsInt <span class="op">=</span> <span class="bu">int</span>(tabsize) <span class="cf">if</span> tabsize <span class="cf">else</span> <span class="dv">0</span>
+      tabs <span class="op">=</span>  <span class="dv">1</span> <span class="op">+</span> (sizeAsInt<span class="dv">-1</span>)<span class="op">%</span><span class="dv">8</span> <span class="cf">if</span> sizeAsInt<span class="op">&gt;</span><span class="dv">0</span> <span class="cf">else</span> <span class="dv">0</span>
+      <span class="va">self</span>.updateOutputOption(<span class="st">&quot;tabs&quot;</span>, tabs)
+
+</code></pre></div>
+<h3 id="computepathstousepath"><code>computePathsToUse(path)</code></h3>
+<p>When <code>path</code> names a directory, we have been asked to process a whole directory worth of files. Here we figure out, from the path and from the options we’ve been given, the output directories. The process begins by making <code>path</code> absolute and normalizing it (<em>e.g.</em> no repeated <code>/</code>’s ). If the path ends with “src” and names a directory, it is assumed that it names the <code>.pype</code> source directory, and that its parent directory is the root. Otherwise, it is taken to be the root directory. The remaining directory paths are then computed using the conventions outlined above.</p>
+<p>The return value is a <code>DirectoriesTuple</code> with the values just computed.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> computePathsToUse(<span class="va">self</span>, path):
+      <span class="bu">print</span>(<span class="st">&quot;path </span><span class="sc">{0}</span><span class="st">, base </span><span class="sc">{1}</span><span class="st">&quot;</span>.<span class="bu">format</span>(path, os.path.basename(path)))
+      <span class="cf">if</span> <span class="op">not</span> os.path.isabs(path):
+         path <span class="op">=</span> fileutils.normalizeAPath(<span class="va">self</span>.paths.root, <span class="va">None</span>, path)
+         <span class="bu">print</span>(<span class="st">&quot;   normalized to be '</span><span class="sc">{0}</span><span class="st">'&quot;</span>.<span class="bu">format</span>(path))
+      baseIsNotSrc <span class="op">=</span> os.path.basename(path) <span class="op">!=</span> <span class="st">&quot;src&quot;</span>
+      <span class="cf">if</span> baseIsNotSrc <span class="op">and</span> os.path.isdir(path<span class="op">+</span><span class="st">&quot;/src&quot;</span>):
+         srcdir <span class="op">=</span> path <span class="op">+</span> <span class="st">&quot;/src&quot;</span>
+         rootdir <span class="op">=</span> path
+      <span class="cf">else</span>:
+         srcdir <span class="op">=</span> path
+         (rootdir, base) <span class="op">=</span> os.path.split(path)
+      paths <span class="op">=</span> {
+         <span class="st">&quot;root&quot;</span>: rootdir, 
+         <span class="co">&quot;src&quot;</span>: srcdir,
+         <span class="co">&quot;py&quot;</span>:  fileutils.normalizeAPath(rootdir, <span class="st">&quot;py&quot;</span>, <span class="va">None</span>),
+         <span class="co">&quot;md&quot;</span>:  fileutils.normalizeAPath(rootdir, <span class="st">&quot;md&quot;</span>, <span class="va">None</span>),
+         <span class="co">&quot;doc&quot;</span>: fileutils.normalizeAPath(rootdir, <span class="st">&quot;doc&quot;</span>, <span class="va">None</span>),
+         <span class="co">&quot;css&quot;</span>: fileutils.normalizeAPath(rootdir, <span class="st">&quot;doc/css&quot;</span>, <span class="va">None</span>),
+         <span class="co">&quot;bak&quot;</span>: <span class="va">self</span>.paths.bak
+      }
+      <span class="cf">return</span> directories(paths)
+</code></pre></div>
+<h3 id="processpaths-options"><code>process(paths, options={})</code></h3>
+<p><code>process</code> creates the output files requested for all of the files named by the paths. If no paths are passed as arguments, all of the <code>.pype</code> files in the source directory implied by the <code>options</code> are processed. The paths may name directories, as well as individual files. See the comments on <a href="#computePathsToUsepath">computePathsToUse</a> for what happens when one of the paths names a directory. <code>options</code>, if supplied, must be a <code>dict</code>-like object and must be supplied as a keyword argument. It is used to override some or all of the default output parameters in <code>self.options</code>.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> process(<span class="va">self</span>, paths, options<span class="op">=</span>{}):
+      <span class="cf">if</span> <span class="bu">len</span>(paths) <span class="op">is</span> <span class="dv">0</span>:
+         paths <span class="op">=</span> [<span class="va">self</span>.paths.src]
+      errors <span class="op">=</span> <span class="dv">0</span>
+      maxrc <span class="op">=</span> <span class="dv">0</span>
+      options <span class="op">=</span> outputOptions(options, <span class="va">self</span>.options)
+      <span class="cf">for</span> path <span class="op">in</span> paths:
+         <span class="cf">if</span> os.path.isdir(path): <span class="co"># enforce our convention: look for source in the src of the root</span>
+            pathsToUse <span class="op">=</span> <span class="va">self</span>.computePathsToUse(path)
+            srcdir <span class="op">=</span> pathsToUse.src
+            <span class="cf">if</span> <span class="st">&quot;env&quot;</span> <span class="op">in</span> <span class="va">self</span>.dbg:
+               <span class="bu">print</span>(<span class="st">&quot;Processing directory '</span><span class="sc">{0}</span><span class="st">'&quot;</span>.<span class="bu">format</span>(srcdir))
+            <span class="cf">for</span> srcname <span class="op">in</span> os.listdir(srcdir):
+               <span class="cf">if</span> srcname.endswith(<span class="st">&quot;.pype&quot;</span>):
+                  <span class="va">self</span>.processAFile(srcname, srcdir, pathsToUse, options)
+         <span class="cf">else</span>:
+            (srcdir, srcname) <span class="op">=</span> os.path.split(path)
+            <span class="cf">if</span> <span class="op">not</span> srcdir: srcdir <span class="op">=</span>  <span class="va">self</span>.paths.src
+            <span class="cf">elif</span> <span class="op">not</span> os.path.isabs(srcdir): 
+               srcdir <span class="op">=</span> os.path.abspath(os.path.join(<span class="va">self</span>.paths.src, srcdir))
+            rc <span class="op">=</span> <span class="va">self</span>.processAFile(srcname, srcdir, <span class="va">self</span>.paths, options)
+            <span class="cf">if</span> rc <span class="op">!=</span> <span class="dv">0</span>: errors <span class="op">+=</span> <span class="dv">1</span>
+            <span class="cf">if</span> rc <span class="op">&gt;</span> maxrc: maxrc <span class="op">=</span> rc
+            <span class="cf">if</span> errors <span class="op">&gt;</span> <span class="va">self</span>.errorLimit:
+               <span class="cf">break</span>
+      <span class="cf">return</span> maxrc
+</code></pre></div>
+<h3 id="processafilesrcname-srcdir-paths-options"><code>processAFile(srcname, srcdir, paths, options)</code></h3>
+<p><code>processAFile writes the output files requested for the file</code>srcname<code>found in the directory</code>srcdir`.</p>
+<p>The third argument, <code>path</code> is the <code>DirectoriesTuple</code> that specifies the defaults for the input and output paths. If <code>srcdir</code> is a relative path it will be taken to be relative to the default source directory as found there (and not the current working directory, unless they happen to be the same).</p>
+<p>The final argument, <code>options</code>, if supplied, must be a <code>dict</code> or an <code>OutputOptionsTuple</code>. It is used to override some or all of the default output parameters in <code>self.options</code>.</p>
+<p>The return value is an integer return code that follows the usual shell convention: 0 means “success”, and anything else means “failure”.</p>
+<p>Programming note: the file is partitioned into sets of lines (“sections”) of one of three types: head, code, markdown. The three “<code>writeThe...</code>” methods below are then called to write the three output files. The critical point here is that <em>the whole process is line oriented</em>. Only the most minimal parsing is done.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> processAFile(<span class="va">self</span>, srcname, srcdir, paths, options):
+      <span class="cf">if</span> <span class="st">&quot;files&quot;</span> <span class="op">in</span> <span class="va">self</span>.dbg: 
+         <span class="bu">print</span>(<span class="st">&quot;Processing file '</span><span class="sc">{0}</span><span class="st">' in '</span><span class="sc">{1}</span><span class="st">'&quot;</span>.<span class="bu">format</span>(srcname, srcdir))
+      outputinfo <span class="op">=</span> <span class="va">self</span>.options <span class="cf">if</span> <span class="op">not</span> options <span class="cf">else</span> outputOptions(options, <span class="va">self</span>.options)
+      srcPath <span class="op">=</span> os.path.join(srcdir, srcname)
+      parsed <span class="op">=</span> ParsedInput(srcPath, outputinfo)
+      rc <span class="op">=</span> <span class="dv">0</span>
+      <span class="cf">if</span> outputinfo.py:
+         <span class="va">self</span>.writeThePythonFile(srcname, parsed.sections, paths, outputinfo)
+      <span class="cf">if</span> outputinfo.md <span class="op">or</span> outputinfo.html:
+         mdpath <span class="op">=</span> <span class="va">self</span>.writeTheMDFile(srcname, parsed.head, parsed.sections, paths, outputinfo)
+         <span class="cf">if</span> <span class="op">not</span> mdpath:
+            rc <span class="op">=</span> <span class="dv">100</span>
+         <span class="cf">else</span>:
+            <span class="cf">if</span> outputinfo.html:
+               result <span class="op">=</span> <span class="va">self</span>.writeTheHTMLFile(srcname, mdpath, paths, outputinfo)
+               <span class="cf">if</span> <span class="st">&quot;html&quot;</span> <span class="op">in</span> <span class="va">self</span>.dbg <span class="op">and</span> result.stdout:
+                  <span class="bu">print</span>(<span class="st">&quot;Created: &quot;</span>.<span class="bu">format</span>(path, result.stdout))
+               <span class="cf">if</span> result.stderr:
+                  <span class="bu">print</span>(<span class="st">&quot;Error creating </span><span class="sc">{0}</span><span class="st">: </span><span class="sc">{1}</span><span class="st">&quot;</span>.<span class="bu">format</span>(mdpath, result.stderr))
+                  rc <span class="op">=</span> <span class="dv">101</span>
+            <span class="cf">if</span> <span class="op">not</span> outputinfo.md:
+               os.remove(mdpath)
+      <span class="cf">return</span> rc
+</code></pre></div>
+<h2 id="processing-and-then-writing-the-parsed-content">Processing and then writing the parsed content</h2>
+<h3 id="vettheoutputpathspypefilename-filetype-outputpath-backups-bak"><code>vetTheOutputPaths(pypefilename, filetype, outputPath, backups, bak)</code></h3>
+<p>This is called for output files in order to make sure that there is a valid path to them, and if desired, a valid path to the backup file. The return value is the tuple (outputpath, backuppath). The <code>pypefilename</code> argument is assumed to be just that: a “slash-free” name possibly ending in “.pype” or some other file type. <code>filetype</code> is the appropriate file name extension for the output file’s type. The extension of <code>pypefilename</code> if any, is stripped before adding the new extension. <code>outputPath</code> is exactly that and is used “as is”. <code>backups</code> is the number of backups to keep. Finally, <code>bak</code> is the path for the backup files relative to <code>outputPath</code>.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> vetTheOutputPaths(<span class="va">self</span>, pypefilename, filetype, outputPath, backups, bak):
+      fileutils.assureDirectory(outputPath)
+      <span class="cf">if</span> backups <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">and</span> <span class="op">not</span> bak <span class="op">is</span> <span class="va">None</span>:
+         backupPath <span class="op">=</span> os.path.join(outputPath, bak)
+         fileutils.assureDirectory(backupPath)
+      <span class="cf">else</span>:
+         backupPath <span class="op">=</span> <span class="va">None</span>
+      lastdot <span class="op">=</span> pypefilename.rindex(<span class="st">&quot;.&quot;</span>)
+      truebase <span class="op">=</span> pypefilename[<span class="dv">0</span> : lastdot] <span class="cf">if</span> lastdot <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> pypefilename
+      path <span class="op">=</span> os.path.join(outputPath, truebase<span class="op">+</span>filetype)
+      <span class="cf">return</span> (path, backupPath)
+</code></pre></div>
+<h3 id="writethepythonfilepypefilename-sections-paths-options"><code>writeThePythonFile(pypefilename, sections, paths, options)</code></h3>
+<p>Loops over the list of sections, writing out each <code>PythonSection</code>’s content to the <code>.py</code> file.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> writeThePythonFile(<span class="va">self</span>, pypefilename, sections, paths, options):
+      keep <span class="op">=</span> options.backups
+      (path, backupPath) <span class="op">=</span> <span class="op">\</span>
+         <span class="va">self</span>.vetTheOutputPaths(pypefilename, <span class="st">&quot;.py&quot;</span>, paths.py, keep, paths.bak)
+      <span class="cf">if</span> <span class="st">&quot;out&quot;</span> <span class="op">in</span> <span class="va">self</span>.dbg:
+         <span class="bu">print</span>(<span class="st">&quot;Python written to '</span><span class="sc">{0}</span><span class="st">'&quot;</span>.<span class="bu">format</span>(path))
+      <span class="cf">with</span> fileutils.fopen(path, where<span class="op">=</span>backupPath, toKeep<span class="op">=</span>keep) <span class="im">as</span> fout:
+         <span class="cf">for</span> item <span class="op">in</span> sections:
+            <span class="cf">if</span> <span class="st">&quot;out&quot;</span> <span class="op">in</span> <span class="va">self</span>.dbg:
+               <span class="bu">print</span>(<span class="st">&quot;   WTPF: item(</span><span class="sc">{0}</span><span class="st">) is python? </span><span class="sc">{1}</span><span class="st">?&quot;</span>.<span class="bu">format</span>(item.name, item.isPython()))
+            <span class="cf">if</span> item.isPython():
+               fout.write(item.code)
+</code></pre></div>
+<h3 id="writethemdfilepypefilename-head-sections-paths-options"><code>writeTheMDFile(pypefilename, head, sections, paths, options)</code></h3>
+<p>Loops over all of the sections, writing out the <code>PandocSection</code>s as is, and bracketing the <code>PythonSection</code>s that are also to be written out in the “twiddle tags” that Pandoc uses to recognize the beginning and end of a Python code section.</p>
+<p>If the markdown file is not to be kept, it is put in the <code>doc</code> directory and erased after the HTML file is created. Otherwise, it is put in the <code>md</code> directory.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">   <span class="kw">def</span> writeTheMDFile(<span class="va">self</span>, pypefilename, head, sections, paths, options):
+      <span class="co"># do not create a (possibly) unnecessary directory to hold the markdown file:</span>
+      mdDirectory <span class="op">=</span> paths.md <span class="cf">if</span> options.md <span class="cf">else</span> paths.doc
+      keep <span class="op">=</span> options.backups
+      (path, backupPath) <span class="op">=</span> <span class="op">\</span>
+         <span class="va">self</span>.vetTheOutputPaths(pypefilename, <span class="st">&quot;.md&quot;</span>, mdDirectory, keep, paths.bak)
+      <span class="cf">if</span> options.debug:
+         <span class="bu">print</span>(<span class="st">&quot;Markdown </span><span class="sc">{1}</span><span class="st"> sections written to '</span><span class="sc">{0}</span><span class="st">'&quot;</span>.<span class="bu">format</span>(path, <span class="bu">len</span>(sections)))
+      <span class="cf">with</span> fileutils.fopen(path, where<span class="op">=</span>backupPath, toKeep<span class="op">=</span>options.backups) <span class="im">as</span> fout:
+         fout.write(head.body)
+         <span class="cf">for</span> section <span class="op">in</span> sections:
+            <span class="cf">if</span> <span class="st">&quot;out&quot;</span> <span class="op">in</span> <span class="va">self</span>.dbg:
+               <span class="bu">print</span>(<span class="st">&quot;   </span><span class="sc">{0}</span><span class="st"> section&quot;</span>.<span class="bu">format</span>(section.name))
+            <span class="cf">if</span> section.isPandoc():
+               fout.write(section.body)
+            <span class="cf">elif</span> section.isPython():
+               fout.write(_START_PYTHON)
+               fout.write(section.code)
+               fout.write(_END_PYTHON)
+            <span class="cf">else</span>:
+               msg <span class="op">=</span> <span class="st">&quot;Unexpected section type, </span><span class="sc">{0}</span><span class="st">, name '</span><span class="sc">{1}</span><span class="st">'&quot;</span>
+               <span class="cf">raise</span> <span class="pp">Exception</span>(msg.<span class="bu">format</span>(<span class="bu">type</span>(section), section.name))
+      <span class="cf">return</span> path
+</code></pre></div>
+<h3 id="writethehtmlfilepypefilename-mdpath-paths-options"><code>writeTheHTMLFile(pypefilename, mdpath, paths, options)</code></h3>
+<p>This method sets up an invocation of a shell command, <code>pypetohtml</code> that invokes the <code>pandoc</code> processor to create the HTML file. As of this writing the shell command to invoke is hardwired in, but I think I should change that and make it an option visible to the command line or even the head descriptor. As far as I can tell now, what is at stake is mainly what <code>.css</code> file to use.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> _getCSSDefaults(<span class="va">self</span>):
+      <span class="cf">return</span> <span class="st">&quot;&quot;&quot;</span>
+<span class="st">@media print { </span>
+<span class="st">   body { font-size: 18pt; }</span>
+<span class="st">   code { font-family: Monaco; font-size: smaller; }</span>
+<span class="st">   pre { font-family: Courier; font-size: smaller; }</span>
+<span class="st">   .exampleCode { background-color: blanchedalmond; font-family: Monaco; font-size: 14pt; }</span>
+<span class="st">   .sourceCode  { background-color: lightgray;  font-family: Courier; font-size: 14pt; }</span>
+<span class="st">}</span>
+<span class="st">.author { text-align: center; font-size: 12pt; font-weight: bold; }</span>
+<span class="st">.date { text-align: center; font-size: smaller; }</span>
+<span class="st">pre {</span>
+<span class="st">    -moz-tab-size:    3;</span>
+<span class="st">    -o-tab-size:      3;</span>
+<span class="st">    -webkit-tab-size: 3;</span>
+<span class="st">    -ms-tab-size:     3;</span>
+<span class="st">    tab-size:         3;</span>
+<span class="st">    line-height: 1.125em</span>
+<span class="st">}</span>
+<span class="st">@media screen {</span>
+<span class="st">   code { font-family: Monaco; font-size: smaller; }</span>
+<span class="st">   h4 { text-decoration: underline; }</span>
+<span class="st">   .exampleCode { background-color: blanchedalmond; font-family: Monaco; font-size: 9pt; }</span>
+<span class="st">   .sourceCode  { background-color: lightgray; font-family: Courier; font-size: 11pt;  }</span>
+<span class="st">}</span>
+<span class="st">.h1Code { font-family:Courier; font-size: 20pt; font-weight: normal; }</span>
+<span class="st">.h2Code { font-family:Courier; font-size: 18pt; font-weight: normal; }</span>
+<span class="st">.h3Code { font-family:Courier; font-size: 14pt; }</span>
+<span class="st">.title     { text-align: center; }</span>
+<span class="st">.titleCode { font-family:Courier; font-size: 24pt; font-weight: normal; }</span>
+<span class="st">.titleText { font-size: 16pt; font-weight: bold; }</span>
+<span class="st">&quot;&quot;&quot;</span>
+   <span class="kw">def</span> _getTheCSSPath(<span class="va">self</span>, paths):
+      cssPath <span class="op">=</span> paths.css
+      exists <span class="op">=</span> os.path.exists(cssPath)
+      isdir  <span class="op">=</span> os.path.isdir(cssPath)
+      <span class="cf">if</span> exists <span class="op">and</span> <span class="op">not</span> isdir :
+         cssPath <span class="op">=</span> fileutils.normalizeAPath(<span class="va">self</span>.paths.root, <span class="va">None</span>, path<span class="op">=</span>cssPath)
+      <span class="cf">else</span>:
+         <span class="cf">if</span> exists <span class="op">or</span> <span class="op">not</span> paths.css.endswith(<span class="st">&quot;.css&quot;</span>):
+            fileutils.assureDirectory(cssPath)
+            cssPath <span class="op">=</span> paths.css<span class="op">+</span><span class="st">&quot;/panpype.css&quot;</span>
+         cssPath <span class="op">=</span> fileutils.normalizeAPath(<span class="va">self</span>.paths.root, <span class="va">None</span>, path<span class="op">=</span>cssPath)
+         <span class="cf">if</span> <span class="op">not</span> os.path.exists(cssPath):
+            <span class="bu">print</span>(<span class="st">&quot;We need to create the .css file {}!&quot;</span>.<span class="bu">format</span>(cssPath))
+            <span class="cf">with</span> <span class="bu">open</span>(cssPath, mode<span class="op">=</span><span class="st">&quot;w&quot;</span>) <span class="im">as</span> cssFile:
+               cssFile.write(<span class="va">self</span>._getCSSDefaults())
+      <span class="co">#print(&quot;paths.css is '{}', using '{}'&quot;.format(paths.css, cssPath))</span>
+      <span class="cf">return</span> cssPath
+
+   <span class="kw">def</span> writeTheHTMLFile(<span class="va">self</span>, pypefilename, mdpath, paths, options):
+      keep <span class="op">=</span> options.backups
+      (path, backupPath) <span class="op">=</span> <span class="op">\</span>
+         <span class="va">self</span>.vetTheOutputPaths(pypefilename, <span class="st">&quot;.html&quot;</span>, paths.doc, keep, paths.bak)
+      <span class="cf">if</span> <span class="st">&quot;out&quot;</span> <span class="op">in</span> <span class="va">self</span>.dbg:
+         <span class="bu">print</span>(<span class="st">&quot;HTML written to '</span><span class="sc">{0}</span><span class="st">'&quot;</span>.<span class="bu">format</span>(path))
+      fileutils.backup(path, backupPath, options.backups)
+      csspath <span class="op">=</span> <span class="va">self</span>._getTheCSSPath(paths)
+      pandocargs <span class="op">=</span> [<span class="st">&quot;pandoc&quot;</span>, 
+         <span class="co">&quot;-p&quot;</span>, <span class="st">&quot;-s&quot;</span>, <span class="st">&quot;-S&quot;</span>, <span class="st">&quot;-f&quot;</span>, <span class="st">&quot;markdown&quot;</span>, <span class="st">&quot;-t&quot;</span>, <span class="st">&quot;html5&quot;</span>, <span class="st">&quot;--toc&quot;</span>,
+         <span class="co">&quot;--toc-depth=4&quot;</span>, <span class="st">&quot;--self-contained&quot;</span>, <span class="st">&quot;--css&quot;</span>, csspath,
+         <span class="co">&quot;-o&quot;</span>, path, mdpath]
+      <span class="cf">try</span>:
+         <span class="cf">return</span> sp.run(pandocargs, stdout<span class="op">=</span>sp.PIPE, stderr<span class="op">=</span>sp.PIPE, universal_newlines<span class="op">=</span><span class="va">True</span>)
+      <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:
+         ErrorTuple <span class="op">=</span> namedtuple(<span class="st">&quot;ErrorTuple&quot;</span>, <span class="st">&quot;stdout stderr&quot;</span>) <span class="co"># truncated run result object</span>
+         sio <span class="op">=</span> StringIO()
+         print_exception(<span class="pp">Exception</span>, e, e.__traceback__, limit<span class="op">=</span><span class="dv">10</span>, <span class="bu">file</span> <span class="op">=</span> sio)
+         sio.seek(<span class="dv">0</span>)
+         <span class="cf">return</span> ErrorTuple(<span class="va">None</span>, sio.read())
+</code></pre></div>
+<h2 id="command-line-arguments">Command line arguments</h2>
+<p>All of the various parameters for finding, parsing and transforming the input files are available as command line parameters. Rather than list them here, I decided to let you enter the command <code>panpype</code> <code>--help</code>, which will get you what you need. Except as otherwise specified, all paths shown in the help message are relative to the root.</p>
+<h3 id="setcmdlineargsparser"><code>setCmdLineArgs(parser)</code></h3>
+<p>Add the command line options to the command line parser’s list. The argument <code>parser</code> is a <code>CmdLineParser</code> instance created by whoever is actually reading the command line, as in the code at the very end of this file. The job here is to prepare the parser by telling it what options it can expect.</p>
+<h3 id="fromcmdlineargs"><code>fromCmdline(args)</code></h3>
+<p>Construct an initialized Panpype instance either by using for <code>args</code> the options returned by calling a <code>CmdLineParser</code>, or by using any other object, like an <code>OutputOptionsTuple</code>, that has the appropriate attributes.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">   <span class="kw">def</span> setCmdLineArgs(parser):
+      parser.add_a_flag(<span class="st">&quot;-assure&quot;</span>, <span class="st">&quot;ensure needed output directories exist or can be created&quot;</span>)
+      parser.add_a_flag(<span class="st">&quot;-nopy&quot;</span>, <span class="st">&quot;do not create the Python output&quot;</span>)
+      parser.add_a_flag(<span class="st">&quot;-nomd&quot;</span>, <span class="st">&quot;do not save the markdown intermediate file&quot;</span>)
+      parser.add_a_flag(<span class="st">&quot;-nohtml&quot;</span>, <span class="st">&quot;do not create the html file&quot;</span>)
+      parser.add_a_flag(<span class="st">&quot;-omitsrc&quot;</span>, <span class="st">&quot;do not include source code in the markdown&quot;</span>)
+
+      parser.add_an_int(<span class="st">&quot;-tabs&quot;</span>, <span class="dv">3</span>, <span class="st">&quot;tab spacing&quot;</span>)
+      parser.add_an_int(<span class="st">&quot;-errors&quot;</span>, <span class="dv">3</span>, <span class="st">&quot;how many errors to allow before aborting&quot;</span>)
+      parser.add_an_int(<span class="st">&quot;-backups&quot;</span>, <span class="dv">25</span>, <span class="st">&quot;number of backups to keep&quot;</span>)
+
+      parser.add_a_str(<span class="st">&quot;-dbg&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="st">&quot;turn on debug output for keys in the value&quot;</span>)
+      parser.add_a_str(<span class="st">&quot;-root&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="st">&quot;root directory path for a Panpype environment&quot;</span>)
+      parser.add_a_str(<span class="st">&quot;-src&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="st">&quot;directory for the .pype files&quot;</span>)
+      parser.add_a_str(<span class="st">&quot;-bak&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="st">&quot;directory for backups relative to type backed up&quot;</span>)
+      parser.add_a_str(<span class="st">&quot;-py&quot;</span>,  <span class="st">&quot;&quot;</span>, <span class="st">&quot;directory for the Python output&quot;</span>)
+      parser.add_a_str(<span class="st">&quot;-md&quot;</span>,  <span class="st">&quot;&quot;</span>, <span class="st">&quot;directory for the markdown output&quot;</span>)
+      parser.add_a_str(<span class="st">&quot;-doc&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="st">&quot;directory for the html output&quot;</span>)
+      parser.add_a_str(<span class="st">&quot;-css&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="st">&quot;directory for the css file relative to -doc&quot;</span>)
+
+      parser.add_an_optional_list(<span class="st">&quot;files&quot;</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&quot;optional source file list&quot;</span>)
+
+   <span class="kw">def</span> fromCmdline(args):
+      <span class="co">#print(args)</span>
+      assure <span class="op">=</span> args.assure
+      debug <span class="op">=</span> args.dbg
+      html <span class="op">=</span> <span class="op">not</span> args.nohtml<span class="op">;</span> md <span class="op">=</span> <span class="op">not</span> args.nomd<span class="op">;</span> py <span class="op">=</span> <span class="op">not</span> args.nopy
+      omitsrc <span class="op">=</span> args.omitsrc      
+      backups  <span class="op">=</span> args.backups<span class="op">;</span> errors <span class="op">=</span> args.errors<span class="op">;</span> tabs <span class="op">=</span> args.tabs
+      options <span class="op">=</span> OutputOptionsTuple(assure, debug, html, md, omitsrc, py, backups, errors, tabs)
+
+      paths <span class="op">=</span> directories({
+         <span class="st">&quot;root&quot;</span>: args.root <span class="op">or</span> <span class="va">None</span>,
+         <span class="st">&quot;src&quot;</span>:  args.src <span class="op">or</span> <span class="va">None</span>,
+         <span class="co">&quot;css&quot;</span>:  args.css,
+         <span class="co">&quot;py&quot;</span>:   args.py <span class="op">or</span> <span class="va">None</span>,
+         <span class="co">&quot;md&quot;</span>:   args.md <span class="op">or</span> <span class="va">None</span>,
+         <span class="co">&quot;doc&quot;</span>:  args.doc <span class="op">or</span> <span class="va">None</span>
+      })
+      pyper <span class="op">=</span> Panpype(paths, options)
+      exit( pyper.process(args.files, {}) )
+
+
+<span class="co">###################### COMMAND LINE INTERFACE ######################</span>
+
+<span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">'__main__'</span>: 
+   <span class="im">from</span> cmdlineparser <span class="im">import</span> parse_args
+   Panpype.fromCmdline(parse_args(Panpype))</code></pre></div>
+</body>
+</html>

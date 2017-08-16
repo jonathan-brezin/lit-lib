@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Some String Functions Extending str</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Some String Functions Extending <code>str</code></h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">November, 2015</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#why-do-this">Why do this?</a></li>
+<li><a href="#the-functions">The functions</a><ul>
+<li><a href="#str_centers-width-filler-extraonrighttrue-trimtrue"><code style="text-decoration: underline;">str_center(s, width, filler=‘’, extraOnRight=True, trim=True)</code></a></li>
+<li><a href="#str_expandtabss-tabs8-strictfalse"><code style="text-decoration: underline;">str_expandtabs(s, tabs=8, strict=False)</code></a></li>
+<li><a href="#str_findlasts-whattolookfor"><code style="text-decoration: underline;">str_findlast(s, whatToLookFor)</code></a></li>
+<li><a href="#str_islowers-like_pythonfalse"><code style="text-decoration: underline;">str_islower(s, like_python=False)</code></a></li>
+<li><a href="#str_istitles"><code style="text-decoration: underline;">str_istitle(s)</code></a></li>
+<li><a href="#str_isuppers-like_pythonfalse"><code style="text-decoration: underline;">str_isupper(s, like_python=False):</code></a></li>
+<li><a href="#str_reverses"><code style="text-decoration: underline;">str_reverse(s)</code></a></li>
+<li><a href="#str_titles"><code style="text-decoration: underline;">str_title(s)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python"></code></pre>
+<h2 id="why-do-this">Why do this?</h2>
+<p>There are some annoying gaps and half-baked implementations in the <code>str</code> code. As I found I have wanted things, I have added them here. If this were Ruby, I would have added the new functions as instance methods. It is not, and I cannot. I cannot even add them as attributes of <code>str</code>. Another obvious strategy is to extend the <code>str</code> class with my own <code>Str</code> class. The down side of that approach is that all <code>str</code> methods that return a <code>str</code> move you out of my <code>Str</code> class and back into <code>str</code>, so you wind up making extra calls to convert the <code>str</code> method return value to be a <code>Str</code>. I don’t know a way around that, sadly. There’s a similar problem with trying to delegate to an instance field–everything’s great, except that you have to catch every <code>str</code> that gets handed to you by some code you don’t own and convert it to a <code>Str</code>.</p>
+<p>So, what’s a poor programmer to do? I decided to just provide the functions I need as top level functions named <code>str_...</code>, where the ellipsis is what the <em>real</em> method name should be. This should make it safe to “<code>from strext import *</code>”. Why <code>strext</code> and not <code>str</code>? Because I did not want <em>any</em> possibility of confusing this stuff with Python’s own.</p>
+<p>Get the feeling I’m not thrilled here?</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">import</span> re
+
+</code></pre>
+<h2 id="the-functions">The functions</h2>
+<h3 id="str_centers-width-filler-extraonrighttrue-trimtrue"><code style="text-decoration: underline;">str_center(s, width, filler=‘’, extraOnRight=True, trim=True)</code></h3>
+<p>returns the string <code>s</code>, centered in a string of length <code>width</code>. Padding is done using the value of <code>filler</code>, which should be (but does not have to be) a single character string, and which by default is a space. If <code>filler</code> has more than one character, the final copy added to either side of <code>s</code> may get truncated at its end.</p>
+<p>The parameter <code>extraOnRight</code> is a Boolean. If the padding does not allow one to exactly center the string, do you want any extra padding on the right or left side? The default is that <code>extraOnRight</code> is <code>True</code>, which puts any extra stuff on the right.</p>
+<p>Finally, what to do if the fill string is longer than one character and you need pad a little on either or both sides? The default is to trim a little from the end of <code>filler</code> in order to pad each side within a character width of one another. That is where the final parameter, <code>trim</code> comes in. Its default is <code>True</code>, which means “trim substrings from <code>filler</code> to allow the two sides as close to the same amount of padding as possible.” Otherwise, treat <code>filler</code> as being “atomic”: if I can fit a whole extra copy of it on the chosen side, I will, but then I quit, even if I have not got the full width, because the padding is not to be trimmed.</p>
+<p><strong>Nota bene:</strong> If the length of <code>s</code> is greater than <code>width</code>,<code>s</code> itself, unmodified, is returned.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> str_center(s, width, filler=<span class="st">' '</span>, extraOnRight=<span class="ot">True</span>, trim=<span class="ot">True</span>):
+   selfSize = <span class="dt">len</span>(s)
+   <span class="kw">if</span> width &lt;= selfSize: 
+      <span class="kw">return</span> s
+   totalDelta = width - selfSize
+   fillSize = <span class="dt">len</span>(filler)
+   <span class="kw">if</span> fillSize is <span class="dv">1</span>:
+      <span class="kw">if</span> extraOnRight or (totalDelta &amp; <span class="dv">1</span>) is <span class="dv">0</span>:
+         <span class="kw">return</span> s.center(width, filler)
+      <span class="kw">else</span>:
+         <span class="kw">return</span> filler + s.center(width<span class="dv">-1</span>, filler)
+   <span class="co"># At this point fillSize is at least 2</span>
+   copiesOfFillerNeeded = totalDelta // fillSize
+   fillPerSide = totalDelta // <span class="dv">2</span>
+   copiesPerSide = fillPerSide // fillSize
+   residual = totalDelta - (<span class="dv">2</span> * copiesPerSide * fillSize)
+   <span class="kw">if</span> trim: <span class="co"># use copiesPerSide of the filler and some part of filler before and after</span>
+      meanresidual = residual//<span class="dv">2</span>
+      <span class="kw">if</span> residual%<span class="dv">2</span> is <span class="dv">0</span>:
+         largerResidual = smallerResidual = meanresidual
+      <span class="kw">else</span>:
+         largerResidual = meanresidual + <span class="dv">1</span>
+         smallerResidual = meanresidual
+      <span class="kw">if</span> extraOnRight:
+         leftResidual, rightResidual = (smallerResidual, largerResidual)
+      <span class="kw">else</span>:
+         leftResidual, rightResidual = (largerResidual, smallerResidual)
+      copies = filler*copiesPerSide
+      prefix = copies + filler[<span class="dv">0</span> : leftResidual]
+      suffix = copies + filler[<span class="dv">0</span>: rightResidual]
+      <span class="kw">return</span> prefix + s + suffix
+   <span class="kw">else</span>: <span class="co"># use one more copy of filler on the chosen side</span>
+      <span class="kw">if</span> residual &lt; fillSize:
+         leftcount = rightcount = copiesPerSide
+      <span class="kw">else</span>:
+         <span class="kw">if</span> extraOnRight:
+            (leftcount, rightcount) = (copiesPerSide, copiesPerSide<span class="dv">+1</span>)
+         <span class="kw">else</span>:
+            (leftcount, rightcount) = (copiesPerSide<span class="dv">+1</span>, copiesPerSide)
+      prefix = leftcount * filler
+      suffix = rightcount * filler
+      <span class="kw">return</span> prefix + s + suffix
+</code></pre>
+<h3 id="str_expandtabss-tabs8-strictfalse"><code style="text-decoration: underline;">str_expandtabs(s, tabs=8, strict=False)</code></h3>
+<p>returns a copy of the string where all tab characters are replaced by one or more spaces, depending on the current column and the given tab size.</p>
+<p>There are two ways to specify the tab stops: either a single number n, in which case the tab stops are n, 2n, 3n…, or an indexable collection that yields the positions in order. What is new here is the ability to specify a list of tab stops.</p>
+<p>The 0 position is the character either at the beginning of the text or immediately following a new-line character. The default tabspec is 8, not because it is what you’ll want, but for historical reasons and consistency with other languages.</p>
+<p>It is an error, when a tab list is provided, to ask for tabs in a line beyond the last tab stop. If the call is ‘strict’, an exception is raised. Otherwise, the tab is left there: what are we supposed to do with it???</p>
+<p>Finally, if there are no tabs in “s”, “s” is returned directly: no copy is made.</p>
+<pre class="sourceCode python"><code class="sourceCode python"> 
+<span class="kw">def</span> str_expandtabs(s, tabs=<span class="dv">8</span>, strict=<span class="ot">False</span>):
+   <span class="kw">if</span> s.find(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>) &lt; <span class="dv">0</span>: <span class="kw">return</span> s
+   <span class="kw">elif</span> <span class="dt">type</span>(tabs) == <span class="dt">int</span>: <span class="kw">return</span> s.expandtabs(tabs)
+
+   <span class="co"># the new code starts here: limited set of possibly uneven tabs</span>
+   answer = <span class="st">''</span>
+   lastTab = tabs[-<span class="dv">1</span>]
+   <span class="kw">for</span> line in s.splitlines(keepends=<span class="ot">True</span>):
+      column = <span class="dv">0</span> ;  stop = <span class="dv">0</span>;  tabposition = tabs[<span class="dv">0</span>] <span class="co"># beginning of line, first tab stop</span>
+      tabsInLine = []
+      <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, <span class="dt">len</span>(line)):
+         <span class="kw">if</span> line[n] == <span class="st">'</span><span class="ch">\t</span><span class="st">'</span>: tabsInLine.append(n)
+      <span class="kw">if</span> <span class="dt">len</span>(tabsInLine) == <span class="dv">0</span>: answer += line
+      <span class="kw">else</span>:
+         <span class="co">#print(&quot;tabs in line {1} at {0}&quot;.format(tabsInLine, line))</span>
+         lastTabInLine = tabsInLine[-<span class="dv">1</span>]
+         expanded = <span class="st">''</span>
+         start = <span class="dv">0</span>
+         <span class="kw">for</span> tabx in tabsInLine:
+            <span class="co">#print(&quot;start={0}, tabx={1}&quot;.format(start, tabx))</span>
+            expanded += line[start : tabx] <span class="co"># copy up to the tab in line</span>
+            column = <span class="dt">len</span>(expanded)
+            <span class="kw">if</span> column &gt; lastTab:
+               <span class="kw">if</span> strict: 
+                  <span class="kw">raise</span> <span class="ot">Exception</span>(<span class="st">&quot;Tab too late: column=&quot;</span>+column+<span class="st">&quot;, last tab=&quot;</span>+lastTab)
+               <span class="kw">else</span>: start = tabx         <span class="co"># leave the tab there: who knows what the caller wanted?</span>
+            <span class="kw">else</span>:
+               start = tabx<span class="dv">+1</span>             <span class="co"># next segment start immediately after the tab</span>
+               <span class="kw">for</span> stop in tabs:          <span class="co"># find the first tab beyond the current length</span>
+                  <span class="co">#print(&quot;   stop={0}, column={1}&quot;.format(stop, column))</span>
+                  <span class="kw">if</span> stop &gt; column:       <span class="co"># add spaces until the expanded length is at the stop</span>
+                     <span class="kw">while</span> stop &gt; column:
+                        expanded += <span class="st">' '</span>; column += <span class="dv">1</span>
+                     <span class="kw">break</span>
+         answer += expanded + line[lastTabInLine<span class="dv">+1</span>:]
+   <span class="kw">return</span> answer
+</code></pre>
+<h3 id="str_findlasts-whattolookfor"><code style="text-decoration: underline;">str_findlast(s, whatToLookFor)</code></h3>
+<p>returns the last index of <code>whatToLookFor</code> in the string <code>s</code>. this is not efficient, but is convenient for <code>s</code> of moderate length. The obvious ploy, which is to reverse both and then just call “find”, is too space inefficient, no?</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> str_findlast(s, whatToLookFor):
+   lengthOfMatch = <span class="dt">len</span>(whatToLookFor)
+   n = <span class="dt">len</span>(s)-lengthOfMatch
+   firstToMatch = whatToLookFor[<span class="dv">0</span>]
+   <span class="co">##########################################################################################</span>
+   <span class="co">#</span>
+   <span class="co"># Suppose that firstToMatch is 'x', and we match 'x' at n in s.  If all of whatToLookFor</span>
+   <span class="co"># is not matched there, how much further back in `s` do we have to go to have any hope of</span>
+   <span class="co"># match?  If 'x' occurs later in `whatToLookFor`, we have to go back far enough so that the</span>
+   <span class="co"># first occurrence of 'x' after the initial one lands on the spot matching that initial one</span>
+   <span class="co"># now.  In particular, if 'x' occurs only at the start of whatToLookFor, we have to go</span>
+   <span class="co"># back at least the length of whatToLookFor before we have any hope of a match.  That is</span>
+   <span class="co"># the logic here in computing minBack in the next two lines of code.  In the call there</span>
+   <span class="co"># to &quot;find&quot;, the second argument, &quot;1&quot;, is the first index to look at. The effect is to find</span>
+   <span class="co"># the second occurrence of firstToMatch in whatToLookFor, if there is one.</span>
+   <span class="co">#</span>
+   <span class="co">##########################################################################################</span>
+   minBack = whatToLookFor.find(firstToMatch, <span class="dv">1</span>)
+   <span class="kw">if</span> minBack &lt; <span class="dv">0</span>: minBack = lengthOfMatch
+   <span class="kw">while</span>(n&gt;=<span class="dv">0</span>):
+      <span class="co">#print(&quot;n={0}, s[n]={1}, find index={2}&quot;.format(n, s[n], s.find(whatToLookFor, n)))</span>
+      <span class="kw">if</span> s[n] != firstToMatch: n -= <span class="dv">1</span>
+      <span class="kw">else</span>:
+         <span class="kw">if</span> s.find(whatToLookFor, n)==n: <span class="kw">return</span> n
+         <span class="kw">else</span>: n -= minBack
+   <span class="kw">return</span> -<span class="dv">1</span>
+</code></pre>
+<h3 id="str_islowers-like_pythonfalse"><code style="text-decoration: underline;">str_islower(s, like_python=False)</code></h3>
+<p>What I want is</p>
+<blockquote>
+<p><code>a.islower()</code> is <code>True</code> whenever <code>a[n].lower() == a[n]</code> for every <code>n</code>.</p>
+</blockquote>
+<p>The other possibility, which is what Python uses, is that</p>
+<blockquote>
+<p><code>a.islower()</code> is <code>True</code> whenever <code>a[n].islower() == True</code> for all <code>n</code>.</p>
+</blockquote>
+<p>For example, Python says (Python 3.4.3 |Anaconda 2.2.0 (x86_64)| (default, Mar 6 2015, 12:07:41)):</p>
+<blockquote>
+<p><code>'3'.islower() == False</code> is <code>True</code>, but</p>
+</blockquote>
+<blockquote>
+<p><code>'0x3'.islower() == True</code>. is also <code>True</code></p>
+</blockquote>
+<p>Which is it?</p>
+<p>I don’t know what you want, so I provide both. Needless to say, the default is that you get mine, but if <code>like_python</code> is <code>True</code>, you get Python’s somewhat paradoxical version.</p>
+<h3 id="str_istitles"><code style="text-decoration: underline;">str_istitle(s)</code></h3>
+<p>Python’s <code>istitle</code> is a mystery wrapped in an enigma. Here I take advantage of the fact that I only want title-casing of titles–that is, short strings. If you have to check whether 2Mb worth of strings are title-cased, you have my sympathy, but not my help.</p>
+<p>See the remarks on <a href="str_titles">str_title</a> for a sense of how baroque this computation can be.</p>
+<h3 id="str_isuppers-like_pythonfalse"><code style="text-decoration: underline;">str_isupper(s, like_python=False):</code></h3>
+<p>What I want is a.isupper() == True whenever a[n].upper() == a[n] for every n. The other possibility (Python’s) is that a[n].isupper() == True for all n. See the comments on islower() above for more.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> str_islower(s, like_python=<span class="ot">False</span>):
+   <span class="kw">if</span> like_python:
+      <span class="kw">return</span> s.islower()
+   <span class="kw">for</span> c in s:
+      <span class="kw">if</span> c.lower() != c: <span class="kw">return</span> <span class="ot">False</span>
+   <span class="kw">return</span> <span class="ot">True</span>
+
+<span class="kw">def</span> str_istitle(s):
+   <span class="kw">return</span> str_title(s) == s <span class="co"># uses my title()</span>
+
+<span class="kw">def</span> str_isupper(s, like_python=<span class="ot">False</span>):
+   <span class="kw">if</span> like_python:
+      <span class="kw">return</span> s.isupper()
+   <span class="kw">for</span> c in s:   <span class="co"># use MY default</span>
+      <span class="kw">if</span> c.upper() != c: <span class="kw">return</span> <span class="ot">False</span>
+   <span class="kw">return</span> <span class="ot">True</span>
+</code></pre>
+<h3 id="str_reverses"><code style="text-decoration: underline;">str_reverse(s)</code></h3>
+<p>is a not particularly efficient method for turning ‘abc’ into ‘cba’, but it is not clear you can do a lot better when strings are immutable, short of calling a C function to do the real work. The return value is the reversed string–unlike the mutable case, where the reversal can be done in place, we have no choice here other than to build a new string.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> str_reverse(s):
+   asList = <span class="dt">list</span>(s)
+   asList.reverse() <span class="co"># does the reversal in place: no return value</span>
+   <span class="kw">return</span> <span class="st">''</span>.join(asList)
+</code></pre>
+<h3 id="str_titles"><code style="text-decoration: underline;">str_title(s)</code></h3>
+<p>returns the string with all letters that follow white-space characters capitalized. This is closer to my idea of title-casing than Python’s ‘title’ method for s. For example, Python says that <code>'a1b'.title()</code> is <code>'A1B'</code>, whereas I would say it is <code>'A1b'</code>. 99 times out of 100, the latter is what I want, as in the special cases where, instead of <code>'1'</code>, I have <code>&quot;'&quot;</code> (an apostrophe) or <code>&quot;-&quot;</code> (a dash). Whether the character following a dash is capitalized is a function of the whole phrase, not a title-case issue, ditto for apostrophes: <code>&quot;Jim's Book&quot;</code> NOT <code>&quot;Jim'S Book&quot;</code>.</p>
+<p>Real title-casing also respects quotes, as in the title: <em>Caesar’s “Et tu Brutus…”: A History of Betrayal</em>. “tu” should not be capitalized in this title. Remember, this is supposed to work with titles, not Python string literals, so apostrophes are not taken to open a quotation.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+_QMRE = re.<span class="dt">compile</span>(<span class="st">'([\u0022\u0027\u00ab\u00bb\u2018-\u201f])'</span>) <span class="co"># quotation marks regular expression</span>
+<span class="kw">def</span> str_title(s):
+   <span class="kw">if</span> _QMRE.search(s) is <span class="ot">None</span>:
+      <span class="kw">return</span> re.sub(<span class="st">r&quot;\S+&quot;</span>, <span class="kw">lambda</span> mo: mo.group(<span class="dv">0</span>)[<span class="dv">0</span>].upper() + mo.group(<span class="dv">0</span>)[<span class="dv">1</span>:].lower(), s)
+   <span class="kw">else</span>:
+      parts = [part <span class="kw">for</span> part in _QMRE.split()]
+      <span class="kw">for</span> k in <span class="dt">range</span>(<span class="dv">0</span>, <span class="dt">len</span>(parts), <span class="dv">4</span>):   <span class="co"># unquoted, &quot;, quoted, &quot;, next unquoted ... </span>
+         parts[k] = parts[k].title()
+      <span class="kw">return</span> <span class="st">''</span>.join(parts)
+</code></pre>
+</body>
+</html>

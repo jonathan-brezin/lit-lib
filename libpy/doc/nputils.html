@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Support for numpy</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Support for <code class="titleCode">numpy</code></h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">March, 2017</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#dealing-with-norms">Dealing with “norms”</a><ul>
+<li><a href="#supnorm"><code>supnorm(array)</code></a></li>
+<li><a href="#def-twonormarray"><code>def twonorm(array)</code></a></li>
+<li><a href="#sameentries"><code>def sameentries(array1, array2)</code></a></li>
+<li><a href="#asunitnorm"><code>asunitnorm(array, tolerance=128*MACHINE_EPSILON)</code></a></li>
+</ul></li>
+<li><a href="#accessing-array-elements">Accessing array elements</a><ul>
+<li><a href="#isinshape"><code>isinshape(index, shape)</code></a></li>
+<li><a href="#index2entry"><code>index2entry(index, array)</code></a></li>
+<li><a href="#entry_iter"><code>entry_iter(array)</code></a></li>
+<li><a href="#index_iter"><code>index_iter(shape)</code></a></li>
+</ul></li>
+<li><a href="#debugging-output-displaying-part-or-all-of-an-array">Debugging output: displaying part or all of an array</a><ul>
+<li><a href="#format_array"><code>format_arrayhead(array, **kwargs)</code><br /><code>format_arraytail(array,**kwargs)</code><br /><code>format_array(array,**kwargs)</code></a></li>
+</ul></li>
+<li><a href="#working-with-numpy-data-types">Working with <code>numpy</code> data types</a><ul>
+<li><a href="#numpytypestrortype"><code>numpytype(strOrType)</code></a></li>
+<li><a href="#typenamestrortype"><code>typename(strOrType)</code></a></li>
+<li><a href="#typeformatstrortype"><code>typeformat(strOrType)</code></a></li>
+<li><a href="#typefromvaluevalue"><code>typefromvalue(value)</code></a></li>
+</ul></li>
+<li><a href="#generic-array-file-io">Generic Array File I/O</a><ul>
+<li><a href="#writearray"><code>readarray(path, **kwargs)</code></a></li>
+<li><a href="#writearray"><code>writearray(path, array, ext=“.npy”, **kwargs)</code></a></li>
+</ul></li>
+<li><a href="#reading_csv">Reading CSV-like files–variations on NumPy’s functions</a><ul>
+<li><a href="#readtable"><code>readcsv(path, options={})</code><br /><code>readtable(path, options={})</code></a></li>
+<li><a href="#writetable"><code>writecsv(path, array, headers=“”, footers=“”, sep=‘|’, selfid=True)</code><br /><code>writetable(path, array, rowheaders=None, colheaders=None, sep=‘|’, selfid=False)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python"></code></pre>
+<h3 id="overview">Overview</h3>
+<p>In the course of doing some eigenvalue calculations on moderately large matrices, a few simple, generally useful functions seemed to be needed. I’ve packaged them here, in case I ever have to wade back into <code>numpy</code> again.</p>
+<h3 id="dealing-with-norms">Dealing with “norms”</h3>
+<h4 id="supnorm"><code>supnorm(array)</code></h4>
+<p>returns the sup norm (<em>i.e.</em> the <em>l<sub>∞</sub></em> norm) of the <code>numpy</code> <code>ndarray</code> “<code>array</code>” that is its argument.</p>
+<h4 id="def-twonormarray"><code>def twonorm(array)</code></h4>
+<p>returns the <code>l</code><sub><code>2</code></sub> norm of the array: the square-root of the sum of the squares of its entries (aka the “Frobenius” norm). N.B. NumPy’s <code>linalg.norm</code> computes something for arrays indexed by n-tuples for n&gt;2, but I am not sure what it computes. Whatever it is, it is not this.</p>
+<h4 id="sameentries"><code>def sameentries(array1, array2)</code></h4>
+<p>returns <code>True</code> if, and only if, the two arrays have the same shape and their corresponding entries are equal (in the sense of <code>==</code>). It returns <code>False</code> otherwise. This is <em>not</em> the same as the <code>==</code> operator implemented by NumPy. Arithmetic and comparison operations on NumPy <code>ndarray</code>s are defined as element-wise operations, and generally yield <code>ndarray</code> objects as results.</p>
+<h4 id="asunitnorm"><code>asunitnorm(array, tolerance=128*MACHINE_EPSILON)</code></h4>
+<p>If the l<sub>2</sub> norm of <code>array</code> is greater than <code>tolerance</code>, it is divided out of <code>array</code>’s entries to yield a unit vector. That vector is then returned. If the norm is not greater than the tolerance, a <code>ValueError</code> is raised. The machine epsilon is the smallest positive floating point value representable by this version of Python on the hardware it is running: <code>numpy.finfo(np.float).eps</code>. The default tolerance is a reasonable mulitple of the machine epsilon.</p>
+<h3 id="accessing-array-elements">Accessing array elements</h3>
+<h4 id="isinshape"><code>isinshape(index, shape)</code></h4>
+<p><code>shape</code> is the shape of a NumPy array. The call returns <code>True</code> if, and only if, <code>index</code> is a list-like collection of non-negative integers whose length is the rank of <code>shape</code>, and if, for each <code>k</code>, <code>index[k]&lt;array[k]</code>.</p>
+<h4 id="index2entry"><code>index2entry(index, array)</code></h4>
+<p><code>index</code> is a list-like collection of non-negative integers whose length is the rank of the array. The call returns the value of <code>array</code> indexed by <code>index</code>.</p>
+<h4 id="entry_iter"><code>entry_iter(array)</code></h4>
+<p>is an iterator that yields the entries in <code>array</code> is row-major order.</p>
+<h4 id="index_iter"><code>index_iter(shape)</code></h4>
+<p>is an iterator that yields the indices for an array with shape “<code>shape</code>” in row-major order.</p>
+<h3 id="debugging-output-displaying-part-or-all-of-an-array">Debugging output: displaying part or all of an array</h3>
+<h4 id="format_array"><code>format_arrayhead(array, **kwargs)</code><br /><code>format_arraytail(array,**kwargs)</code><br /><code>format_array(array,**kwargs)</code></h4>
+<p>The first argument, <code>array</code>, is a numeric <code>ndarray</code> of arbitrary shape. The keyword arguments, and their default values, are:</p>
+<blockquote>
+
+<table>
+<THEAD>
+<tr><th>
+Keyword
+</th><th>
+Meaning
+</th><th>
+Default
+</th></tr>
+<TBODY>
+<tr><td>
+<code>displaylimit</code>
+</td><td>
+the total number of entries to display
+</td><td align="center">
+None
+</td></tr>
+<tr><td>
+<code>perline</code>
+</td><td>
+the number of entries to display per line
+</td><td align="center">
+1
+</td></tr>
+<tr><td>
+<code>formatting</code>
+</td><td>
+the formatting string
+</td><td align="center">
+<code>&quot;{1:g}&quot;</code>
+</td></tr>
+<tr><td>
+<code>separator</code>
+</td><td>
+the string used between entries on a line
+</td><td align="center">
+<code>&quot; &quot;</code>
+</td></tr>
+<tr><td>
+<code>ender</code>
+</td><td>
+the string used to end lines
+</td><td align="center">
+<code>&quot;\n&quot;</code>
+</td></tr>
+</table>
+
+</blockquote>
+
+<p>These three functions all return a string that contains <code>displaylimit</code> entries from “<code>array</code>”. The shape of <code>array</code> is temporarily changed to <code>(array.size,)</code>. That done, <code>format_arrayhead</code> prints entries from the beginning of the array, <code>format_arraytail</code> from the end of the array, and <code>format_array</code> roughly <code>displaylimit/2</code> entries from both ends. Every <code>perline</code>-th entry is followed by the <code>ender</code> string; the others are followed by the <code>separator</code> string. If <code>formatter</code> is <code>None</code>, the formatting will be <code>&quot;{1:g}&quot;</code>, and if you provide your own <code>formatter</code> string, it will be applied with the entry’s index, <code>n</code>, and its value, <code>v</code>:   <code>formatter.format(n, v)</code></p>
+<p>If you are displaying from both ends of the array, but less than the whole array, the beginning entries and ending entries will be separated by an ellipsis (“<code>...</code>”). If the beginning would have ended a line, <code>ender</code> will be prepended and appended to that ellipsis. Otherwise, <code>separator</code> will.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> functools <span class="ch">import</span> <span class="dt">reduce</span>
+<span class="ch">import</span> math
+<span class="ch">import</span> numpy <span class="ch">as</span> np
+<span class="ch">import</span> os <span class="ch">as</span> os
+<span class="ch">import</span> os.path <span class="ch">as</span> osp
+<span class="ch">import</span> re
+<span class="ch">import</span> sys
+<span class="ch">import</span> sysutils <span class="ch">as</span> su
+
+<span class="kw">def</span> to_shape(shape_info):
+   <span class="kw">if</span> <span class="dt">isinstance</span>(shape_info, <span class="dt">str</span>):
+      <span class="kw">return</span> <span class="dt">tuple</span>([<span class="dt">int</span>(x) <span class="kw">for</span> x in size_info.strip().split(<span class="st">','</span>)])
+   <span class="kw">elif</span> <span class="dt">isinstance</span>(shape_info, <span class="dt">int</span>):
+      <span class="kw">return</span> (shape_info, )
+   <span class="kw">else</span>:
+      <span class="kw">return</span> <span class="dt">tuple</span>([<span class="dt">int</span>(x) <span class="kw">for</span> x in shape_info]) <span class="co"># a crude type check</span>
+
+<span class="kw">def</span> _mul(x,y):
+   <span class="kw">return</span> x*y
+
+<span class="kw">def</span> sizefromshape(shape_info):
+   <span class="kw">return</span> <span class="dt">reduce</span>(_mul, to_shape(shape_info))
+
+<span class="kw">def</span> supnorm(array):
+   <span class="kw">return</span> np.amax(<span class="dt">abs</span>(array))
+
+<span class="kw">def</span> twonorm(array):
+   <span class="kw">if</span> <span class="dt">len</span>(array.shape) &gt;= <span class="dv">2</span>:
+      <span class="kw">return</span> np.linalg.norm(array.reshape((sizefromshape(array.shape),)))
+   <span class="kw">else</span>:
+      <span class="kw">return</span> np.linalg.norm(array)
+
+<span class="kw">def</span> sameentries(array1, array2):
+   <span class="kw">return</span> (array1.shape == array2.shape) and (twonorm(array1-array2) == <span class="dv">0</span>)
+
+<span class="kw">def</span> isinshape(index, shape):
+   <span class="kw">if</span> <span class="dt">isinstance</span>(index, <span class="dt">int</span>): index = [index]
+   rank = <span class="dt">len</span>(shape)
+   <span class="kw">if</span> <span class="dt">len</span>(index) != rank: <span class="kw">return</span> <span class="ot">False</span>
+   <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, rank):
+      <span class="kw">if</span> (index[n] &gt;= shape[n]) or (index[n] &lt; <span class="dv">0</span>):
+         <span class="kw">return</span> <span class="ot">False</span>
+   <span class="kw">return</span> <span class="ot">True</span>
+
+<span class="kw">def</span> index2entry(index, array):
+   <span class="kw">if</span> <span class="dt">isinstance</span>(index, <span class="dt">int</span>): index = [index]
+   <span class="kw">if</span> not isinshape(index, array.shape):
+      msg = <span class="st">&quot;Array has shape {}, so {} is not valid index&quot;</span>
+      <span class="kw">raise</span> <span class="ot">TypeError</span>(msg.<span class="dt">format</span>(array.shape, index))
+   working = array
+   <span class="kw">for</span> k in index:
+      working = working[k]
+   <span class="kw">return</span> working
+
+<span class="kw">def</span> entry_iter(array):
+   rank = <span class="dt">len</span>(array.shape)
+   nextindex = np.zeros(rank, dtype = <span class="dt">int</span>)
+   working_n = rank<span class="dv">-1</span>
+   <span class="kw">while</span> isinshape(nextindex, array.shape):
+      rv = index2entry(nextindex, array)
+      bumped = nextindex[working_n] + <span class="dv">1</span>
+      <span class="kw">if</span> bumped &lt; array.shape[working_n]:
+         nextindex[working_n] = bumped
+         <span class="kw">yield</span> rv
+      <span class="kw">elif</span> working_n &gt; <span class="dv">0</span>:
+         <span class="kw">for</span> k in <span class="dt">range</span>(working_n, rank):
+            nextindex[k] = <span class="dv">0</span>
+         working_n -= <span class="dv">1</span>
+         nextindex[working_n] += <span class="dv">1</span>
+         working_n = rank<span class="dv">-1</span>
+         <span class="kw">yield</span> rv
+      <span class="kw">else</span>:
+         <span class="kw">raise</span> <span class="ot">StopIteration</span>()
+
+<span class="kw">def</span> index_iter(shape):
+   rank = <span class="dt">len</span>(shape)
+   nextindex = np.zeros(rank, dtype = <span class="dt">int</span>)
+   working_n = rank<span class="dv">-1</span>
+   <span class="kw">while</span> isinshape(nextindex, shape):
+      rv = nextindex.copy()
+      bumped = nextindex[working_n] + <span class="dv">1</span>
+      <span class="kw">if</span> bumped &lt; shape[working_n]:
+         nextindex[working_n] = bumped
+         <span class="kw">yield</span> rv
+      <span class="kw">elif</span> working_n &gt; <span class="dv">0</span>:
+         <span class="kw">for</span> k in <span class="dt">range</span>(working_n, rank):
+            nextindex[k] = <span class="dv">0</span>
+         working_n -= <span class="dv">1</span>
+         nextindex[working_n] += <span class="dv">1</span>
+         working_n = rank<span class="dv">-1</span>
+         <span class="kw">yield</span> rv
+      <span class="kw">else</span>:
+         <span class="kw">raise</span> <span class="ot">StopIteration</span>()
+
+MACHINE_EPSILON = np.finfo(np.<span class="dt">float</span>).eps
+
+<span class="kw">def</span> asunitnorm(array, tolerance = <span class="ot">None</span>):
+   <span class="kw">if</span> tolerance is <span class="ot">None</span>:
+      tolerance = <span class="dt">max</span>(array.size, <span class="dv">128</span>)*MACHINE_EPSILON 
+   norm = twonorm(array)
+   <span class="kw">if</span> norm &lt; tolerance:
+      <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Array norm, {:g} too near zero to normalize.&quot;</span>.<span class="dt">format</span>(norm))
+   <span class="kw">else</span>:
+      <span class="kw">return</span> array/norm
+
+<span class="kw">def</span> _nth_index(n, shape):
+   <span class="co"># in the size check, a shape with one or more zeros--e.g. (3,0,1)--will have size</span>
+   <span class="co"># 0, and hence will cause the error to be raised, because such an array must be</span>
+   <span class="co"># empty.</span>
+   <span class="kw">if</span> not <span class="dt">isinstance</span>(n, <span class="dt">int</span>):
+      <span class="ot">ValueError</span>(<span class="st">&quot;Expected an integer, but got {}&quot;</span>.su.a_classname(n))
+   <span class="kw">elif</span> n &lt; <span class="dv">0</span> or n &gt;= sizefromshape(shape):
+      msg = <span class="st">&quot;{}-th entry requested, but there are only {}.&quot;</span>
+      <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(n, sizefromshape(shape)))
+   raw_list = [<span class="dv">0</span> <span class="kw">for</span> k in <span class="dt">range</span>(<span class="dv">0</span>, <span class="dt">len</span>(shape))]
+   <span class="kw">for</span> k in <span class="dt">range</span>(<span class="dt">len</span>(shape)-<span class="dv">1</span>, -<span class="dv">1</span>, -<span class="dv">1</span>):
+      coord = n % shape[k]
+      raw_list[k] = coord
+      n = (n - coord)//shape[k]
+      <span class="kw">if</span> n == <span class="dv">0</span>: <span class="kw">return</span> <span class="dt">tuple</span>(raw_list)
+
+<span class="kw">def</span> _format(array, begins, ends, perline, formatter, separator, ender):
+   total = begins+ends
+   available = array.size
+   <span class="kw">if</span> available &gt; total:
+      use = total
+   <span class="kw">else</span>: <span class="co"># we can display the whole array</span>
+      begins = available
+      ends = <span class="dv">0</span>
+      use = available
+   shape_in = array.shape
+   array.shape = (array.size,)
+   left = <span class="st">&quot;&quot;</span>
+   <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, begins):
+      suffix = ender <span class="kw">if</span> (n<span class="dv">+1</span>) % perline is <span class="dv">0</span> <span class="kw">else</span> separator
+      array_n = array[n]
+      <span class="kw">if</span> <span class="dt">isinstance</span>(array_n, <span class="dt">complex</span>) and array_n.imag == <span class="fl">0.0</span>:
+         array_n = array_n.real 
+      left += formatter.<span class="dt">format</span>(_nth_index(n,shape_in),array_n)+suffix
+   left_trimmed = left <span class="kw">if</span> left.endswith(ender) <span class="kw">else</span> left[<span class="dv">0</span>:-<span class="dt">len</span>(separator)]
+   right = <span class="st">&quot;&quot;</span>
+   first = array.size - ends
+   <span class="kw">for</span> m in <span class="dt">range</span>(first, array.size):
+      suffix = ender <span class="kw">if</span> (m-first<span class="dv">+1</span>) % perline is <span class="dv">0</span> <span class="kw">else</span> separator
+      array_m = array[m]
+      <span class="kw">if</span> <span class="dt">isinstance</span>(array_m, <span class="dt">complex</span>) and array_m.imag == <span class="fl">0.0</span>:
+         array_m = array_m.real 
+      right += formatter.<span class="dt">format</span>(_nth_index(m, shape_in),array_m)+suffix
+   right_trimmed = right[<span class="dv">0</span>:-<span class="dt">len</span>(ender)] <span class="kw">if</span> right.endswith(ender) <span class="kw">else</span> right[<span class="dv">0</span>:-<span class="dt">len</span>(separator)]
+   array.shape = shape_in
+   <span class="kw">if</span> begins &gt; <span class="dv">0</span>:
+      <span class="kw">if</span> ends &gt; <span class="dv">0</span>:
+         <span class="kw">if</span> use&lt;=perline:
+            between = <span class="st">&quot;</span><span class="ot">{0}</span><span class="st">...</span><span class="ot">{0}</span><span class="st">&quot;</span>.<span class="dt">format</span>(separator)  
+         <span class="kw">elif</span> left.endswith(ender):
+            between = <span class="st">&quot;  ...</span><span class="ot">{0}</span><span class="st">&quot;</span>.<span class="dt">format</span>(ender)
+         <span class="kw">else</span>:
+            between = <span class="st">&quot;</span><span class="ot">{1}</span><span class="st">...</span><span class="ot">{0}</span><span class="st">   ...</span><span class="ot">{0}</span><span class="st">&quot;</span>.<span class="dt">format</span>(ender, separator)
+         <span class="kw">return</span> left_trimmed+between+right_trimmed
+      <span class="kw">elif</span> left_trimmed.endswith(ender):
+         <span class="kw">return</span> left_trimmed[<span class="dv">0</span>:-<span class="dt">len</span>(ender)]
+      <span class="kw">else</span>: <span class="kw">return</span> left_trimmed
+   <span class="kw">else</span>:
+      <span class="kw">return</span> right_trimmed
+
+<span class="kw">def</span> format_arrayhead(
+      array, displaylimit=<span class="ot">None</span>, perline=<span class="dv">1</span>, formatter=<span class="st">&quot;</span><span class="ot">{1:g}</span><span class="st">&quot;</span>, separator=<span class="st">' '</span>, ender=<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>
+   ):
+   <span class="kw">if</span> displaylimit is <span class="ot">None</span>: displaylimit = array.size
+   <span class="kw">return</span> _format(array, displaylimit, <span class="dv">0</span>, perline, formatter, separator, ender)
+
+<span class="kw">def</span> format_arraytail(
+      array, displaylimit=<span class="ot">None</span>, perline=<span class="dv">1</span>, formatter=<span class="st">&quot;</span><span class="ot">{1:g}</span><span class="st">&quot;</span>, separator=<span class="st">' '</span>, ender=<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>
+   ):
+   <span class="kw">if</span> displaylimit is <span class="ot">None</span>: displaylimit = array.size
+   <span class="kw">return</span> _format(array, <span class="dv">0</span>, displaylimit, perline, formatter, separator, ender)
+
+<span class="kw">def</span> format_array(
+      array, displaylimit=<span class="ot">None</span>, perline=<span class="dv">1</span>, formatter=<span class="st">&quot;</span><span class="ot">{1:g}</span><span class="st">&quot;</span>, separator=<span class="st">' '</span>, ender=<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>
+   ):
+   <span class="kw">if</span> displaylimit is <span class="ot">None</span>:
+      <span class="kw">return</span> _format(array, array.size, <span class="dv">0</span>, perline, formatter, separator, ender)
+   <span class="kw">else</span>:
+      begins = math.ceil(displaylimit/<span class="dv">2</span>)
+      ends = displaylimit - begins
+      <span class="kw">return</span> _format(array, begins, ends, perline, formatter, separator, ender)
+</code></pre>
+<h3 id="working-with-numpy-data-types">Working with <code>numpy</code> data types</h3>
+<p><code>numpy</code> works with its own set of roughly 20 numeric data types. These functions translate between those types (as valid Python objects) and strings, as well as providing a couple of other conveniences, such as <code>printf</code> format help.</p>
+<h4 id="numpytypestrortype"><code>numpytype(strOrType)</code></h4>
+<p>translates a string naming a <code>numpy</code> <code>type</code> to the actual type. The intended use is for command line processing. If anything other than a string is passed as the argument, it is returned untouched. Otherwise, the <code>numpy</code> <code>type</code> of that name is returned.</p>
+<h4 id="typenamestrortype"><code>typename(strOrType)</code></h4>
+<p>translates a <code>numpy</code> <code>type</code> to its character-string name.</p>
+<h4 id="typeformatstrortype"><code>typeformat(strOrType)</code></h4>
+<p>translates a <code>numpy</code> <code>type</code> or type name to the simplest “<code>printf</code>” format that makes sense for that type–either “d”, “u”, or “g”.</p>
+<h4 id="typefromvaluevalue"><code>typefromvalue(value)</code></h4>
+<p>returns a <code>numpy</code> type that is consistent with the Pythonic type of <code>value</code>. I do not try to be clever here: I really do just look at <code>value</code>’s type. One of 4 values is returned: <code>int32</code>, <code>float64</code>, <code>complex128</code>, or <code>bool_</code>. This is intended as a “best guess” for use in writing out homogenous arrays to a <a href="https://en.wikipedia.org/wiki/Comma-separated_values">CSV file</a>. Our format for this sort of file has a first line that details various parameters for the matrix saved, including the <code>numpy</code> type for its entries. Having this available before the matrix in the file simplifies allocating storage for it before any of its entries have been read.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+_TYPENAME2TYPE = {
+   <span class="st">'bool_'</span>: np.bool_,      <span class="co"># Boolean (True or False) stored as a byte</span>
+   <span class="co">'int_'</span>: np.int_,        <span class="co"># Default integer type (= C long; normally int64 or int32)</span>
+   <span class="co">'intc'</span>: np.intc,        <span class="co"># Identical to C int (normally int32 or int64)</span>
+   <span class="co">'intp'</span>: np.intp,        <span class="co"># Integer for indexing (= C ssize_t; normally int32 or int64)</span>
+   <span class="co">'int8'</span>: np.int8,        <span class="co"># Byte (-128 to 127)</span>
+   <span class="co">'int16'</span>: np.int16,      <span class="co"># Integer (-32768 to 32767)</span>
+   <span class="co">'int32'</span>: np.int32,      <span class="co"># Integer (-2147483648 to 2147483647)</span>
+   <span class="co">'int64'</span>: np.int64,      <span class="co"># Integer (-9223372036854775808 to 9223372036854775807)</span>
+   <span class="co">'uint8'</span>: np.uint8,      <span class="co"># Unsigned integer (0 to 255)</span>
+   <span class="co">'uint16'</span>: np.uint16,    <span class="co"># Unsigned integer (0 to 65535)</span>
+   <span class="co">'uint32'</span>: np.uint32,    <span class="co"># Unsigned integer (0 to 4294967295)</span>
+   <span class="co">'uint64'</span>: np.uint64,    <span class="co"># Unsigned integer (0 to 18446744073709551615)</span>
+   <span class="co">'float_'</span>: np.float_,    <span class="co"># Shorthand for float64.</span>
+   <span class="co">'float16'</span>: np.float16,  <span class="co"># sign bit, 5 bits exponent, 10 bits mantissa</span>
+   <span class="co">'float32'</span>: np.float32,  <span class="co"># Sign bit, 8 bits exponent, 23 bits mantissa</span>
+   <span class="co">'float64'</span>: np.float64,  <span class="co"># Sign bit, 11 bits exponent, 52 bits mantissa</span>
+   <span class="co">'complex_'</span>: np.complex_,    <span class="co"># Shorthand for complex128.</span>
+   <span class="co">'complex64'</span>: np.complex64,  <span class="co"># Complex number: two 32-bit floats</span>
+   <span class="co">'complex128'</span>: np.complex128 <span class="co"># Complex number: two 64-bit floats</span>
+}
+
+_FORMAT_DICTIONARY = {
+   <span class="st">'b'</span>: <span class="st">&quot;d&quot;</span>,   <span class="co"># boolean--should be 0 or 1?</span>
+   <span class="co">'c'</span>: <span class="st">&quot;e&quot;</span>,   <span class="co"># complex number: a pair of floating-point numbers</span>
+   <span class="co">'f'</span>: <span class="st">&quot;e&quot;</span>,   <span class="co"># floating point number</span>
+   <span class="co">'i'</span>: <span class="st">&quot;d&quot;</span>,   <span class="co"># decimal integer</span>
+   <span class="co">'u'</span>: <span class="st">&quot;u&quot;</span>    <span class="co"># unsigned (ie non-negative) decimal integer</span>
+}
+
+<span class="kw">def</span> numpytype(strOrType):
+   <span class="kw">return</span> _TYPENAME2TYPE[strOrType] <span class="kw">if</span> <span class="dt">isinstance</span>(strOrType, <span class="dt">str</span>) <span class="kw">else</span> strOrType
+
+<span class="kw">def</span> typename(strOrType):
+   <span class="kw">return</span> strOrType <span class="kw">if</span> <span class="dt">isinstance</span>(strOrType, <span class="dt">str</span>) <span class="kw">else</span> strOrType.name
+
+<span class="kw">def</span> typeformat(strOrType):
+   name = typename(strOrType)
+   <span class="kw">return</span>  _FORMAT_DICTIONARY[name[<span class="dv">0</span>]]
+
+<span class="kw">def</span> typefromvalue(value):
+   <span class="kw">if</span> <span class="dt">isinstance</span>(value, <span class="dt">int</span>): <span class="kw">return</span> np.int32
+   <span class="kw">elif</span> <span class="dt">isinstance</span>(value, <span class="dt">float</span>): <span class="kw">return</span> np.float64
+   <span class="kw">elif</span> <span class="dt">isinstance</span>(value, <span class="dt">complex</span>): <span class="kw">return</span> np.complex128
+   <span class="kw">elif</span> <span class="dt">isinstance</span>(value, <span class="dt">bool</span>): <span class="kw">return</span> np.bool_
+   <span class="kw">else</span>:
+      msg = <span class="st">&quot;Unsupported numpy type for value {} of type {}&quot;</span>
+      <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(value, <span class="dt">type</span>(value)))
+</code></pre>
+<h3 id="generic-array-file-io">Generic Array File I/O</h3>
+<h4 id="writearray"><code>readarray(path, **kwargs)</code></h4>
+<p>reads an array from a file located by <code>path</code>. This is a very thin wrapper whose job is simply to use the filename extension that ends <code>path</code> to choose the function used to read the file:</p>
+<blockquote><table>
+<tr><th>
+Extension
+</th><th>
+Effect
+</th></tr>
+<tr><td>
+<code>&quot;.npy&quot;</code>:
+</td><td>
+ call <a href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.load.html"><code>np.load</code></a>
+</td></tr>
+<tr><td>
+<code>&quot;.npz&quot;</code>:
+</td><td>
+ call <a href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.load.html"><code>np.load</code></a>
+</td></tr>
+<tr><td>
+<code>&quot;.gz&quot;</code>:
+</td><td>
+ call <a href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html"><code>np.loadtxt</code></a>
+</td></tr>
+<tr><td>
+<code>&quot;.txt&quot;</code>:
+</td><td>
+ call <a href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html"><code>np.loadtxt</code></a>
+</td></tr>
+<tr><td>
+<code>&quot;.csv&quot;</code>:
+</td><td>
+ call <a href="#readecsv"><code>readcsv</code></a>
+</td></tr>
+<tr><td>
+<code>&quot;.tbl&quot;</code>:
+</td><td>
+ call <a href="#readtable"><code>readtable</code></a>
+</td></tr>
+</table></blockquote>
+
+<p>The trailing keyword arguments, <code>**kwargs</code>, are passed on to the function call implied by the filename extension.</p>
+<p>The return value is a three-tuple, whose components are a function of the file type:</p>
+<ol type="1">
+<li>the result as a NumPy <code>ndarray</code>,</li>
+<li>an array of heading lines (<code>.csv</code>) or rows (<code>.tbl</code>)</li>
+<li>an array of footing lines (<code>.csv</code>) or columns used as row headings (<code>.tbl</code>).</li>
+</ol>
+<p>For files of type “<code>.n*</code>” that are written and read by NumPy code, the arrays in <em>2)</em> and <em>3)</em> are empty: only the NumPy result is of interest.</p>
+<h4 id="writearray"><code>writearray(path, array, ext=“.npy”, **kwargs)</code></h4>
+<p>writes <code>array</code> to the file named by the combination of <code>path</code> and <code>ext</code>. There is no return value. Like <code>readarray</code> for input, this is simply a thin wrapper around calls to NumPy and local functions that handle variations on, in this case, the output file format.</p>
+<p>The argument <code>path</code> is either <code>None</code>, a path for directory into which to write the output, or a complete path for the output file. If it is <code>None</code>, the current working directory will be used. <code>ext</code> is the filename extension and must be one of those in the folowing table:</p>
+<blockquote>
+<table>
+<tr><th>
+Extension
+</th><th>
+Effect
+</th></tr>
+<tr><td>
+<code>&quot;.npy&quot;</code>:
+</td><td>
+ call <a href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.save.html"><code>np.save</code></a>
+</td></tr>
+<tr><td>
+<code>&quot;.npz&quot;</code>:
+</td><td>
+ call <a href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.savez_compressed.html"><code>np.savez_compressed</code></a>
+</td></tr>
+<tr><td>
+<code>&quot;.gz&quot;</code>:
+</td><td>
+ call <a href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.savetxt.html"><code>np.savetxt</code> with <em>gzip</em> output</a>
+</td></tr>
+<tr><td>
+<code>&quot;.txt&quot;</code>:
+</td><td>
+ call <a href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.savetxt.html"><code>np.savetxt</code> with UTF-8 output</a>
+</td></tr>
+<tr><td>
+<code>&quot;.csv&quot;</code>:
+</td><td>
+ call <a href="#writecsv"><code>writecsv</code></a>
+<tr><td>
+<code>&quot;.tbl&quot;</code>:
+</td><td>
+ call <a href="#writetable"><code>writetable</code></a>
+</table></blockquote>
+
+<p>The trailing keyword arguments, <code>**kwargs</code>, are passed on to the function call implied by the filename extension.</p>
+If no filename for the file is provided–in other words, if <code>path</code> names a directory, the filename will be taken to be “<code>array_</code><em><code>shape.ttt.ext</code></em>”, where
+<blockquote><table>
+<tr><td>
+<em><code>shape</code></em> 
+</td><td> 
+is the shape of the array in the format <em><code>iiixjjjx...</code></em>, with <em><code>iii</code></em> the first dimension, <em><code>jjj</code></em> the second, and so on;
+</td></tr>
+
+<tr><td> 
+<em><code>ttt</code></em> 
+</td><td> 
+is a timestamp: the last five characters in the current time as returned by the library function <code>time.gmtime</code> and written in base 36; and
+</td></tr>
+
+<tr><td>
+<em><code>ext</code></em> 
+</td><td> 
+is the filename extension, as provided for either in <code>path</code> or, if not there, by <code>ext</code>.
+</td></tr>
+
+</table></blockquote>
+
+
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> readarray(path, options={}):
+   ignore, basetype = osp.splitext(path)
+   <span class="kw">if</span> basetype.startswith(<span class="st">'.np'</span>):
+      <span class="kw">if</span> basetype.startswith(<span class="st">'.npz#'</span>): <span class="co"># field name in the loaded file's dict</span>
+         namestart = <span class="dv">5</span> + path.rfind(<span class="st">'.npz#'</span>)
+         path = path[<span class="dv">0</span>:namestart<span class="dv">+4</span>]
+         name = path[namestart:]
+         <span class="kw">return</span> (np.load(path)[name], [], [])
+      <span class="kw">else</span>:
+         <span class="kw">return</span> (np.load(path), [], [])
+   <span class="kw">elif</span> basetype == <span class="st">&quot;.csv&quot;</span>:
+      <span class="kw">return</span> readcsv(path, options)
+   <span class="kw">elif</span> basetype == <span class="st">&quot;.tbl&quot;</span>: 
+      <span class="kw">return</span> readtable(path, options)
+   <span class="kw">else</span>:
+      <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Unexpected file type, '{}', for a matrix&quot;</span>.<span class="dt">format</span>(basetype))
+
+<span class="kw">def</span> writearray(path, array, ext=<span class="st">&quot;npy&quot;</span>, **kwargs):
+   path, ext = _resolve_basename(path, array, ext)
+   <span class="kw">if</span> ext == <span class="st">'.npy'</span>:
+      np.save(path, array, **kwargs)
+   <span class="kw">elif</span> ext == <span class="st">'.csv'</span>:
+      writecsv(path, array, **kwargs)
+   <span class="kw">elif</span> ext == <span class="st">'.tbl'</span>:
+      writetable(path, array, **kwargs)
+   <span class="kw">else</span>:
+      <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Unexpected extension, '{}', for array path.&quot;</span>.<span class="dt">format</span>(ext))
+
+</code></pre>
+<h3 id="reading_csv">Reading CSV-like files–variations on NumPy’s functions</h3>
+<p>The methods I’ve written are explicitly intended for saving numeric NumPy arrays as text files, not for saving lists of lists or any other sort of indexed collection. There are two flavors of writer: one for generic arrays, and one for spreadsheet-like tables, where, for the sake of documenting the semantics of the values, one may provide headings both above the columns and to the left of the rows. The methods handling the “table” format are <code>readtable</code> and <code>writetable</code>. The corresponding pair for generic arrays is <code>readcsv</code> and <code>writecsv</code>.</p>
+<p>NumPy is careful to provide both “row-major” and “column-major” formats for arrays, the latter being FORTRAN’s preferred format. Since I have no particular need of FORTRAN–I last wrote in that language in 1977–I have not worried about providing both formats. Just to be clear, if <code>(n</code><sub>1</sub>, <code>... n</code><sub>d</sub><code>)</code> is the shape tuple for an array of dimension <code>d</code> (or “rank <code>d</code>”, if you prefer), I read and write as if I were looping over the rightmost index first:</p>
+<pre class="exampleCode">
+
+   for k<sub>1</sub> in range(0, n<sub>1</sub>+1):
+      for k<sub>2</sub> in range(0, n<sub>2</sub>+1):
+         ...
+            for k<sub>d</sub> in range(0, n<sub>d</sub>+1):
+               handle(array[k<sub>1</sub>,...,k<sub>d</sub>])
+
+</pre> 
+
+<h4 id="readtable"><code>readcsv(path, options={})</code><br /><code>readtable(path, options={})</code></h4>
+<p>Both read a UTF-8 text file that is assumed to have numeric data in a CSV-like format. <code>readcsv</code> is intended for arrays of any shape and permits only header and footer lines as text (not as table entries before or after, the table’s numeric data). <code>readtable</code> is intended for vectors and matrices, and therefore allows row and column headings as an integral part of the CSV array: the actual numeric data is in a sub-array bordered above by rows of column headings and to the left by columns of row headings.</p>
+<blockquote>
+<p><strong>CAREFUL!</strong> If you are working with the “table” format, are using the first <code>k</code> columns for row headings, and have one or more rows of column headings, then the length of a column heading row is <code>k+n</code>, where <code>n</code> is the number of columns of numerical data in the body of the table.</p>
+</blockquote>
+<p>The file is read in and used to initialize a NumPy array of the appropriate shape. The parameters are</p>
+<blockquote>
+
+<table>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>path</code>:</td>
+<td style="text-align: left;">locates the file in question</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>options</code>:</td>
+<td style="text-align: left;">a mapping whose keys are described below</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+
+<p>You can supply the option values in the <code>options</code> argument, as part of the path, and in the first line of the file itself. The idea is that the <code>options</code> argument represents application-wide defaults that a particular input file might need to override. The syntax for adding options to the path is the usual one for adding the <a href="https://en.wikipedia.org/wiki/Uniform_Resource_Locator#Syntax"><em>“query”</em> part to a URL</a>: follow the file path with</p>
+<blockquote>
+<p>     <code>?key1=value1&amp;key2=value2&amp;...</code></p>
+</blockquote>
+<p>with those option keys and values that are local to the file. These options override the <code>options</code> argument. Use exactly the same syntax to embed options as the first line of the file, <em>but add a leading</em> <code>'#'</code>. (Lines beginning with <code>'#'</code> are conventionally treated as comments in CSV files.) The path options dominate the file options, which in turn dominate those in <code>options</code>.</p>
+<p>The options keys, with the default values I provide, are:</p>
+<blockquote>
+
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Key</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: center;">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><code>&quot;shape&quot;</code></td>
+<td style="text-align: left;"> comma-separated entries for the shape tuple</td>
+<td style="text-align: center;"><code>None</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><code>&quot;dtype&quot;</code></td>
+<td style="text-align: left;"> the datatype to expect for the entries</td>
+<td style="text-align: center;"><code>&quot;int32&quot;</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><code>&quot;sep&quot;</code></td>
+<td style="text-align: left;"> a single character that is the field separator</td>
+<td style="text-align: center;"><code>'|'</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><code>&quot;dbgnpu&quot;</code></td>
+<td style="text-align: left;"> display debugging output?</td>
+<td style="text-align: center;"><code>False</code></td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+For <code>readtable</code> only, there are two other options to handle headings:
+<blockquote>
+
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Key</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: center;">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><code>&quot;rskip&quot;</code></td>
+<td style="text-align: left;"> the number of heading rows to skip</td>
+<td style="text-align: center;"><code>0</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><code>&quot;cskip&quot;</code></td>
+<td style="text-align: left;"> the number of heading columns to skip</td>
+<td style="text-align: center;"><code>0</code></td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+
+<p>The matrix returned has type <code>numpy.ndarray(shape, dtype=type)</code></p>
+<p>The reason for allowing more than one header row and/or column is quite simply that the application for which this was written required that ability to be clear about the meaning of the actual matrix entries. Also, the reason for using <code>'|'</code> as the default separator is that it is not used in numeric strings by any language I know of, nor is it likely to appear in the heading text, whereas commas or whitespace, which are the other common separators, are.</p>
+<h4 id="writetable"><code>writecsv(path, array, headers=“”, footers=“”, sep=‘|’, selfid=True)</code><br /><code>writetable(path, array, rowheaders=None, colheaders=None, sep=‘|’, selfid=False)</code></h4>
+<p>Both write the matrix to a file. If <code>path</code> does not name a directory, it is taken to name the output file. In that case, if <code>path</code>’s base name has no file-type extension, <code>&quot;.csv&quot;</code> will be appended by <code>writecsv</code> and <code>&quot;.tbl&quot;</code> by <code>writetable</code>. If <code>path</code> does name a directory, the file name will be constructed as described in the comments on <code>writearray</code> above.</p>
+<p><code>writecsv</code> allows heading text and footer text. The corresponding arguments, <code>headers</code> and <code>footers</code>, should be the text to use. Each header and footer line has a <code>'#'</code> prepended as it is written, so that the lines look like comments in the CSV file. Otherwise, as you would expect, this text will appear “as is”, with headers at the beginning of the file and footers at the end.</p>
+<p>If heading rows are provided for <code>writetable</code>, the argument should be accessible as if it were a list of rows, each row a list of one entry per column (and remember the warning above about how many columns you need!). The entries may be empty strings, but there must be one item per column. If you are using a <code>numpy</code> array, its shape must be <code>(count, cols)</code>, where <code>count</code> is the number of rows to be used for the headings and <code>cols</code> is the number of columns. The analogous conditions govern the column headings, except now the shape is <code>(rows, count)</code>, or if you like to think of lists of lists, a list with one entry per row, each entry being a list with one entry per heading column. Typically, if present at all, <code>count</code> is <code>1</code> in both cases, so the heading rows have shape <code>(1,cols)</code>, and the heading columns shape <code>(rows,1)</code>.</p>
+<p>The matrix entries are converted to ASCII strings before being written out. The keyword argument <code>sep</code> is a string of length 1 that is used to separate the matrix entries in a given row. A newline character ends each row. Python’s <a href="https://docs.python.org/3.6/glossary.html#term-universal-newlines">“universal newline”</a> convention is used.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> optiondefaults():
+   <span class="kw">return</span> {
+      <span class="st">&quot;shape&quot;</span>  : <span class="ot">None</span>,    <span class="co"># same meaning as for an ndarray</span>
+      <span class="co">&quot;dtype&quot;</span>  : <span class="st">&quot;int32&quot;</span>, <span class="co"># again: same meaning as for an ndarray</span>
+      <span class="co">&quot;sep&quot;</span>    : <span class="st">'|'</span>,     <span class="co"># a single character that is the field separator</span>
+      <span class="co">&quot;dbgnpu&quot;</span> : <span class="ot">False</span>,   <span class="co"># show debugging printouts?</span>
+                          <span class="co"># the two below are needed only for readtable/writetable</span>
+      <span class="co">&quot;rskip&quot;</span>  : <span class="dv">0</span>,       <span class="co"># the number of heading rows to skip</span>
+      <span class="co">&quot;cskip&quot;</span>  : <span class="dv">0</span>        <span class="co"># the number of heading columns to skip</span>
+   }
+_PATH_PARM_RE = re.<span class="dt">compile</span>(<span class="st">&quot;([^?]+)(</span><span class="ch">\?</span><span class="st">([^?]+))?$&quot;</span>)
+_BASEPATTERN = re.<span class="dt">compile</span>(<span class="st">&quot;array_([x\d]+)\.(\w+)\.(\w+)\.(\w+)&quot;</span>)
+
+<span class="kw">def</span> _parseparms(path, options):
+   defaults = optiondefaults()
+   (path, ignore, parms) = _PATH_PARM_RE.match(path).groups()
+   basename = osp.basename(path)
+   match = _BASEPATTERN.match(basename)
+   local_options = {}
+   <span class="kw">if</span> match != <span class="ot">None</span>:
+      shape, dtype, ignore = match.groups()
+      local_options[<span class="st">&quot;shape&quot;</span>] = shape
+      local_options[<span class="st">&quot;dtype&quot;</span>] = dtype
+   <span class="kw">if</span> parms != <span class="ot">None</span>:
+      _parseurlparms(parms, local_options, defaults)
+   su.mergepairs(local_options, options)
+   su.mergepairs(local_options, defaults)
+   <span class="kw">return</span> path, local_options
+
+<span class="kw">def</span> _readfirstline(f, options, defaults):
+   line = f.readline()
+   _parseurlparms(line[<span class="dv">2</span>:].lstrip(), options, defaults)
+   <span class="co"># translate string values to their desired types:</span>
+   <span class="kw">if</span> <span class="dt">isinstance</span>(options[<span class="st">'shape'</span>], <span class="dt">str</span>):
+      options[<span class="st">'shape'</span>] = <span class="dt">tuple</span>([<span class="dt">int</span>(n) <span class="kw">for</span> n in options[<span class="st">'shape'</span>].split(<span class="st">'x'</span>)])
+   <span class="kw">else</span>:
+      <span class="co"># make sure (a) value is a tuple, and (b) entries are integers</span>
+      options[<span class="st">'shape'</span>] = <span class="dt">tuple</span>([<span class="dt">int</span>(n) <span class="kw">for</span> n in options[<span class="st">'shape'</span>]])
+   options[<span class="st">'dtype'</span>] = numpytype(options[<span class="st">'dtype'</span>])
+   <span class="kw">if</span> not <span class="dt">isinstance</span>(options[<span class="st">'dtype'</span>], <span class="dt">type</span>):
+      msg = <span class="st">&quot;expected valid NumPy data type, got '{}'&quot;</span>
+      <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(options[<span class="st">'dtype'</span>]))
+   options[<span class="st">'rskip'</span>] = <span class="dt">int</span>(options[<span class="st">'rskip'</span>])
+   options[<span class="st">'cskip'</span>] = <span class="dt">int</span>(options[<span class="st">'cskip'</span>])
+   options[<span class="st">&quot;dbgnpu&quot;</span>] = su.asboolean(options[<span class="st">'dbgnpu'</span>])
+   <span class="kw">return</span> f.readline() <span class="kw">if</span> line.startswith(<span class="st">&quot;#?&quot;</span>) <span class="kw">else</span> line   
+
+<span class="kw">def</span> _parseurlparms(urlparms, local_options, defaults):
+   <span class="co"># urlparms ?key=value&amp;key=value...</span>
+   parms = urlparms.rstrip().split(<span class="st">'&amp;'</span>)
+   <span class="kw">if</span> defaults[<span class="st">&quot;dbgnpu&quot;</span>]: <span class="dt">print</span>(<span class="st">&quot;parms is '{}'&quot;</span>.<span class="dt">format</span>(parms))
+   <span class="kw">for</span> parm in parms:
+      <span class="kw">if</span> defaults[<span class="st">&quot;dbgnpu&quot;</span>]: <span class="dt">print</span>(<span class="st">&quot;parm is '{}'&quot;</span>.<span class="dt">format</span>(parm))
+      (name, value) = parm.split(<span class="st">'='</span>)  <span class="co"># </span>
+      <span class="kw">if</span> name in defaults:
+         oldvalue = local_options[name]
+         default = defaults[name] 
+         <span class="kw">if</span> name in local_options and oldvalue != default and oldvalue != value:
+            msg = <span class="st">&quot;WARNING: {} is '{}' in the path, but '{}' in the parameters&quot;</span>
+            <span class="dt">print</span>(msg.<span class="dt">format</span>(name, oldvalue, value), <span class="dt">file</span>=sys.stderr)
+         <span class="co">#print(&quot;'{}' --&gt; '{}'&quot;.format(name, value))</span>
+         local_options[name] = value
+      <span class="kw">elif</span> defaults[<span class="st">&quot;dbgnpu&quot;</span>]: <span class="co"># ignore ???</span>
+         <span class="dt">print</span>(<span class="st">&quot;Unexpected option in the path parameters: '{}'&quot;</span>.<span class="dt">format</span>(name))
+         <span class="dt">print</span>(defaults)
+   <span class="kw">return</span> local_options
+
+<span class="kw">def</span> readtable(path, options={}):
+   path, options = _parseparms(path, options)
+   <span class="kw">with</span> <span class="dt">open</span>(path) <span class="ch">as</span> f:
+      line = _readfirstline(f, options, optiondefaults())
+      <span class="kw">if</span> options[<span class="st">&quot;dbgnpu&quot;</span>]: <span class="dt">print</span>(<span class="st">&quot;line after first is '{}'&quot;</span>.<span class="dt">format</span>(line))
+      separator = options[<span class="st">'sep'</span>]
+      column_headings = []
+      row_headings = []
+      <span class="co"># ignore any header lines to get to the first line of data</span>
+      first_data_column = options[<span class="st">'cskip'</span>]
+      <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, options[<span class="st">'rskip'</span>]):
+         headings = line.strip().split(separator)
+         column_headings.append(headings[first_data_column:])
+         line = f.readline()
+         <span class="kw">if</span> options[<span class="st">&quot;dbgnpu&quot;</span>]: <span class="dt">print</span>(<span class="st">&quot;headings {}: '{}'&quot;</span>.<span class="dt">format</span>(n, line))
+      <span class="co"># read the first row containing real data and use it to determine the matrix</span>
+      <span class="co"># size, if the options do not already do that.</span>
+      row = line.strip().split(separator)
+      <span class="kw">if</span> options[<span class="st">'dbgnpu'</span>]:
+         msg = <span class="st">&quot;Matrix starts at column {}; separator: '{}'&quot;</span> 
+         <span class="dt">print</span>(msg.<span class="dt">format</span>(first_data_column, separator))
+         <span class="dt">print</span>(<span class="st">&quot;First row: {}&quot;</span>.<span class="dt">format</span>(row))
+      fields_per_line = <span class="dt">len</span>(row)
+      cols = fields_per_line - first_data_column
+      shape = options[<span class="st">'shape'</span>]
+      <span class="kw">if</span> shape != <span class="ot">None</span>: 
+         expected = shape[<span class="dv">1</span>] <span class="kw">if</span> <span class="dt">len</span>(shape) &gt; <span class="dv">1</span> <span class="kw">else</span> shape[<span class="dv">0</span>]
+         <span class="kw">if</span> cols != expected:
+            msg = <span class="st">&quot;Expected {} data columns, but first line has {}&quot;</span>
+            <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(expected,cols))
+         rows = shape[<span class="dv">0</span>] <span class="kw">if</span> <span class="dt">len</span>(shape) &gt; <span class="dv">1</span> <span class="kw">else</span> <span class="dv">1</span>
+      <span class="kw">else</span>:
+         rows = cols
+         shape = (cols, cols)
+         <span class="dt">print</span>(<span class="st">&quot;WARNING: no shape specified: {} assumed.&quot;</span>.<span class="dt">format</span>(shape),<span class="dt">file</span>=sys.stderr)
+      <span class="kw">if</span> options[<span class="st">'dbgnpu'</span>]: <span class="dt">print</span>(<span class="st">&quot;{} data fields in the first row.&quot;</span>.<span class="dt">format</span>(cols))
+      data_range = <span class="dt">range</span>(first_data_column, fields_per_line)
+
+      <span class="co"># allocate and fill in the matrix</span>
+      entrytype = options[<span class="st">&quot;dtype&quot;</span>]
+      matrix    = np.zeros(shape, dtype=entrytype)
+
+      <span class="co"># we've already read the first row</span>
+      <span class="kw">if</span> first_data_column &gt; <span class="dv">0</span>: 
+         row_headings.append(row[<span class="dv">0</span>:first_data_column])
+      <span class="kw">for</span> j in data_range:
+         matrix[<span class="dv">0</span>, j-first_data_column] = entrytype(row[j].strip()) 
+
+      <span class="co"># now read the remaining rows</span>
+      i = <span class="dv">1</span> <span class="co"># next row to update</span>
+      <span class="kw">while</span> i &lt; rows:
+         line = f.readline()
+         <span class="kw">if</span> options[<span class="st">&quot;dbgnpu&quot;</span>]: <span class="dt">print</span>(<span class="st">&quot;row {}: {}&quot;</span>.<span class="dt">format</span>(i, line))
+         <span class="kw">if</span> <span class="dt">len</span>(line) == <span class="dv">0</span>:
+            <span class="kw">raise</span> <span class="ot">IOError</span>(<span class="st">&quot;{} rows found at EOF, but {} were expected&quot;</span>.<span class="dt">format</span>(i,rows))
+         row = line.strip().split(separator)
+         <span class="kw">if</span> <span class="dt">len</span>(row) != fields_per_line:
+            msg = <span class="st">&quot;{} fields found in row {}, but {} were expected&quot;</span>
+            <span class="kw">raise</span> <span class="ot">IOError</span>(msg.<span class="dt">format</span>(<span class="dt">len</span>(row), i, cols))
+         <span class="kw">if</span> first_data_column &gt; <span class="dv">0</span>:
+            row_headings.append(row[<span class="dv">0</span>:first_data_column])
+            <span class="kw">for</span> j in data_range:
+               matrix[i, j-first_data_column] = entrytype(row[j].strip())
+         i += <span class="dv">1</span>
+   <span class="kw">return</span> (matrix, column_headings, row_headings)
+
+<span class="kw">def</span> readcsv(path, options={}):
+   path, options = _parseparms(path, options)
+   <span class="kw">if</span> options[<span class="st">&quot;dbgnpu&quot;</span>]: <span class="dt">print</span>(<span class="st">&quot;options before: {}&quot;</span>.<span class="dt">format</span>(options))
+   <span class="kw">with</span> <span class="dt">open</span>(path, <span class="st">'rt'</span>) <span class="ch">as</span> f:
+      line = _readfirstline(f, options, optiondefaults())
+      separator = options[<span class="st">'sep'</span>]
+      shape = options[<span class="st">'shape'</span>]
+      totalsize = sizefromshape(shape)
+      entrytype = options[<span class="st">'dtype'</span>]
+      array = np.zeros((totalsize,), dtype=entrytype)
+      n = <span class="dv">0</span>
+      headers = []
+      <span class="kw">while</span> <span class="dt">len</span>(line) &gt; <span class="dv">0</span> and line[<span class="dv">0</span>] == <span class="st">'#'</span>:
+         headers.append(line[<span class="dv">1</span>:])
+         line = f.readline()
+      <span class="kw">while</span> <span class="dt">len</span>(line) &gt; <span class="dv">0</span> and line[<span class="dv">0</span>] != <span class="st">'#'</span>:
+         <span class="kw">if</span> line != <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>:
+            <span class="kw">for</span> entry in line.split(separator):
+               array[n] = entrytype(entry)
+               n += <span class="dv">1</span>
+         line = f.readline()
+      footers = []
+      <span class="kw">while</span> <span class="dt">len</span>(line)&gt;<span class="dv">0</span>:
+         footers.append(line[<span class="dv">1</span>:])
+         line = f.readline()
+      <span class="kw">if</span> n != totalsize:
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Read {} entries, but expected {}&quot;</span>.<span class="dt">format</span>(n, totalsize))
+      <span class="kw">return</span> (array.reshape(shape), headers, footers)
+
+<span class="kw">def</span> _resolve_basename(path, array, ext):
+   <span class="kw">if</span> not osp.isdir(path):
+      (ignore, actual_ext) = osp.splitext(path)
+      <span class="kw">if</span> <span class="dt">len</span>(actual_ext) == <span class="dv">0</span>:
+         actual_ext = ext
+      <span class="kw">return</span> (path, actual_ext)
+   <span class="kw">else</span>:
+      <span class="kw">if</span> not path.endswith(os.sep): path += os.sep
+      shape_str = <span class="st">'x'</span>.join([<span class="dt">str</span>(n) <span class="kw">for</span> n in array.shape])
+      formatString = <span class="st">&quot;</span><span class="ot">{0}</span><span class="st">array_</span><span class="ot">{1}{2}{3}{2}{4}{2}{5}</span><span class="st">&quot;</span>
+      entrytype = typename(numpytype(kind) <span class="kw">if</span> kind != <span class="ot">None</span> <span class="kw">else</span> array.dtype)
+      timestamp = su.now2IntLiteral(<span class="dv">36</span>)[-<span class="dv">4</span>:]
+      resolved = formatString.<span class="dt">format</span>(
+         path, shape_str, os.extsep, entrytype, timestamp, ext
+      )
+      <span class="kw">return</span> (path, ext)
+
+<span class="kw">def</span> writetable(path, matrix, rowheaders=<span class="ot">None</span>, colheaders=<span class="ot">None</span>, sep=<span class="st">'|'</span>, selfid=<span class="ot">True</span>):
+   <span class="kw">if</span> <span class="dt">len</span>(matrix.shape) == <span class="dv">1</span>:
+      matrix = matrix.reshape(<span class="dv">1</span>, matrix.shape(<span class="dv">0</span>))
+   <span class="kw">elif</span> <span class="dt">len</span>(matrix.shape) != <span class="dv">2</span>:
+      <span class="kw">raise</span> <span class="ot">TypeError</span>(<span class="st">&quot;Expected a vector or matrix, but got shape {}&quot;</span>.<span class="dt">format</span>(shape))
+   path, ignore = _resolve_basename(path, matrix, <span class="st">&quot;tbl&quot;</span>)
+   (rows, cols) = matrix.shape
+   <span class="kw">if</span> rowheaders is <span class="ot">None</span>: rskip = <span class="dv">0</span>
+   <span class="kw">else</span>:
+      shape = rowheaders.shape
+      rskip = <span class="dv">1</span> <span class="kw">if</span> <span class="dt">len</span>(shape) == <span class="dv">1</span> <span class="kw">else</span> shape[<span class="dv">0</span>]
+   <span class="kw">if</span> colheaders is <span class="ot">None</span>: cskip = <span class="dv">0</span>
+   <span class="kw">else</span>:
+       shape = colheaders.shape
+       cskip = <span class="dv">1</span> <span class="kw">if</span> <span class="dt">len</span>(shape) == <span class="dv">1</span> <span class="kw">else</span> shape[<span class="dv">1</span>]
+   entrytype = typename(matrix.dtype)
+   formatString = <span class="st">&quot;{0:&quot;</span>+typeformat(entrytype)+<span class="st">&quot;}&quot;</span>
+   <span class="kw">with</span> <span class="dt">open</span>(path, <span class="st">&quot;wt&quot;</span>) <span class="ch">as</span> f:
+      <span class="kw">if</span> selfid:
+         firstlinefmt = <span class="st">&quot;#? shape={}x{}&amp;rskip={}&amp;cskip={}&amp;dtype={}&amp;sep={}</span><span class="ch">\n</span><span class="st">&quot;</span>
+         f.write(firstlinefmt.<span class="dt">format</span>(rows, cols, rskip, cskip, entrytype, sep))
+      <span class="kw">if</span> rskip != <span class="dv">0</span>:
+         f.write(sep.join([<span class="dt">str</span>(x) <span class="kw">for</span> row in rowheaders <span class="kw">for</span> x in row])+<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>)
+      <span class="kw">if</span> cskip == <span class="dv">0</span>:
+         <span class="kw">for</span> row in matrix:
+            fwrite(sep.join([formatString.<span class="dt">format</span>(x) <span class="kw">for</span> x in row])+<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span> )
+      <span class="kw">else</span>:
+         <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, rows):
+            headers = sep.join([<span class="dt">str</span>(x) <span class="kw">for</span> x in colheaders[n]])
+            the_row = sep.join([formatString.<span class="dt">format</span>(x) <span class="kw">for</span> x in matrix[n]])
+            f.write(sep.join([headers, the_row]) + <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>)
+
+<span class="kw">def</span> writecsv(path, array, headers=<span class="st">&quot;&quot;</span>, footers=<span class="st">&quot;&quot;</span>, perline=<span class="dv">10</span>, sep=<span class="st">'|'</span>, selfid=<span class="ot">True</span>):
+   path, ignore = _resolve_basename(path, array, <span class="st">&quot;csv&quot;</span>)
+   entrytype = typename(array.dtype)
+   formatString = <span class="st">&quot;{0:&quot;</span>+typeformat(entrytype)+<span class="st">&quot;}&quot;</span>
+   shape = array.shape
+   <span class="kw">if</span> <span class="dt">len</span>(shape)==<span class="dv">1</span>:
+      rows = <span class="dv">1</span>
+      cols = array.size 
+   <span class="kw">else</span>:
+      rows = shape[<span class="dv">0</span>]
+      cols = shape[<span class="dv">1</span>]
+   reshaped = array.reshape((array.size,))
+   <span class="kw">with</span> <span class="dt">open</span>(path, <span class="st">&quot;wt&quot;</span>) <span class="ch">as</span> f:
+      <span class="kw">if</span> selfid:
+         f.write(<span class="st">&quot;#? shape={}x{}&amp;dtype={}</span><span class="ch">\n</span><span class="st">&quot;</span>.<span class="dt">format</span>(rows, cols, entrytype))
+      <span class="kw">if</span> <span class="dt">len</span>(headers) &gt; <span class="dv">0</span>:
+         <span class="kw">for</span> line in headers.split(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>):
+            f.write(<span class="st">&quot;#&quot;</span>+line+<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>)
+      n = <span class="dv">0</span>
+      <span class="kw">while</span> n &lt; array.size:
+         next_n = n + perline
+         slice_n = reshaped[n : next_n] 
+         f.write(sep.join([formatString.<span class="dt">format</span>(x) <span class="kw">for</span> x in slice_n])+<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span> )
+         n = next_n
+      <span class="kw">if</span> <span class="dt">len</span>(footers) &gt; <span class="dv">0</span>:
+         <span class="kw">for</span> line in footers.split(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>):
+            f.write(<span class="st">&quot;#&quot;</span>+line+<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>)</code></pre>
+</body>
+</html>

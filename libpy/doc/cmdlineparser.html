@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>cmdlineparser: Simplified Command Line Processing</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title"><code>cmdlineparser</code>: Simplified Command Line Processing</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">November, 2015</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#introduction">Introduction</a><ul>
+<li><a href="#high-level-interface-parse_argsclasses-argsnone-usagenone-hardentrue">High-level interface: <code>parse_args(*classes, args=None, usage=None, harden=True)</code></a></li>
+</ul></li>
+<li><a href="#as_a_dict">Getting the key/value pairs as a <code>dict</code></a><ul>
+<li><a href="#args_dictparsed_args-freezefalse"><code>args_dict(parsed_args, freeze=False)</code></a></li>
+</ul></li>
+<li><a href="#the-cmdlineparser-class-and-its-initializer">The <code>CmdLineParser</code> class and its initializer</a><ul>
+<li><a href="#setcallercaller"><code>setCaller(caller)</code></a></li>
+</ul></li>
+<li><a href="#two-instance-method-parsing-method-overrides">Two instance method parsing method “overrides”</a><ul>
+<li><a href="#parse_all_argsargsnone-stricttrue"><code>parse_all_args(args=None, strict=True)</code></a></li>
+<li><a href="#parse_only_known_argsargsnone-stricttrue"><code>parse_only_known_args(args=None, strict=True)</code></a></li>
+</ul></li>
+<li><a href="#the-full-bodied-add-methods">The full-bodied add methods</a><ul>
+<li><a href="#add_pairself-keys-kwargs"><code>add_pair(self, *keys, **kwargs)</code></a></li>
+<li><a href="#add_repeatableself-keys-kwargs"><code>add_repeatable(self, *keys, **kwargs)</code></a></li>
+<li><a href="#add_flagself-keys-helpno-help"><code>add_flag(self, *keys, help=‘(no help)’)</code></a></li>
+<li><a href="#add_positionalself-key-typestr-nargs1-choicesnone-helpno-help"><code>add_positional(self, key, type=str, nargs=1, choices=None, help=‘(no help)’)</code></a></li>
+<li><a href="#add_argumentargs-kwargs-override"><code>add_argument(*args, **kwargs)</code> override</a></li>
+</ul></li>
+<li><a href="#shortcuts-for-when-there-is-only-a-short-key-name">Shortcuts for when there is only a “short” key name</a><ul>
+<li><a href="#add_a_flagself-key-help_msg"><code>add_a_flag(self, key, help_msg)</code></a></li>
+<li><a href="#add_an_intself-key-default_value-help_msg"><code>add_an_int(self, key, default_value, help_msg)</code></a></li>
+<li><a href="#add_a_floatself-key-default_value-help_msg"><code>add_a_float(self, key, default_value, help_msg)</code></a></li>
+<li><a href="#add_a_strself-key-default_value-help_msg"><code>add_a_str(self, key, default_value, help_msg)</code></a></li>
+<li><a href="#add_a_listself-key-help-typestr"><code>add_a_list(self, key, help, type=str)</code></a></li>
+<li><a href="#add_an_optional_listself-key-help-typestr"><code>add_an_optional_list(self, key, help, type=str)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python"></code></pre>
+<h2 id="introduction">Introduction</h2>
+<p>The aim here is to simplify adding command line argument specifications to a “main” Python entry point. I do so by extending the Python library’s <a href="https://docs.python.org/3.5/library/argparse.html"><code>ArgumentParser</code></a> class. All the parsing work is delegated to an instance of that class. The <a href="https://docs.python.org/3/library/argparse.html#the-add-argument-method"><code>add_argument()</code></a> method of <code>ArgumentParser</code> itself has a necessarily rich signature:</p>
+<pre class="exampleCode">
+ArgumentParser.add_argument(name or flags...
+   [, action][, nargs][, const][, default][, type]
+   [, choices][, required][, help][, metavar][, dest])
+</pre>
+
+<p>The major reason for extending the class is to provide a number of instance methods that handle the most common situations with minimal signatures.</p>
+<p>Three types of command line keys are supported:</p>
+<blockquote><table>
+
+<tr><td>
+<em>positional</em>:
+</td><td>  
+which must occur in a command line in the same relative position that they appear in the sequence of <code>add_...</code> calls that register the keys. Typically, positional arguments are the first and/or last key. Particularly when appearing last, they may consume any number of arguments.
+</td></tr>
+
+<tr><td>
+<em>key/value pairs</em>:
+</td><td> 
+optional keys consuming a single argument that follows as its value
+</td></tr>
+
+<tr><td>
+<em>flags</em>:
+</td><td> 
+keys whose value is <code>False</code> by default and is <code>True</code> if present
+</td></tr>
+
+</table></blockquote>
+
+<p>Those three are enough for now. Notably missing are key/value options that can consume more than one argument. I have not needed them, so I have not implemented them. I also do not handle the unfortunately common case of a command line that contains a final set of entries which are to be ignored by the invoked program itself, but are saved by it and eventually passed on to some other program, possibly one created by it. One way to handle this is by quoting the part of the command line that is to be passed through and treating the quoted string as single positional argument. Another common convention is to use the minimal key, “<code>--</code>”, to separate the two parts of the command line. That solution is not easily supported by the library code I am wrapping. I may yet do some preprocessing to make it work, but I am not anxious to open that can of worms. As a practical matter, one can also use a non-standard, but easily recognizable, option key like <code>--the_rest</code> or <code>--pass_on</code>.</p>
+<p>Some vocabulary:</p>
+<blockquote>
+<p><b><em>Arguments</em></b> are the entries in a list. The list is normally gotten by splitting a command line at whitespace, but any list of strings will do.</p>
+</blockquote>
+<blockquote>
+<p><b><em>Keys</em></b> or <b><em>keywords</em></b> name groups of values. Non-numeric entries the argument list are identified as keys by beginning them with a “<code>-</code>”. Keys may be followed in the list by zero or more entries that are interpreted as the key’s value. These key/value pairs are normally called <b><em>options</em></b> and, as the word “option” implies, they usually are not be required to be present.</p>
+</blockquote>
+<blockquote>
+<p><b><em>Values</em></b> are those entries in the argument list that are not keywords. Some values are part of key/value pairs as just described; others are “positional”, in the sense that their meaning is derived from where they appear in the argument list, not from being paired with an option keyword.</p>
+</blockquote>
+<blockquote>
+<p><b><em>Flags</em></b> are keywords that do not consume any values. A flag <code>-xxx</code> has the value <code>True</code> or <code>False</code> depending on whether <code>-xxx</code> appears in the argument list or not.</p>
+</blockquote>
+<p>How to handle repeated appearances of the same key in a command line is a vexed issue. First wins? Last? Keep all the values as a list? The argument parser provided with the Python library does “last wins” by default. It implements the “keep all” if you provide the <code>action</code> keyword argument with the value <code>append</code>. One could also implement “first wins” or “once only”, but I have not. Should you need to, it is a simple matter of extending the <a href="https://docs.python.org/3/library/argparse.html#argparse.Action"><code>Action</code></a> class.</p>
+<p>Another thing to be careful of is options that contain characters that appear in an option but are not legal in Python identifiers, most particularly ‘-’, which <code>argparse</code> translates to an underscore “<code>_</code>”. If you want to use the returned object’s attributes to access the value, you need to use the “<code>_</code>”. If you use the “add_” methods supplied here and you use the <code>dict</code> version of the key/value pairs, both the <code>-</code> and the <code>_</code> names are there. If you use any other funny character, you <em>must</em> use the <code>dict</code> variant.</p>
+<p>At the risk of being accused of “piling on”, I have to raise another issue, namely, what to do if there are unrecognized keys. The native Python library call, <a href="https://docs.python.org/3/library/argparse.html#the-parse-args-method"><code>parse_args()</code></a>, exits on any error, after spitting out a message. By “exit”, I mean just that: you are left back at the command shell prompt with an exit status of <code>2</code>. Remember, this method is designed to process command lines, so it is not unreasonable to assume that garbage keys will be recoverable only by re- entering a correct command line–and either there will be someone at the keyboard ready to deal with it–or not (sigh!).</p>
+<p>Finally, a reminder that <code>argparse</code> is pretty sophisticated about parsing key/value pairs. If <code>-x</code> is a key, <code>-xyz</code> will be recognized as an occurrence of <code>x</code> with value <code>yz</code>, just as <code>-x yz</code> would be. Of course, if <code>xy</code> or <code>-xyz</code> are also keys, all bets as to how <code>-xyz</code> is interpreted are off.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> argparse <span class="ch">import</span> ArgumentParser
+<span class="ch">from</span> argparse <span class="ch">import</span> HelpFormatter
+<span class="ch">from</span> collections <span class="ch">import</span> defaultdict, namedtuple
+<span class="ch">from</span> frozendict <span class="ch">import</span> FrozenDict
+<span class="ch">import</span> re
+<span class="ch">import</span> sys
+<span class="ch">import</span> sysutils <span class="ch">as</span> su
+<span class="ch">import</span> types
+</code></pre>
+<h4 id="high-level-interface-parse_argsclasses-argsnone-usagenone-hardentrue">High-level interface: <code>parse_args(*classes, args=None, usage=None, harden=True)</code></h4>
+<p>This is a module-level function that is adequate for bootstrapping a lot of command-line programs. It informs the parser of the union of the command line keys expected by the classes passed to it as arguments, and then parses the command line. The <code>usage</code> parameter is a string that is prepended to the help message that is generated automatically for the <code>--help</code> keyword argument.</p>
+<p>The return value is an <code>object</code> whose public attributes are the keywords, stripped of leading dashes. The value of an attribute is either the value supplied in the command line or a default specified when the keyword was added to the parser’s dictionary. The actual type of the return value is determined by the keyword parameter “<code>harden</code>”. If it is <code>True</code>, which is the default, the return value is a <code>namedtuple</code> and immutable. Otherwise, the return value is a <code>SimpleNamespace</code>. If the command line keywords, less their opening dashes, are not valid Python identifiers, you want to go with the <code>SimpleNamespace</code>, because all of the keywords will be found in the return value’s <code>__dict__</code> and hence are accessible via its “<code>[]</code>” operator. The <code>namedtuple</code> constructor will raise a <code>ValueError</code> if it encounters a lexically invalid key.</p>
+<p>The classes passed as the call’s initial arguments are processed in the order they appear in the argument list. Each class is assumed to have a class method <code>setCmdLineArgs()</code> that takes a <code>CmdLineParser</code> as its only argument. The job of that method is to add the argument specifications to the parser’s list, normally by calling the <code>add...</code> methods below. <code>setCmdLineArgs()</code> is a class method because the command line options, often as not, are used to initialize any instances that are constructed.</p>
+<p>Some care is required when there are positional arguments. My advice is not to have optional and positional arguments interspersed in the series of <code>add_...</code> calls. Put them all first or last.</p>
+<p>By default–that is, when <code>args</code> is <code>None</code>–this call parses the arguments coming in from the command-line. Otherwise, the value for <code>args</code> should be a list of strings representing a tokenized command-line.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> parse_args(*classes, args=<span class="ot">None</span>, usage=<span class="ot">None</span>, harden=<span class="ot">True</span>):
+   clp = CmdLineParser() <span class="kw">if</span> usage == <span class="ot">None</span> <span class="kw">else</span> CmdLineParser(usage=usage)
+   <span class="kw">for</span> aClass in classes:
+      clp.setCaller(aClass)
+      aClass.setCmdLineArgs(clp)
+   <span class="kw">return</span> clp.parse_all_args(args=args, harden=harden)
+
+</code></pre>
+<h2 id="as_a_dict">Getting the key/value pairs as a <code>dict</code></h2>
+<p>There are times when passing the result through to an application’s constructors that it is more convenient to pass a <code>dict</code>-like object whose keys are the command line keywords. An example is when the constructors are designed to be called not just more or less directly from the command line, but from other places in the application as well that may have their own source for initializing the options. It is more natural in Python, if not easier, for the other callers to construct a <code>dict</code> with the desired keys than it is for them to construct an object with the right attributes. That explains why I bothered with the following one-liner to convert <code>parse_all_args</code>’s output to a <code>dict</code> or <a href="inheritancedict.html#freezing-a-mapping"><code>FrozenDict</code></a>:</p>
+<h4 id="args_dictparsed_args-freezefalse"><code>args_dict(parsed_args, freeze=False)</code></h4>
+<p><code>args_dict</code> returns a dictionary whose key/value pairs are the attribute/value pairs of the value returned by a call to either the <code>parse_args()</code> module-level function or to the <code>CmdLineParser</code> instance method <code>parse_all_args()</code>. If <code>freeze</code> is <code>True</code>, the return value is a read-only dictionary; otherwise it is an ordinary <code>dict</code>.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> args_dict(parsed_args, freeze=<span class="ot">False</span>):
+  <span class="kw">if</span> <span class="dt">hasattr</span>(parsed_args, <span class="st">&quot;__dict__&quot;</span>):
+    <span class="kw">return</span> parsed_args.__dict__.copy() <span class="kw">if</span> not freeze <span class="kw">else</span> FrozenDict(parsed_args.__dict__)
+  <span class="kw">elif</span> <span class="dt">hasattr</span>(parsed_args, <span class="st">&quot;_asdict&quot;</span>):
+    asdict = parsed_args._asdict()
+    <span class="kw">return</span> asdict <span class="kw">if</span> not freeze <span class="kw">else</span> FrozenDict(asdict)
+  <span class="kw">else</span>:
+    <span class="kw">raise</span> <span class="ot">TypeError</span>(
+      <span class="st">&quot;Unexpected return type, {}, from the argument parser&quot;</span>.<span class="dt">format</span>(<span class="dt">type</span>(parsed_args))
+    )
+</code></pre>
+<h2 id="the-cmdlineparser-class-and-its-initializer">The <code>CmdLineParser</code> class and its initializer</h2>
+<p><strong><code>CmdLineParser</code></strong> extends the class <a href="https://docs.python.org/3.5/library/argparse.html#argumentparser-objects"><code>ArgumentParser</code></a> from the Python Standard Library. Its constructor has exactly the same signature as <code>ArgumentParser</code>, so I won’t elaborate further here. There is also a tutorial on using <code>ArgumentParser</code>: <a href="https://docs.python.org/3.5/howto/argparse.html">https://docs.python.org/3.5/howto/argparse.html</a>. If you are willing to live with my module-level <code>parse_args()</code>, you can avoid the constructor call entirely, because I’ll do it for you.</p>
+<p>There are three fields I have added to the base <code>ArgumentParser</code>.</p>
+<blockquote>
+<p><em><code>synonyms</code></em> maps each option key to all of its synonyms–<em>e.g.</em> short and long forms, like<code>-f</code> and <code>--from</code>.</p>
+</blockquote>
+<blockquote>
+<p><em><code>misfits</code></em> is the set of option keys that are not valid Python identifiers and hence not usable as attribute names. This is just for debugging purposes.</p>
+</blockquote>
+<blockquote>
+<p><em><code>caller</code></em> is the name of the class that is currently adding options to the profile. It is only used to generate error messages and is <code>None</code> (and hence ignored) by default.</p>
+</blockquote>
+<p>You can set <em><code>caller</code></em> either as the keyword argument “<code>caller</code>” or by calling the method</p>
+<h4 id="setcallercaller"><code>setCaller(caller)</code></h4>
+<p>The value of caller should be the class that is initializing the profile. An object of that class is also okay, as is the character string name of the class. Passing <code>None</code> results in no name being used.</p>
+<p>It is considered good taste for a class to use a method named <code>setCmdLineArgs</code> to specify the command line keys and their semantics. Even better taste is to begin that method by calling <code>setCaller</code>, just in case some error is detected. The module-level <code>parse_args</code> makes the call for you, in case you were neglectful, but still, it is goodness to make <code>setCmdLineArgs</code> self-contained.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> CmdLineParser(ArgumentParser):
+
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, 
+                 prog=<span class="ot">None</span>,             usage=<span class="ot">None</span>,
+                 description=<span class="ot">None</span>,      epilog=<span class="ot">None</span>,
+                 parents=[],            formatter_class=HelpFormatter,
+                 prefix_chars=<span class="st">'-'</span>,      fromfile_prefix_chars=<span class="ot">None</span>,
+                 argument_default=<span class="ot">None</span>, conflict_handler=<span class="st">'error'</span>,
+                 add_help=<span class="ot">True</span>,         caller=<span class="ot">None</span>):
+      <span class="ot">self</span>.synonyms = defaultdict(<span class="dt">list</span>)  <span class="co"># maps each key to its synonyms</span>
+      <span class="ot">self</span>.misfits = <span class="dt">set</span>()               <span class="co"># keys that are not valid Python ids</span>
+      <span class="ot">self</span>.setCaller(caller)
+      ArgumentParser.<span class="ot">__init__</span>(<span class="ot">self</span>,
+                 prog=prog, usage=usage, description=description,
+                 epilog=epilog, parents=parents, formatter_class=formatter_class,
+                 prefix_chars=prefix_chars, fromfile_prefix_chars=fromfile_prefix_chars,
+                 argument_default=argument_default, conflict_handler=conflict_handler,
+                 add_help=add_help)
+
+   <span class="kw">def</span> setCaller(<span class="ot">self</span>, caller):
+      <span class="kw">if</span> caller is <span class="ot">None</span>:
+         <span class="ot">self</span>.caller = <span class="ot">None</span>
+      <span class="kw">elif</span> <span class="dt">isinstance</span>(caller, <span class="dt">str</span>):
+         <span class="ot">self</span>.caller = caller
+      <span class="kw">else</span>:
+         theClass = caller <span class="kw">if</span> <span class="dt">isinstance</span>(caller, <span class="dt">type</span>) <span class="kw">else</span> caller.__class__
+         <span class="ot">self</span>.caller = theClass.<span class="ot">__name__</span>
+</code></pre>
+<h2 id="two-instance-method-parsing-method-overrides">Two instance method parsing method “overrides”</h2>
+<p>I don’t really override these methods, I wrap them, because I don’t want to risk my version being called internally by <code>argsparse</code> at some future time. The only reason for wrapping these methods of <code>ArgumentParser</code> at all is to make sure that when there are multiple keywords for the same option, <em>all</em> of the possible keywords, and not just the second one specified in the call to <code>add_argument</code>, are available as attributes of the parser’s return value.</p>
+<h4 id="parse_all_argsargsnone-stricttrue"><code>parse_all_args(args=None, strict=True)</code></h4>
+<p>The call returns an object whose attributes are the keywords and whose values are those corresponding to the keywords. <code>args</code> is either a <code>list</code> of strings that are the entries in the argument list, or is <code>None</code>, in which case the list is taken to be passed in from the command-line via <code>sys.argv</code>. Defaults, if available, for keywords not present are supplied as needed. See the documentation for <a href="https://docs.python.org/3.5/library/argparse.html#the-add-argument-method">ArgumentParser.add_argument</a>.</p>
+<p>If any errors are detected, the call <em>exits</em> the application, <em>it does</em> not <em>just raise an exception.</em></p>
+<h4 id="parse_only_known_argsargsnone-stricttrue"><code>parse_only_known_args(args=None, strict=True)</code></h4>
+<p>This call is the basically same as <code>parse_all_args</code>, but wraps <code>parse_known_args</code> instead of <code>parse_args</code>, so it does not produce an error when unrecognized arguments are present. Instead, it returns a two item tuple containing the populated namespace and the list of remaining argument strings. Per the warning in the <code>argparse</code> documentation: <a href="https://docs.python.org/3/library/argparse.html#prefix-matching">prefix matching</a> rules apply to <code>ArgumentParser</code>’s <code>parse_known_args</code>, which means that the parser may consume an option even if it’s just a prefix of one of its known options, instead of leaving it in the remaining arguments list.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> _addSynonyms(<span class="ot">self</span>, namespace, strict=<span class="ot">True</span>, harden=<span class="ot">False</span>):
+      kvpairs = <span class="dt">vars</span>(namespace)
+      updates = {}
+      errors = []
+      <span class="kw">for</span> key, value in kvpairs.items():
+         <span class="kw">if</span> key in <span class="ot">self</span>.synonyms:
+            <span class="kw">try</span>:
+               <span class="kw">for</span> other in <span class="ot">self</span>.synonyms[key]:
+                  updates[other] = value
+            <span class="kw">except</span> <span class="ot">Exception</span> <span class="ch">as</span> e:
+               errors.add(<span class="dt">str</span>(e))
+      <span class="kw">if</span> <span class="dt">len</span>(errors) &gt; <span class="dv">0</span>:
+         <span class="kw">if</span> strict:
+            <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Parse failed:</span><span class="ch">\n\t</span><span class="st">{}&quot;</span>.<span class="dt">format</span>(errors))
+         <span class="kw">else</span>:
+            <span class="kw">for</span> msg in errors:
+               <span class="dt">print</span>(msg, <span class="dt">file</span>=sys.stderr)
+      <span class="kw">for</span> key in updates:
+         value = updates[key]
+         namespace.__dict__.update(((key, value),))
+      <span class="kw">return</span> su.harden(namespace) <span class="kw">if</span> harden <span class="kw">else</span> namespace
+
+   <span class="kw">def</span> parse_all_args(<span class="ot">self</span>, args=<span class="ot">None</span>, strict=<span class="ot">True</span>, harden=<span class="ot">False</span>):
+      namespace = types.SimpleNamespace()
+      <span class="ot">self</span>.parse_args(args, namespace)
+      <span class="kw">return</span> <span class="ot">self</span>._addSynonyms(namespace, strict, harden)
+      
+   <span class="kw">def</span> parse_only_known_args(<span class="ot">self</span>, args=<span class="ot">None</span>, strict=<span class="ot">True</span>, harden=<span class="ot">False</span>):
+      namespace = types.SimpleNamespace()
+      namespace, the_rest = <span class="ot">self</span>.parse_known_args(args, namespace)
+      <span class="kw">return</span> (<span class="ot">self</span>._addSynonyms(namespace, strict, harden), the_rest)
+</code></pre>
+<h2 id="the-full-bodied-add-methods">The full-bodied add methods</h2>
+<p>As mentioned at the outset, my convention for dealing with command line options is to provide each class that uses them with a class method <code>setCmdLineArgs()</code> whose only argument is a <code>CmdLineParser</code> instance. The method uses that instance to call the <code>add...</code> functions that populate the universe of expected options. One can then either call the righteous <code>parse_all_args</code> or the forgiving <code>parse_only_known_args</code> to get what amounts to a dictionary of the option key/value pairs.</p>
+<p>The methods that follow allow the full range of possibilities for adding the common types of options. The main win here is that the keyword parameters for the call have default values that cover a lot of the common cases, so the calls can be relatively succinct, as <a href="shortcuts-for-when-there-is-only-a-short-key-name">the shortcut examples below</a> show.</p>
+<p>The keyword arguments for these calls (and their defaults) are</p>
+<blockquote>
+<p><code>const=None</code>, <code>default=None</code>, <code>type=str</code>, <code>choices=None</code>, <code>required=False</code>, <code>action='store'</code>, <code>help='(no help)'</code>, <code>metavar=None</code>, <code>nargs=1</code></p>
+</blockquote>
+<p>These are the same as those for <code>ArgumentParser</code>’s <a href="http://docs.python.org/3/library/argparse.html#the-add-argument-method"><code>add_argument</code></a> method. See that documentation for an explanation of their semantics.</p>
+<h4 id="add_pairself-keys-kwargs"><code>add_pair(self, *keys, **kwargs)</code></h4>
+<p>The call adds a key/value pair to the list for which the value is either concatenated to the key (<em>e.g</em> <code>--tab=3</code> for a long key like <code>tab</code>, <code>-max4</code> for a short key like <code>max</code>) or is the next token in the argument list. Any of the values in the <code>keys</code> array may be used in the command line. All of the keyword arguments above are available here, except <code>nargs</code>, which must have the value <code>1</code>.</p>
+<blockquote>
+<p>The first arguments, the keywords, are positional. By convention, there are at most two keys, and when there are two, the short form for the key (single leading dash) is first, followed by the long form (two leading dashes). E.g. “-v” and “–version”. See the <a href="examples/clptest.py">testing code</a> for an example.</p>
+</blockquote>
+<h4 id="add_repeatableself-keys-kwargs"><code>add_repeatable(self, *keys, **kwargs)</code></h4>
+<p>This call calls <code>add_pair</code> with <code>action='append'</code> so that the values for multiple occurrences of the option are accumulated in a list.</p>
+<h4 id="add_flagself-keys-helpno-help"><code>add_flag(self, *keys, help=‘(no help)’)</code></h4>
+<p>This call adds a “flag” to the list. A flag is a command line argument whose presence or non-presence is all that is at stake. Like key/value arguments, flags may have an optional long name. Otherwise, they have no other parameters, beyond documenting who wants them and what they mean.</p>
+<h4 id="add_positionalself-key-typestr-nargs1-choicesnone-helpno-help"><code>add_positional(self, key, type=str, nargs=1, choices=None, help=‘(no help)’)</code></h4>
+<p>This call adds an argument that is recognized by its position in the list, not by being introduced by a key. For obvious reasons, this normally means that it appears in the first or last position in a command line. Optional keys that fall before a positional key need not appear in a particular command line, but if they do, they must preceed that positional key in that line. The analogous restriction applies to keyword options that follow a positional key. As you can see, only a few of <code>add_argument</code>’s keyword arguments apply here.</p>
+<p>All of these methods rely on an override of <code>argparse</code>’s <code>add_argument</code> method.</p>
+<h4 id="add_argumentargs-kwargs-override"><code>add_argument(*args, **kwargs)</code> override</h4>
+<p>This method tracks the synonyms for each argument key, and normalizes the key in the same way that <code>argparse</code> does. The idea is that, once the parse is done, the value for a key can be found using any of its synonyms. It is critical to remember that keywords that are not legal Python ids and contain bad characters other than <code>-</code> have to be found in the <code>dict</code> key/value collection you get by calling <a href="#as_a_dict">args_dict</a>. The arguments are exactly the same as they are for the <code>ArgumentParser</code> method it overrides.</p>
+<pre class="sourceCode python"><code class="sourceCode python">   
+   <span class="kw">def</span> add_argument(<span class="ot">self</span>, *args, **kwargs):
+      <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, <span class="dt">len</span>(args)):
+         argN = args[n]
+         mall = re.fullmatch(<span class="st">&quot;(-*)(.+)&quot;</span>, argN)
+         <span class="co">#print(mall.groups())</span>
+         <span class="kw">if</span> not mall.group(<span class="dv">2</span>):
+            <span class="kw">continue</span> 
+         leader = mall.group(<span class="dv">1</span>)
+         keyN = mall.group(<span class="dv">2</span>)
+         mkey = re.fullmatch(<span class="st">&quot;\w+&quot;</span>, keyN)
+         <span class="kw">if</span> not mkey:
+            clean = keyN.replace(<span class="st">'-'</span>, <span class="st">'_'</span>)
+            <span class="ot">self</span>.synonyms[clean].append(keyN)
+            <span class="ot">self</span>.synonyms[keyN].append(clean)
+            keyN = clean <span class="co"># make sure we have what argparse might use as a key</span>
+            <span class="ot">self</span>.misfits.add(keyN)
+         <span class="kw">for</span> m in <span class="dt">range</span>(<span class="dv">0</span>, <span class="dt">len</span>(args)):
+            <span class="kw">if</span> n != m:
+               mall = re.fullmatch(<span class="st">&quot;(-+)(.+)&quot;</span>, args[m])
+               keyM = mall.group(<span class="dv">2</span>)
+               <span class="co">#print(&quot;{} {} &lt;--&gt; {} {}&quot;.format(n, keyN, m, keyM))</span>
+               <span class="ot">self</span>.synonyms[keyN].append(keyM)
+      <span class="kw">return</span> ArgumentParser.add_argument(<span class="ot">self</span>, *args, **kwargs)
+
+   <span class="kw">def</span> _print_add_error(<span class="ot">self</span>, key, message):
+      tail = <span class="st">&quot; option '{}': {}&quot;</span>.<span class="dt">format</span>(key, message)
+      <span class="kw">if</span> <span class="ot">self</span>.caller:
+         tail = <span class="st">&quot; caller '{}', {}&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.caller, tail)
+      <span class="dt">print</span>(<span class="st">&quot;Error:&quot;</span>+tail, <span class="dt">file</span>=sys.stderr)
+
+   <span class="kw">def</span> add_pair(<span class="ot">self</span>, *keys,           <span class="co"># the short and optional long form for the key </span>
+                     const=<span class="ot">None</span>,       <span class="co"># value to use if the key appears without a value</span>
+                     default=<span class="ot">None</span>,     <span class="co"># value to use if the key does NOT appear at all</span>
+                     <span class="dt">type</span>=<span class="dt">str</span>,         <span class="co"># a valid Python type, typically str or int</span>
+                     choices=<span class="ot">None</span>,     <span class="co"># if a collection, the only valid values for the key</span>
+                     required=<span class="ot">False</span>,   <span class="co"># normally a key need not appear</span>
+                     action=<span class="st">'store'</span>,   <span class="co"># normal action: just save the value</span>
+                     <span class="dt">help</span>=<span class="st">'(no help)'</span>, <span class="co"># help message</span>
+                     metavar=<span class="ot">None</span>      <span class="co"># documentation only</span>
+                     ):
+      <span class="kw">try</span>:
+         <span class="kw">if</span> <span class="dt">len</span>(keys) == <span class="dv">1</span>:
+            <span class="kw">if</span> keys[<span class="dv">0</span>][<span class="dv">0</span>] == <span class="st">'-'</span>:
+               <span class="ot">self</span>.add_argument(keys[<span class="dv">0</span>],
+                  const=const, default=default, <span class="dt">type</span>=<span class="dt">type</span>,  choices=choices,
+                  required=required, <span class="dt">help</span>=<span class="dt">help</span>, metavar=metavar)
+            <span class="kw">else</span>:
+               <span class="ot">self</span>.add_argument(keys[<span class="dv">0</span>],
+                  const=const, default=default, <span class="dt">type</span>=<span class="dt">type</span>,  choices=choices,
+                  <span class="dt">help</span>=<span class="dt">help</span>, metavar=metavar)
+         <span class="kw">else</span>:
+            <span class="ot">self</span>.add_argument(keys[<span class="dv">0</span>], keys[<span class="dv">1</span>],
+               const=const, default=default, <span class="dt">type</span>=<span class="dt">type</span>,  choices=choices,
+               required=required, <span class="dt">help</span>=<span class="dt">help</span>, metavar=metavar)
+            <span class="ot">self</span>.synonyms[keys[<span class="dv">1</span>]] = keys[<span class="dv">0</span>]
+      <span class="kw">except</span> <span class="ot">Exception</span> <span class="ch">as</span> e: 
+         <span class="ot">self</span>._print_add_error(keys[<span class="dv">0</span>], <span class="dt">str</span>(e))
+
+   <span class="kw">def</span> add_repeatable(<span class="ot">self</span>, *keys,     <span class="co"># the short and optional long form for the key </span>
+                     const=<span class="ot">None</span>,       <span class="co"># value to use if the key appears without a value</span>
+                     default=<span class="ot">None</span>,     <span class="co"># value to use if the key does NOT appear at all</span>
+                     <span class="dt">type</span>=<span class="dt">str</span>,         <span class="co"># a valid Python type, typically str or int</span>
+                     choices=<span class="ot">None</span>,     <span class="co"># if a collection, the only valid values for the key</span>
+                     required=<span class="ot">False</span>,   <span class="co"># normally a key need not appear</span>
+                     <span class="dt">help</span>=<span class="st">'(no help)'</span>, <span class="co"># help message</span>
+                     metavar=<span class="ot">None</span>      <span class="co"># documentation only)</span>
+                     ):
+      <span class="kw">if</span> keys[<span class="dv">0</span>][<span class="dv">0</span>] != <span class="st">'-'</span>:
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Positional argument '{}' cannot be repeatable&quot;</span>.<span class="dt">format</span>(keys[<span class="dv">0</span>]))
+      <span class="ot">self</span>.add_pair(*keys, source=source, const=const, default=default,
+                    <span class="dt">type</span>=<span class="dt">type</span>, choices=choices, required=required, action=<span class="st">&quot;append&quot;</span>,
+                    <span class="dt">help</span>=<span class="dt">help</span>, metavar=metavar)
+
+   <span class="kw">def</span> add_flag(<span class="ot">self</span>, *keys,            <span class="co"># the short and optional long form for the key </span>
+                     <span class="dt">help</span>=<span class="st">'(no help)'</span>): <span class="co"># help message</span>
+      <span class="kw">try</span>:
+         <span class="kw">if</span>  <span class="dt">len</span>(keys) == <span class="dv">1</span>: 
+            <span class="ot">self</span>.add_argument(keys[<span class="dv">0</span>], action=<span class="st">'store_true'</span>, <span class="dt">help</span>=<span class="dt">help</span>)
+         <span class="kw">else</span>: 
+            <span class="ot">self</span>.add_argument(keys[<span class="dv">0</span>], keys[<span class="dv">1</span>], action=<span class="st">'store_true'</span>, <span class="dt">help</span>=<span class="dt">help</span>)
+            <span class="ot">self</span>.synonyms[keys[<span class="dv">1</span>]] = keys[<span class="dv">0</span>]
+      <span class="kw">except</span> <span class="ot">Exception</span> <span class="ch">as</span> e:
+         <span class="ot">self</span>._print_add_error(keys[<span class="dv">0</span>], <span class="dt">str</span>(e))
+
+   <span class="kw">def</span> add_positional(<span class="ot">self</span>, key,      <span class="co"># the key for accessing the value</span>
+                     <span class="dt">type</span>=<span class="dt">str</span>,        <span class="co"># a valid Python type, typically str or a numeric type</span>
+                     nargs=<span class="dv">1</span>,         <span class="co"># normally 1, can be a number, '?', '+', or  '*' </span>
+                     choices=<span class="ot">None</span>,    <span class="co"># if a collection, the only valid values for the key</span>
+                     <span class="dt">help</span>=<span class="st">'(no help)'</span> <span class="co"># help message</span>
+                     ):
+      <span class="kw">try</span>:
+         <span class="ot">self</span>.add_argument(key, <span class="dt">type</span>=<span class="dt">type</span>, choices=choices, <span class="dt">help</span>=<span class="dt">help</span>, nargs=nargs)
+      <span class="kw">except</span> <span class="ot">Exception</span> <span class="ch">as</span> e:
+         <span class="ot">self</span>._print_add_error(key, <span class="dt">str</span>(e))
+</code></pre>
+<h2 id="shortcuts-for-when-there-is-only-a-short-key-name">Shortcuts for when there is only a “short” key name</h2>
+<p>The following methods add an option with a single (short) key to the list. The method name contains the type of value for the key. Note that a help message is expected, so that the default <code>--help</code> will describe the new option’s semantics. The final two methods add a positional argument with a sequence of entries of given type, strings by default.</p>
+<h4 id="add_a_flagself-key-help_msg"><code>add_a_flag(self, key, help_msg)</code></h4>
+<h4 id="add_an_intself-key-default_value-help_msg"><code>add_an_int(self, key, default_value, help_msg)</code></h4>
+<h4 id="add_a_floatself-key-default_value-help_msg"><code>add_a_float(self, key, default_value, help_msg)</code></h4>
+<h4 id="add_a_strself-key-default_value-help_msg"><code>add_a_str(self, key, default_value, help_msg)</code></h4>
+<h4 id="add_a_listself-key-help-typestr"><code>add_a_list(self, key, help, type=str)</code></h4>
+<h4 id="add_an_optional_listself-key-help-typestr"><code>add_an_optional_list(self, key, help, type=str)</code></h4>
+<pre class="sourceCode python"><code class="sourceCode python">   <span class="kw">def</span> add_a_flag(<span class="ot">self</span>, key, help_msg):
+      <span class="ot">self</span>.add_flag(key, <span class="dt">help</span>=help_msg)
+
+   <span class="kw">def</span> add_an_int(<span class="ot">self</span>, key, default_value, help_msg):
+      <span class="ot">self</span>.add_pair(key, default=default_value, <span class="dt">help</span>=help_msg, <span class="dt">type</span>=<span class="dt">int</span>)
+
+   <span class="kw">def</span> add_a_float(<span class="ot">self</span>, key, default_value, help_msg):
+      <span class="ot">self</span>.add_pair(key, default=default_value, <span class="dt">help</span>=help_msg, <span class="dt">type</span>=<span class="dt">float</span>)
+
+   <span class="kw">def</span> add_a_str(<span class="ot">self</span>, key, default_value, help_msg):
+      <span class="ot">self</span>.add_pair(key, default=default_value, <span class="dt">help</span>=help_msg, <span class="dt">type</span>=<span class="dt">str</span>)
+
+   <span class="kw">def</span> add_a_list(<span class="ot">self</span>, key, <span class="dt">help</span>, <span class="dt">type</span>=<span class="dt">str</span>): 
+      <span class="ot">self</span>.add_positional(key, <span class="dt">help</span>=<span class="dt">help</span>, nargs=<span class="st">'+'</span>, <span class="dt">type</span>=<span class="dt">type</span>)
+
+   <span class="kw">def</span> add_an_optional_list(<span class="ot">self</span>, key, <span class="dt">help</span>, <span class="dt">type</span>=<span class="dt">str</span>):
+      <span class="ot">self</span>.add_positional(key, <span class="dt">help</span>=<span class="dt">help</span>, nargs=<span class="st">'*'</span>, <span class="dt">type</span>=<span class="dt">type</span>)
+   </code></pre>
+</body>
+</html>

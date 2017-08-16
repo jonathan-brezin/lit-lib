@@ -1,0 +1,492 @@
+""" <head> 
+Title: File System Utilities
+Author: Jonathan Brezin
+Date: November, 2015
+Show source: yes
+
+""" # </head>
+
+import idbg
+import os
+import re
+import shutil
+import sys
+from sysutils import getitem
+
+""" <md>
+
+### Administrative stuff and some defaults
+
+There are two parameters that govern how backing up is handled:
+
+<blockquote>
+----------------  ------------------------------------------------ ---------------
+`"backups_kept"`  the maximum number of backups to keep            default: `5`
+`"backup_to"`     the path for the directory in which to put them  default: `"bak"`
+----------------  ------------------------------------------------ ---------------
+</blockquote>
+
+The default when opening a file for updating is to keep `5` backups.  Keep in mind that this is a
+_default_ value.  You can supply a different default and also override the value for a specific call
+to either `newVersion` or `fopen`.  The default for where to put the backups is the `"bak"`
+subdirectory of the current directory.  Again, any call that creates a backup allows you to specify
+where to put it.
+
+You can set your own defaults by calling:
+
+#### <code>set_default_backups_kept(backups_kept)</code> {#set_backups_kept}
+
+If the value for `backups_kept` is not `None`, it must be a non-negative integer or a valid Pyton
+non-negative integer string literal.  If the value is `None`, the effect is to allow as many
+versions to be kept as you care to create.  If it is `0`, the default is not to backup files, so
+each call to `fopen()` or `newVersion()` has to specify a positive count to get a backup made.
+
+
+#### <code>set_default_backup_directory(path, create=None)</code> {#set_backup_to}
+
+sets the directory where backups will be put by default.  It is usually not the same as the
+current source!  Normally, this is a relative path, and the actual directory varies with the
+home directories of the files being backed up.
+
+If the path is relative, we have no idea where the actual directories will lie, but when the path is
+absolute we do, and in that case it may or may not be an error if it does not yet exist.  That is
+where `create` comes in.  If `create` is `True`, the directory will be created immediately, if it
+does not already exist.  If it is `False`, it is an error if directory does not exist, and a
+`FileNotFoundError` will be raised.  If it is `None`, which is the default, the directory will only
+be created on the first attempt to save a backup there.  No other value for `create` is allowed. The
+mode for the directory is the default for the Python Standard Library: 0o777
+
+Some care needs to be taken here when specifying an absolute path, because the directory creation is
+recursive, in the sense that all intermediate-level directories needed to contain the leaf directory
+will be created... proceed with caution here.
+
+You can retrieve the current defaults:
+
+#### <code>get_backup_defaults()</code> {#get_backup_defaults}
+
+The return value is an array: the usage is
+
+<blockquote><pre class="exampleCode">
+
+how_many_kept, where = get_backup_defaults()
+
+</pre></blockquote>
+
+In the unlikely event that not everything goes as you expected, there is a verbose mode that sends
+HTML to a log file.  This part of the code is implemented in [idbg.py](idbg.html), which makes use
+of the debugging management code in [dbg.py](dgb.html).  The default is to produce no output.
+
+#### <code>start_debug_fileutils()</code> {#start_debug}
+
+Start sending debugging output.
+
+#### <code>pause_debug_fileutils()`</code> {#stop_debug} 
+
+Pause sending debugging output: requests to send output will be ignored until
+`start_debug_fileutils` is called.
+
+#### <code>fileutils_debug_out(msg, &ast;parameters)</code> {#debug_out}
+
+Writes the string `msg`, formatted with the parameters provided, to the debugging stream when, and
+only when, debugging is "on".
+
+""" # </md>
+
+## Nota bene: the class _FileUtilParameters is here only to provide a single, private
+## module-wide repository for the limited state I have to maintain, which are the
+## defaults for how many backups to keep and where to put them, and whether to stream
+## verbose debugging output.  The upshot is that the class's "__init__" will get called 
+## exactly once: that is, in the line of code immediately following the class's
+## definition, where the private variable "_fups" is created.  That is why it is
+## safe to put the call to "debug_init" in "__init__".  "debug_init" will be called
+## exactly once, which just happens to be the number of instances of this class that
+## gets created.
+
+class _FileUtilParameters(idbg.DbgClient):
+   def __init__(self):
+      self.__class__.debug_init()
+      idbg.DbgClient.configure_debugging("futils")
+      self.backups_kept = 5
+      self.backup_to    = "bak"
+
+_fups = _FileUtilParameters()
+
+def get_backup_defaults():
+   global _fups
+   return [_fups.backups_kept, _fups.backup_to]
+
+def set_default_backups_kept(backups_kept):
+   global _fups
+   _fups.backups_kept = None if backups_kept is None else int(backups_kept)
+
+def set_default_backup_directory(path, create=None):
+   global _fups
+   if os.path.isabs(path):
+      if os.path.exists(path):
+         if not os.path.isdir(path):
+            raise NotADirectoryError("'{0}' exists, but is not a directory".format(path))
+      elif create is True:
+         assureDirectory(path)
+      elif create is False:
+         raise FileNotFoundError("Directory '{0}' does not exist".format(path))
+      elif create is not None:
+         msg = "Boolean or None required for 'create', but {0} passed."
+         _fups.raise_error(TypeError(msg.format(type(create))))
+      else:
+         fileutils_debug_out( "'{0}'' does not exist. It will be created if needed.", path)
+   _fups.backup_to = path
+   fileutils_debug_out("Default backup directory is now {0}!".format(_fups.backup_to))
+
+def start_debug_fileutils():
+   global _fups
+   _fups.start_debugging()
+
+def pause_debug_fileutils():
+   global _fups
+   _fups.pause_debugging()
+
+def fileutils_debug_out(msg, *parameters):
+   global _fups
+   _fups.dbg_write(msg.format(*parameters))
+
+""" <md>
+
+## The main functions ##
+
+This module started because I wanted an "emacs"-style file backup facility that, on opening
+files for writing, would save up to some fixed number of backups of the file somewhere.  The
+result was a pair of functions, `newVersion()` and `fopen()`:
+
+### <code>newVersion(path, where=None, toKeep=None, move=True)</code>###
+
+creates a new backup file. If `move` is `False`, a copy of the original is made; otherwise the
+original is just moved to the backup directory and renamed to include the version number.  The
+parameters `where` and `toKeep` allow you to override the defaults for the backup directory path
+and the number of files with this base name to keep.  Any value other than `None` will be taken
+as what to use instead of the default.
+
+If the backup directory path is a relative one, it is taken to be relative to the directory
+containing the file to be backed up.  The default is the relative path `"bak"`, the point
+being that I don't want to clutter my source directories with legions of backups.
+
+Copying the original allows one to open it for appending or for both reading and writing.  The
+default is just to move the file (not copy it), because the most common case is for the file to
+be opened for writing, which truncates the original to length 0--so why not just move and rename
+the original to get the backup?
+
+### <code>fopen(path, mode="w", encoding="utf-8", where=None, toKeep=None)</code> ###
+
+opens the file named by `path` in the mode given by `mode` after copying the current file (if it
+exists) to the backup directory.  You may explicitly request that the backup go into a
+particular directory by specifying the directory path in `where`, and you may limit the number
+of versions kept by specifying a non-negative integer for `toKeep`.  The `encoding` value is
+simply passed on to the Python built-in `open()`.
+
+This is called "fopen", rather than just "open", in order to leave the call to the built-in
+"open"  unambiguous (to both humans and the Python runtime).
+
+Here is an example use (assuming you can live with my defaults):
+
+<pre class="exampleCode">
+
+   from fileutils import fopen
+   ... # get the path from somewhere
+   with fopen(path) as file: # file named by path is backed up before opening...
+      ... # create or update the file
+
+</pre>
+
+`fopen()` is really just a wrapper around `newVersion()` that combines the file open with the
+backup. It interprets the file modes and sets up a call to `newVersion()` accordingly.  So far
+as file system semantics are concerned, there are three "modes" that concern us here: `"w"`,
+`"a"`, and `"x"`.
+
+> The common case is `"w"`: truncate any existing file to length 0 and beginning writing from
+there.  In that case, I create a backup simply by moving the original file and modifying its
+base name to reflect the version number.
+
+> `"a"` appends to the existing file, so I make a copy in the backup directory (and, of course,
+add the versioning).
+
+> As for `"x"`, it is a shorthand for "exclusive", which is interpreted as creating a file only
+if it does not already exist.  I don't know what _you_ really mean by "exclusive", so I force
+you to be explicit in asking for a backup by calling `newVersion()` directly.  For all I know,
+you may really want one copy of sensitive data hanging around, not several, so saving an old
+copy is an error.
+
+### <code>backup(path, where=None, toKeep=None)</code> ###
+
+creates the new version _by making a copy of the file named by_ `path`.  This is just another
+convenient wrapper around `newVersion()`, in which `newVersion()`'s `move` argument is set to
+`False`.  The arguments `where` has the same meaning as it does for `newVersion()`, but `toKeep`
+is treated a little differently.  My assumption is that you requested a backup _using this
+particular call_ because you really wanted one, so I interpret `toKeep` being `None` as meaning
+"I did not pass you a value for `toKeep`, but I want at least one backup made."  Therefore, if
+the default limit on backups is `0`, I pass through to `newVersion()` a value of `1` for
+`toKeep`.
+
+""" # </md>
+
+def fopen(path, mode="w", encoding="utf-8", where=None, toKeep=None):
+   if os.path.exists(path):
+      if 'x' in mode:
+         msg = "'{0}' already exists: call fileutils.newVersion directly to copy it."  
+         raise FileExistsError(msg.format(path))
+      elif 'a' in mode or 'w' in mode or '+' in mode:
+         # the file is writable, so we need to back it up, and we can live with just renaming it
+         # if we're opening for write ('w' in mode).
+         newVersion(path, where, toKeep, 'w' in mode)
+   else:
+      fileutils_debug_out("{0} is a new file: no backup created.", path)
+   return open(path, mode=mode)
+
+def newVersion(path, where=None, toKeep=None, rename=True):
+   global _fups
+   if not os.path.exists(path):
+      return
+   elif not os.path.isfile(path):
+      msg = "attempt to back up a path, {0}, that is not a regular file."
+      _fups.issue_warning(msg.format(path))
+      return
+   path = os.path.abspath(path)
+   defaultToKeep, defaultWhere = get_backup_defaults()
+   toKeep = defaultToKeep if toKeep is None else int(toKeep)
+   if toKeep == 0:
+      msg = "Request to backup '{0}', but 0 versions are to be kept!!!"
+      _fups.issue_warning(msg.format(path)) 
+      return 
+   dirPath, prefix, suffix = parseAPathForVersioning(path)
+   if where is not None: 
+      backupDir = where
+   elif defaultWhere:
+      backupDir = defaultWhere
+   else:
+      _fups.raise_error(FileNotFoundError("No backup directory has been specified!"))
+   if not os.path.isabs(backupDir): 
+      backupDir = os.path.join(dirPath, backupDir)
+   versions = getVersions(backupDir, prefix, suffix)
+   newVersion = nextVersionName(prefix, suffix, versions)
+   newPath = os.path.join(backupDir, newVersion)
+   assureDirectory(backupDir)
+   # if there are too many backups, delete some before creating a new one
+   if toKeep <= len(versions):
+      excess = len(versions) + 1 - toKeep
+      for n in range(0, excess):
+         fileutils_debug_out("removing version {0} of {1}", versions[n], path)
+         os.remove(os.path.join(backupDir, versions[n]))
+   if rename: # don't save original: usually because it will be truncated on opening for write
+      os.replace(path, newPath)
+   else:      # use copy2 to copy as much file metadata as the OS allows
+      shutil.copy2(path, newPath) 
+
+def backup(path, where=None, toKeep=None):
+   if toKeep is None:
+      defaultKept, ignore = get_backup_defaults()
+      if defaultKept is 0: toKeep = 1
+   newVersion(path, where, toKeep, False)
+
+""" <md>
+
+## Version management ##
+
+In order to preserve the ability to edit the backups easily with syntax-directed editors, I
+decided to label the version using a (small) number immediately preceeding the file type:
+`foo.1.bar`, `foo.2.bar`, and so on. This explains the logic in `parseAPathForVersioning`: the
+base file name, here `foo.bar`, is split as `("foo.", ".bar")`, so all I have to do is insert
+the version number.
+
+Two issues to be faced are what a good default is for the backup directory, and what a good
+default is for the limit on how many versions to keep. Here's my take:
+
+1) Two obvious choices for the backup directory are the source's own path and the current working
+directory. As the number of backups increases, neither of these choices looks very attractive.  A
+great deal of clutter is introduced into working directories that make the immediately useful files
+hard to see at a glance.  A reasonable alternative is to create a subdirectory of either of these
+two and save the backups there.  That is what I chose as the default.  Unless you say otherwise, a
+`bak` subdirectory in the directory of the backed up file is used.  There are good arguments for
+using a hidden subdirectory, like `.bak`, but I did not feel that adding a single, conventionally
+named, visible subdirectory would clutter the source directory listing badly.
+
+2) How many files to keep?  This is not MacOS's "TimeMachine":  I don't feel like tracking dates and
+keeping one per hour until some limit, then one per day, and so on.  The trade-off I see is: wasting
+vast amounts of storage versus having only too-recent copies available when you really need to back
+out a disaster.  It is easy to imagine 5 or 10 saves per hour editing something, so if you need to
+go back to yesterday's version, keeping only the last 5 backups is not going to help.  If you always
+keep TimeMachine running (or always use some other service's versioning), then 5 or 10 backups
+probably does what you need, because yesterday's stuff--even an hours ago's stuff--is there in the
+system-wide backup, so you are really only protecting yourself here against what happened in the
+last hour or so.  My bottom line is that, for the kinds of small files I am concerned with (tens of
+kilobytes), keeping 10 versions is more than enough, without seriously swamping my persistent store,
+but I have been less generous here: I give you 5 by default.
+
+In setting the default, a value of `0` is interpreted as just that: the default is not create
+any backups.  If the value is `None` to be kept, it will be interpreted as "no limit is set:
+please keep all the backups".
+
+I remind you that you can create a new version without opening the original by calling
+`newVersion()` or `backup()`.  Be careful if you use `newVersion`, however, to make sure that you
+specify the keyword `move` argument correctly--since you probably want a copy, but moving the
+original is the default.  Better yet: call `backup()`.
+
+### <code>parseAPathForVersioning(path)</code> ###
+
+splits the path into a triple: the directory, the base name up to the file type, and the file
+type. The file type is assumed to be whatever follows the last dot (if any) in the base name.
+
+If path is "foo/bar.baz", the return  value will be ("foo", "bar.", ".baz"). This makes it easy
+to construct a new version's base file name `"bar."+str(number)+".baz"`.  I keep the file type
+last (rather than simply appending the version number to the original) so that IDEs will do
+syntax coloring on the backup just as they would on the original.
+
+If the path has no file type, the version appears at the end: `foo` is backed up as  `foo.1`,
+`foo.2` and so on.
+
+### <code>getVersions(dirpath, prefix, suffix)</code> ###
+
+inspects the backup directory for all versions with this prefix and suffix, and returns the list
+of base names sorted by creation time.  This makes it easy to remove excess backups: the oldest
+ones will come first in the list.
+
+### <code>nextVersionName(prefix, suffix, versions)</code> ###
+
+finds the next version number not already in use, and returns `prefix+str(nextVersion)+suffix`.
+
+
+""" # </md>
+
+def parseAPathForVersioning(path):
+   global _fups
+   dirPath, baseName = os.path.split(path)
+   if len(baseName) is 0:
+      msg = "Path '{0}' does not name a file.".format(path)
+      _fups.raise_error(FileNotFoundError(msg))
+   if "." in baseName:
+      lastDot = baseName.rfind('.')
+      suffix = baseName[lastDot:]
+      prefix = baseName[0:lastDot+1]
+   else:
+      suffix = ""
+      prefix = baseName +"." # this is the only dot in baseName!
+   return (dirPath, prefix, suffix)
+
+def getVersions(dirpath, prefix, suffix):
+   if not os.path.exists(dirpath):
+      fileutils_debug_out("no such directory '{0}'?", dirpath)
+      return []
+   matcher = re.compile(re.escape(prefix)+"[0-9]+"+re.escape(suffix))
+   raw = [ entry for entry in os.scandir(dirpath) if matcher.fullmatch(entry.name) ]
+   rawSorted = sorted(raw, key = lambda entry: entry.stat().st_ctime)
+   return [entry.name for entry in rawSorted]
+
+def nextVersionName(prefix, suffix, versions):
+   currentCount = len(versions)
+   if currentCount is 0:
+      return prefix+"1"+suffix
+   lastName = versions[currentCount-1]
+   lastVersion = lastName[len(prefix): len(lastName)-len(suffix)]
+   nextVersion = int(lastVersion) + 1
+   nextName = prefix+str(nextVersion)+suffix
+   while nextName in versions:
+      nextVersion += 1
+      nextName = prefix+str(nextVersion)+suffix
+   return nextName
+
+""" <md>
+
+## Path manipulations ##
+
+In implementing `fopen()`, I found that I needed a bunch of path manipulation routines that were
+not just one-liners starting from `os` and `os.path`.  They seemed to me to be useful in other
+contexts, so I left them "exposed" on import.
+
+### <code>expandPathList(aStringOrStringTuple)</code> ###
+
+if its argument is a single string, expects that string to be a list of paths separated by the
+operating-system dependent separator, and expands the string into a list of paths.  If its
+argument is an iterable, it expects the values on traversal to be such strings as well and
+expands them all. The return value is a `list` with the individual paths in the order they were
+read from the arguments.
+
+### <code>normalizeAPath(rootpath=None, usualchild=None, path=None)</code> ###
+
+returns the absolute path one gets starting with a root path and appending either some
+conventional child base name, or a particular path that overrides the conventional one.
+
+If `path` is given and is itself either absolute or has an implied parent (like `./`, `../`, or
+`~/`), its normalized absolute version, as computed by `os.path.abspath`, is returned, and the
+other two arguments, if present, are ignored.  If `path` is a relative path, its parent will be
+taken to be the root path.  The default for the root path is the current working directory.
+
+This call is designed for a situation where a conventional directory structure is being
+elaborated, for example, a root directory that has subdirectories `bin`, `src`, `lib` and `doc`.
+These subdirectory names are what the `usualchild` parameter is intended for.  They represent a
+conventional configuration.  The call `normalizeAPath(rootpath, 'bin')` returns the absolute
+path for the `bin` subdirectory of the root.  It is this sort of call that I wanted to look
+clean, but I wanted to allow overrides--from the command line, for example.  Suppose we have an
+app that normally looks for Python source files in the `libpy` directory of the root, but you
+are debugging the app and want to override that from the command line.  Let `options` be the
+command line options.  The call
+
+<pre class="exampleCode">
+
+   libpy = fileutils.normalizeAPath(root, "libpy", options.get("libpy"))
+
+</pre>
+
+says: "If I supplied an alternative to `"libpy"` from the command line, the call
+`options.get("libpy")` will return a real value (_ie._ not `None` or `""`).  Use it,
+prepending the root, if need be, to get an absolute path.  Otherwise, just append `"libpy"` to
+the root to get the path to use."
+
+### <code>assureDirectory(&ast;paths)</code> ### 
+
+makes sure that each path exists in the file system and that it names a directory.
+
+### <code>getParent(path)</code> ###
+
+returns the absolute path of the directory in which the file named by `path` is to be found.  No
+assertion is made as to whether the path actually names an existing file. This is just a
+convenient wrapper around `os.path.split()`. 
+
+""" # </md>
+
+def expandPathList(aStringOrStringTuple):
+   if type(aStringOrStringTuple) is str:
+      return aStringOrStringTuple.split(os.pathsep)
+   else:
+      answer = []
+      for path in aStringOrStringTuple:
+         for adir in path.split(os.pathsep):
+            answer.append(adir)
+      return answer
+
+
+def normalizeAPath(rootpath=None, usualchild=None, path=None):
+   if not rootpath:
+      rootpath = os.getcwd()
+   if path:
+      if os.path.isabs(path):         
+         raw = path
+      elif path.startswith("./") or path.startswith("../") or path.startswith("~/"):
+         raw = path # implied absolute paths: "here" and "home"                 
+      else:
+         raw =  os.path.join(rootpath, path)
+   elif usualchild:
+      raw = os.path.join(rootpath, usualchild)
+   else:
+      raise FileNotFoundError("Either a path or a usualchild must be supplied")
+   return os.path.abspath(raw) # gets rid of pesky dots, double dots and tildes
+
+def assureDirectory(*paths):
+   global _fups
+   for path in paths:
+      if not os.path.exists(path):
+         fileutils_debug_out("creating directory '{0}'", path)
+         os.makedirs(path)
+      elif not os.path.isdir(path):
+         msg = "'{0}' exists, but is not a directory".format(path)
+         _fups.raise_error(NotADirectoryError(msg))
+
+def getParent(path):
+   return os.path.split(os.path.abspath(path))[0]
+

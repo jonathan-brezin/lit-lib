@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Client for the DbgMgr debugging output server</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Client for the <code>DbgMgr</code> debugging output server</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">May, 2017</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#general-remarks">General Remarks</a></li>
+<li><a href="#class-methods-for-dbgclient">Class methods for <code>DbgClient</code></a><ul>
+<li><a href="#administration">Administration</a><ul>
+<li><a href="#configure"><code>configure_debugging(key, pattern=key, active=True)</code></a></li>
+<li><a href="#start_debugging"><code>start_debugging(*patterns, styles={})</code></a></li>
+<li><a href="#pause_debugging"><code>pause_debugging(*patterns)</code></a></li>
+<li><a href="#stop_debugging"><code>stop_debugging(final_msg=“”))</code></a></li>
+<li><a href="#class_dbg_is_active"><code>dbg_class_is_active()</code></a></li>
+<li><a href="#dbg_activate_classactivefalse"><code>dbg_activate_class(active=False)</code></a></li>
+<li><a href="#dbg_deactivate_classactivefalse"><code>dbg_deactivate_class(active=False)</code></a></li>
+<li><a href="#dbg_default_is_active"><code>dbg_default_is_active()</code></a></li>
+<li><a href="#dbg_set_default_active_stateactive-true"><code>dbg_set_default_active_state(active = True)</code></a></li>
+</ul></li>
+<li><a href="#streaming-output">Streaming output</a><ul>
+<li><a href="#class_error"><code>raise_an_error(anError, *, bail_out=True, esc=False)</code></a></li>
+<li><a href="#instance_error"><code>raise_error(anError, *, bail_out=True, esc=False)</code></a></li>
+<li><a href="#class_warning"><code>issue_a_warning(aWarning, *, bail_out=False, esc=False)</code></a></li>
+<li><a href="#instance_warning"><code>issue_warning(aWarning, *, bail_out=False, esc=False)</code></a></li>
+<li><a href="#class_output"><code>dbg_write_msg(msg, *, key=None, pre=False, now=False)</code></a></li>
+<li><a href="#instance_output"><code>dbg_write(msg, *, key=None, pre=False, now=False)</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#admin-instance-methods-for-dbgclient">Admin instance methods for <code>DbgClient</code></a><ul>
+<li><a href="#dbg_is_active"><code>dbg_is_active()</code></a></li>
+<li><a href="#dbg_activate"><code>dbg_activate(*patterns, default_also=False )</code></a></li>
+<li><a href="#dbg_deactivate"><code>dbg_deactivate(default_also=False )</code></a></li>
+</ul></li>
+<li><a href="#introducing-your-own-messages-types">Introducing your own messages types</a></li>
+<li><a href="#other-examples">Other examples</a></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python"></code></pre>
+<h2 id="general-remarks">General Remarks</h2>
+<p>This module came about in large part because of my being unaccustomed to managing imports with circular dependencies. I had a situation where two modules, <code>dbg</code> and <code>fileutils</code>, were mutually dependent and coded in such a way that the loader deadlocked on the imports. Looking at <code>dbg</code>, I decided that most modules importing it really only need a small part of its interface and, in particular, classes importing it would be more cleanly written if they could just extend the interface they needed, rather than constantly delegating to the debugging manager as a class or instance attribute value. The upshot was the realization that I had was not a “manager”, but a server and some clients, and it made sense to have a clean client independent of the server. Force of habit keeps me calling the server the manager. I hope you’ll forgive me.</p>
+<p>That said, <strong>this interface is really intended for modules and classes that use the debugging manager’s buffered output.</strong> If all you need is a dictionary of active patterns to guard debugging code, either use <a href="dbg.html#getdbgmgr">dbg.getDbgMgr</a> to get the manager and use it as a wildcard dictionary, or (although I do not think that it is a good idea) use your own <a href="wildcardlookup.html">wild-card dictionary</a>.</p>
+<h2 id="class-methods-for-dbgclient">Class methods for <code>DbgClient</code></h2>
+<h3 id="administration">Administration</h3>
+<h4 id="configure"><code>configure_debugging(key, pattern=key, active=True)</code></h4>
+<p>is meant to be called before any of the other methods here are invoked. It sets the default key for ordinary debugging output to the value of <code>key</code>, and sets the default pattern against which to match keys to be the value of <code>pattern</code>. It does <em>not</em> register the default pattern or any other pattern with the debugging manager: it merely initializes some defaults. The final argument, <code>active</code> is a boolean that determines whether debugging is active initially for the class, and whether the default state for new instances is “active”. Any “true-ish” value, in the sense of <a href="sysutils.html#asbooleanvalue"><code>sysutils</code> <code>asboolean</code> method</a> activates debugging, and any “false-ish” value leaves it inactive.</p>
+<p>This method also sets a private class attribute, <code>_dbgmgr</code>, to be the unique debugging manager object. While this is a nominally private attribute, it is still accessible to the extending class and its instances. All of the manager’s API is therefore available to instances, although the intention is that the methods here should suffice in almost all cases.</p>
+<h4 id="start_debugging"><code>start_debugging(*patterns, styles={})</code></h4>
+<p>sets the default for new instances to “active”, and if any are provided, registers the patterns and styles with the manager. If no patterns are supplied, the default pattern is registered.</p>
+<p>See the <a href="dbg.html#getdbgmgr">commentary on <code>dbg</code></a> for how <code>patterns</code> may be supplied.</p>
+<h4 id="pause_debugging"><code>pause_debugging(*patterns)</code></h4>
+<p>turns off debugging for the class itself and sets the default for all new instances to be <em>“inactive”</em>. Currently alive instance variables that were explicitly made active by calling the instance method <code>dbg_activate</code> are not affected. Their state will be left “as is”. The patterns supplied will be de-registered; if none are supplied, the default pattern will be de- registered. If debugging is restarted, these patterns will not be active: you must re-register them.</p>
+<h4 id="stop_debugging"><code>stop_debugging(final_msg=“”))</code></h4>
+<p>calls the debug manager’s “close” method with the argument “<code>final_msg</code>” as the <a href="dbg.html#flush">“after” message</a>. <em>This is strictly a desperation call.</em> The debugging manager will turn off keyed output completely and close the log file to which it was being written. All requests to raise errors occuring after this call will not be logged in the debugging stream. They will just be raised.</p>
+<p>This action is normally the responsibility of a method very close to the application’s main, not the sort of library code this class is intended to support.</p>
+<h4 id="class_dbg_is_active"><code>dbg_class_is_active()</code></h4>
+<p>returns <code>True</code> if the class itself as an object wants to log stuff. It returns <code>False</code> otherwise. The default is to begin with logging turned on, or in other words, “active”–see <a href="#configure"><code>configure_debugging</code></a> above.</p>
+<h4 id="dbg_activate_classactivefalse"><code>dbg_activate_class(active=False)</code></h4>
+<h4 id="dbg_deactivate_classactivefalse"><code>dbg_deactivate_class(active=False)</code></h4>
+<p>override the current state to render the class active or inactive, as you require.</p>
+<p>The next two methods get and set the state:</p>
+<h4 id="dbg_default_is_active"><code>dbg_default_is_active()</code></h4>
+<p>returns <code>True</code> or <code>False</code>, depending on whether the current default for instances is “active”. The initial state is set by the call to <a href="#configure"><code>configure_debugging</code></a>.</p>
+<h4 id="dbg_set_default_active_stateactive-true"><code>dbg_set_default_active_state(active = True)</code></h4>
+<p>turns the default state on and off as you require.</p>
+<h3 id="streaming-output">Streaming output</h3>
+<p>There are three class methods for streaming debugging output and three analogous methods for instances. Why not just the class methods? The sticking point here is that if <code>C</code> is a class, if <code>c</code> is an instance of <code>C</code>, and if <code>do_it</code> is a class method of <code>C</code>, then, while it is true that you can execute the call <code>c.do_it()</code>, you will find that in the body of the call, the value of <code>self</code> will be <code>c.__class__</code>, not <code>c</code>. Thus, both <code>C.do_it()</code> and <code>c.do_it()</code> do exactly the same thing. This would be fine, except for the fact that I’ve tried to separate whether a given instance is streaming output from whether the class itself is. One could add a parameter to the class method, so that it knows what instance, if any, requested the output, but it struck me as unnecessarily clumsier. Here are the two calls, each guarded by the default key. First, a generic class method:</p>
+<pre class="exampleCode">
+
+   c.dbg_write(&quot;more news&quot;, sender=c) # needs to say caller is instance 'c'
+
+</pre>
+
+<p>and second, an instance method:</p>
+<pre class="exampleCode">
+
+   c.dbg_write(&quot;more news&quot;)  # 'self' is 'c' in the body
+
+</pre>
+
+<p>I really pefer being able to shorten things to the second format, the more so because instance calls are overwhelmingly the most common.</p>
+<p>In all three methods, there is a boolean keyword parameter “<code>esc</code>”. It governs whether the text of the output is HTML-encoded before being packaged in a <code>td</code> table cell. The default is <em>not</em> to encode it. You have been warned.</p>
+<p>The two methods for errors and warnings also take a boolean keyword parameter “<code>bail_out</code>”. It comes into play only if the class is actively streaming debugging output. If it is <code>True</code>, the effect is to raise some sort of <code>Exception</code>; otherwise, the output request simply returns. If a class or instance is not “active”, the calls that deal with errors simply raise the error, and warnings are sent to <code>STDERR</code>.</p>
+<p>The first (and only positional) argument to both the error and warning methods may be either a <code>String</code> or an instance of a subclass of <code>Exception</code>. If it is a <code>String</code>, and if we are asked to bail out, a <code>RuntimeError</code> is raised with the <code>String</code> as message.</p>
+<p>Here are the method signatures. In all three cases, the first signature is the class method, and the second is the instance method:</p>
+<h4 id="class_error"><code>raise_an_error(anError, *, bail_out=True, esc=False)</code></h4>
+<h4 id="instance_error"><code>raise_error(anError, *, bail_out=True, esc=False)</code></h4>
+<p>Note that the default for <code>bail_out</code> is “yes! bail out!”.</p>
+<h4 id="class_warning"><code>issue_a_warning(aWarning, *, bail_out=False, esc=False)</code></h4>
+<h4 id="instance_warning"><code>issue_warning(aWarning, *, bail_out=False, esc=False)</code></h4>
+<p>Note that the default for <code>bail_out</code> is “do not bail! this’s just a slap on the wrist”</p>
+<h4 id="class_output"><code>dbg_write_msg(msg, *, key=None, pre=False, now=False)</code></h4>
+<h4 id="instance_output"><code>dbg_write(msg, *, key=None, pre=False, now=False)</code></h4>
+<p>If debugging is not active for the caller, the call is a no-op.; otherwise, the effect is to call either the debug manager’s <code>pre</code> or <code>dbg</code> method to buffer the message, depending on whether the value of <code>pre</code> is <code>True</code> or not. The default is not to assume pre-formatted output. <code>key</code> is the guard, and if none is provided, the classwide default established by <code>configure_debugging</code> is used.</p>
+<p>If <code>now</code> is <code>True</code> and the message was in fact streamed out, the debug manager will also flush its buffer, and if <code>now</code> is a “true-ish” (<em>i.e.</em> non- empty) <code>String</code>, that value will be used for the flush’s <a href="dbg.html#flush">“after” message</a>.</p>
+<p><strong>Warning</strong>: If <code>now</code> is <code>True</code>, the flush will also append an HTML “horizontal rule” tag. I remind you that the buffered output stream is HTML.</p>
+<h2 id="admin-instance-methods-for-dbgclient">Admin instance methods for <code>DbgClient</code></h2>
+<p>One of the insights I had when I started to think of debugging output as a client-server operation was that individual instances of a class might want to turn on logging, even if not not all do. Suppose the default is “inactive”, but some instance encounters an unexpected situation, for example, an attribute value that is not necessarily wrong, but unexpectedly large. It might want to turn debugging on just for itself, not the whole world. This is a different sort of filtering from that which I had imagined when I wrote the early versions of <code>dbg</code>, where what was at stake was an action that one wanted to track: I/O, particular sets of updates, like adding to and removing from shopping carts.</p>
+<p>There is a subtle implementation issue here. Normally, an instance is active if its class’s default is “active”. To mark an instance as going against the default, I need to add an boolean instance attribute. I don’t want to add that attribute, though, unless I really have to: you have to tell me that you want this particular instance to be either “active” or “inactive”, whatever the current default is. The reason for being so ungenerous is that I can imagine situations where there millions of instances, in an array perhaps, and only a small fraction of them need to be looked at to debug the program. Adding an extra attribute is of little consequence when you are talking about a single instance, but if you are dealing with a collection of millions, the footprint of the collection is materially larger. So I trade some slightly clumsier code for a some space saving.</p>
+<h4 id="dbg_is_active"><code>dbg_is_active()</code></h4>
+<p>returns <code>True</code> it this instance is logging output to the manager: if the instance’s state has been explicitly set by calling <code>dbg_activate</code> or <code>dbg_deactivate</code>, that value is returned; otherwise, the return value is the current default for the class’s instances.</p>
+<h4 id="dbg_activate"><code>dbg_activate(*patterns, default_also=False )</code></h4>
+<h4 id="dbg_deactivate"><code>dbg_deactivate(default_also=False )</code></h4>
+<p><code>dbg_activate</code> adds an attribute to the instance, if need be, that marks it as “active for debugging”. If <code>default_also</code> is <code>True</code>, the default state for the class’s instances will be set to “active”. If some patterns are provided, they will be registered with the manager–it is harmless to register a registered pattern!</p>
+<p>The companion method, <code>dbg_deactivate</code>, turns off logging for the instance and, if you ask for it, for the default for new instances.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">import</span> dbg
+<span class="ch">import</span> inspect
+<span class="ch">import</span> sys
+<span class="ch">from</span> sysutils <span class="ch">import</span> asboolean
+
+<span class="kw">class</span> DbgClient:
+
+   <span class="ot">@staticmethod</span>
+   <span class="kw">def</span> mycallersname(): 
+      <span class="kw">return</span> inspect.currentframe().f_back.f_back.f_code.co_name
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> configure_debugging(<span class="ot">self</span>, key, pattern=<span class="ot">None</span>, active=<span class="ot">False</span>):
+      <span class="ot">self</span>._dbgmgr = dbg.getDbgMgr()
+      <span class="kw">if</span> (<span class="dt">getattr</span>(<span class="ot">self</span>, <span class="st">&quot;_dbg_default_key&quot;</span>, <span class="ot">None</span>) is not <span class="ot">None</span>) and (<span class="st">'dbgmgr'</span> in <span class="ot">self</span>._dbgmgr):
+         <span class="kw">if</span> key != <span class="ot">self</span>._dbg_default_key or pattern != <span class="ot">self</span>._dbg_default_pattern:
+            fmt = <span class="st">&quot;Debugging {} reconfigured {}=&gt;{} and {}=&gt;{}&quot;</span>
+            msg = fmt.<span class="dt">format</span>(
+               <span class="ot">self</span>, <span class="ot">self</span>._dbg_default_key, key, <span class="ot">self</span>._dbg_default_pattern, pattern
+            )
+            <span class="ot">self</span>._dbgmgr.warn(msg)
+      active = asboolean(active)
+      <span class="ot">self</span>._dbg_class_active = active     <span class="co"># the class is ready to stream</span>
+      <span class="ot">self</span>._dbg_default_active = active   <span class="co"># by default, so are all new instances</span>
+      <span class="ot">self</span>._dbg_default_key = key         <span class="co"># use this key by default in requests</span>
+      <span class="ot">self</span>._dbg_default_pattern = key <span class="kw">if</span> pattern is <span class="ot">None</span> <span class="kw">else</span> key <span class="co"># match against this </span>
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> start_debugging(<span class="ot">self</span>, *patterns, styles={}):
+      <span class="ot">self</span>._dbg_default_active = <span class="ot">True</span>
+      <span class="ot">self</span>._dbg_class_active = <span class="ot">True</span>
+      <span class="kw">if</span> <span class="dt">len</span>(patterns) is <span class="dv">0</span>:
+         <span class="ot">self</span>._dbgmgr.add_patterns(<span class="ot">self</span>._dbg_default_pattern)
+      <span class="kw">else</span>:
+         <span class="ot">self</span>._dbgmgr.add_patterns(patterns)
+      <span class="kw">for</span> name in styles:
+         <span class="ot">self</span>._dbgmgr.addstyleclass(name, styles[name])
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> pause_debugging(<span class="ot">self</span>, *patterns):
+      <span class="ot">self</span>._dbg_default_active = <span class="ot">False</span>
+      <span class="ot">self</span>._dbg_class_active = <span class="ot">False</span>
+      <span class="kw">if</span> <span class="dt">len</span>(patterns) is <span class="dv">0</span>:
+         <span class="ot">self</span>._dbgmgr.remove_patterns(<span class="ot">self</span>._dbg_default_pattern)
+      <span class="kw">else</span>:
+         <span class="ot">self</span>._dbgmgr_.remove_patterns(patterns)
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> stop_debugging(<span class="ot">self</span>, final_msg=<span class="st">&quot;&quot;</span>):
+      <span class="ot">self</span>._dbgmgr.close(after=final_msg)
+      <span class="ot">self</span>._dbg_default_active  = <span class="ot">False</span>
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> dbg_class_is_active(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>._dbg_class_active
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> dbg_activate_class(<span class="ot">self</span>):
+      <span class="ot">self</span>._dbg_class_active = <span class="ot">True</span>
+   
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> dbg_deactivate_class(<span class="ot">self</span>):
+      <span class="ot">self</span>._dbg_class_active = <span class="ot">False</span>
+   
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> dbg_default_is_active(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>._dbg_default_active
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> dbg_set_default_active_state(<span class="ot">self</span>, active = <span class="ot">True</span>):
+      <span class="ot">self</span>._dbg_default_active = asboolean(active)
+      <span class="kw">return</span> <span class="ot">self</span>._dbg_default_active
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> raise_an_error(<span class="ot">self</span>, anError, *, bail_out=<span class="ot">True</span>, esc=<span class="ot">False</span>):
+      <span class="kw">if</span> <span class="ot">self</span>._dbg_class_active:
+         <span class="ot">self</span>._dbgmgr.err(anError, src=DbgClient.mycallersname())
+      <span class="kw">elif</span> <span class="dt">isinstance</span>(anError, <span class="ot">Exception</span>):
+         <span class="kw">raise</span> anError
+      <span class="kw">else</span>:
+         <span class="kw">raise</span> <span class="ot">RuntimeError</span>(anError)
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> issue_a_warning(<span class="ot">self</span>, aWarning, *, bail_out=<span class="ot">True</span>, esc=<span class="ot">False</span>):
+      <span class="kw">if</span> <span class="ot">self</span>._dbg_class_active:
+         <span class="ot">self</span>._dbgmgr.warn(aWarning, src=DbgClient.mycallersname())
+      <span class="kw">elif</span> bail_out:
+         <span class="kw">if</span> <span class="dt">isinstance</span>(aWarning, <span class="ot">Exception</span>):
+            <span class="kw">raise</span> aWarning
+         <span class="kw">else</span>:
+            <span class="kw">raise</span> <span class="ot">RuntimeError</span>(aWarning)
+      <span class="kw">else</span>:
+         <span class="dt">print</span>(aWarning, <span class="dt">file</span>=sys.stderr)
+
+   <span class="ot">@classmethod</span>
+   <span class="kw">def</span> dbg_write_msg(<span class="ot">self</span>, msg, *, 
+      key=<span class="ot">None</span>, src=<span class="ot">None</span>, pre=<span class="ot">False</span>, style=<span class="ot">None</span>, now=<span class="ot">False</span>, esc=<span class="ot">False</span>
+   ):
+      <span class="kw">if</span> <span class="ot">self</span>._dbg_class_active:
+         key = key or <span class="ot">self</span>._dbg_default_key
+         caller = src or <span class="ot">self</span>.mycallersname()
+         <span class="kw">if</span> pre:
+            <span class="ot">self</span>._dbgmgr.pre(key, msg, src=caller, style=style, now=now)
+         <span class="kw">else</span>:
+            <span class="ot">self</span>._dbgmgr.dbg(key, msg, src=caller, style=style, now=now)
+
+   <span class="co">####### Instance Methods #######</span>
+
+   <span class="kw">def</span> dbg_activate(<span class="ot">self</span>, *patterns, default_also=<span class="ot">False</span>):
+      <span class="kw">if</span> <span class="dt">len</span>(patterns) &gt; <span class="dv">0</span>:
+         <span class="ot">self</span>._dbgmgr.add_patterns(*patterns)
+      <span class="ot">self</span>._dbg_instance_active = <span class="ot">True</span>
+      <span class="kw">if</span> default_also:
+         <span class="ot">self</span>.__class__._dbg_default_active = <span class="ot">True</span>
+
+   <span class="kw">def</span> dbg_deactivate(<span class="ot">self</span>, default_also=<span class="ot">False</span>):
+      <span class="ot">self</span>._dbg_instance_active = <span class="ot">False</span>
+      <span class="kw">if</span> default_also:
+         <span class="ot">self</span>.__class__._dbg_default_active = <span class="ot">False</span>
+
+   <span class="kw">def</span> dbg_is_active(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="dt">getattr</span>(<span class="ot">self</span>, <span class="st">&quot;_dbg_instance_active&quot;</span>, <span class="ot">self</span>._dbg_default_active)
+
+   <span class="kw">def</span> raise_error(<span class="ot">self</span>, anError, *, bail_out=<span class="ot">True</span>, esc=<span class="ot">False</span>):
+      <span class="kw">if</span> <span class="ot">self</span>.dbg_is_active():
+         <span class="ot">self</span>._dbgmgr.err(anError, src=DbgClient.mycallersname(), bail_out=bail_out)
+      <span class="kw">elif</span> <span class="dt">isinstance</span>(anError, <span class="ot">Exception</span>):
+         <span class="kw">raise</span> anError
+      <span class="kw">else</span>:
+         <span class="kw">raise</span> <span class="ot">RuntimeError</span>(anError)
+  
+   <span class="kw">def</span> issue_warning(<span class="ot">self</span>, aWarning, *, bail_out=<span class="ot">False</span>, esc=<span class="ot">False</span>):
+      <span class="kw">if</span> <span class="ot">self</span>.dbg_is_active():
+         <span class="ot">self</span>._dbgmgr.warn(aWarning, src=DbgClient.mycallersname())
+      <span class="kw">elif</span> bail_out:
+         <span class="kw">if</span> <span class="dt">isinstance</span>(aWarning, <span class="ot">Exception</span>):
+            <span class="kw">raise</span> aWarning
+         <span class="kw">else</span>:
+            <span class="kw">raise</span> <span class="ot">RuntimeError</span>(aWarning)
+      <span class="kw">else</span>:
+         <span class="dt">print</span>(aWarning, <span class="dt">file</span>=sys.stderr)
+
+   <span class="kw">def</span> dbg_write(<span class="ot">self</span>, msg, *, 
+         key=<span class="ot">None</span>, src=<span class="ot">None</span>, pre=<span class="ot">False</span>, style=<span class="ot">None</span>, now=<span class="ot">False</span>, esc=<span class="ot">False</span>
+   ):
+      <span class="kw">if</span> not <span class="ot">self</span>.dbg_is_active():
+         <span class="kw">return</span> <span class="ot">False</span>
+      caller = src or <span class="ot">self</span>.mycallersname()
+      <span class="ot">self</span>.__class__.dbg_write_msg(msg,key=key,src=caller,pre=pre,style=style,now=now,esc=esc)
+      <span class="kw">return</span> <span class="ot">True</span>
+</code></pre>
+<h2 id="introducing-your-own-messages-types">Introducing your own messages types</h2>
+<p>Here is <a href="examples/dbgmsg.py">an example</a> of how to add a new message output style to the debug manager’s repertoire. Suppose I have a shopping cart as part of some grandiose “<code>amazin</code>” app, and I want the cart debugging output to stand out among the ton of other stuff that may have to be spit out. I create the new style, and add it to the manager’s list as part of initializing the interface. It will be there whenever I turn debugging on. The actual output routine just wraps the interface’s <code>dbg_write</code> in order to get <code>&quot;cart&quot;</code> as the message style.</p>
+<pre class="exampleCode">
+
+import dbg 
+from idbg import DbgClient
+
+class ShoppingCart(DbgClient):
+   @classmethod
+   def prepare_for_debugging(self):
+      configure_debugging(&quot;sc&quot;, &quot;sc&quot;)
+      CART_STYLE = &quot;&quot;&quot;{color: #000000; background-color: #00FF00; font-weight: bold;
+         border: 2px solid green; margin-left: 1em;}
+         &quot;&quot;&quot;
+      self._dbgmgr.addstyleclass(&quot;cart&quot;, CART_STYLE) 
+
+   def cart_output(self, msg, *, key=&quot;sc&quot;, pre=False, src=None):
+      if not src: src = self.mycallersname()
+      self.dbg_write(msg, key=key, pre=pre, src=src, style=&quot;cart&quot;)
+
+dbg.openDbgMgr(&quot;sc&quot;)           # start buffered debugging output logging for the app
+ShoppingCart.start_debugging() # activate debugging for the class
+sc = ShoppingCart()            # debugging on with the default guard pattern &quot;sc&quot;
+
+sc.dbg_write(&quot;This should be logged as ordinary stuff&quot;)
+sc.cart_output(&quot;But this should look like 'cart' output&quot;)
+
+# ... do other stuff, and when you are done, close up shop:
+dbg.getDbgMgr().close(after=&quot;Good buy now&quot;) # flush and close the stream
+
+</pre>
+
+<p>I probably wouldn’t use that style spec in real life, but you get the idea!</p>
+<h2 id="other-examples">Other examples</h2>
+<p>The Java part of me caused me to think of <code>DbgClient</code> as an interface originally. Thanks to Python’s supporting multiple inheritance, the interface can be realized as the class that implements it, avoiding some lines of more or less redundant code. You can see the Python approach in action in <a href="vblist.html#the-vblist-instance-api"><code>vblist</code></a>. This class inherits from three bases, one of which is <code>DbgClient</code>. Check out how <code>DbgClient</code>’s <code>raise_error</code> is used throughout <code>vblist</code> to raise exceptions while also being able to capture the messages for the debugging stream, should that be desired. Meanwhile, <code>dbg_write</code> is called to spit out any debugging output. That the real work is being delegated to some distant debugging manager is mercifully hidden.</p>
+<blockquote>
+<p>Another thing to notice about <code>vblist</code> is the way <code>configure_debugging</code> is called by <code>vblist</code> immediately following the definition of <code>vblist</code>. It is important <em>not</em> to call <code>configure_debugging</code> using <code>DbgClient</code> directly from within an extending class’s body, because it will be <code>DbgClient</code>’s copy of the state that will be affected, not <code>vblist</code>’s.</p>
+</blockquote>
+<p><code>vblist</code>’s testing code, <a href="examples/vblist.test.py">vblist.test.py</a>, gives an illustration of a “main” managing what and when debugging is to be streamed. Normal output for the test is <code>stdout</code>. With debugging on, exceptions that would be ignored (because “<code>dieOnFail</code>” is <code>False</code> for some list or queue operation) have their messages captured in the debugging output stream.</p>
+<p>The moral here is that while it may seem redundant to have <code>dbg</code> <em>and</em> <code>idbg</code> when <code>dbg</code> alone would seem to do, I think it is better design. It is very rare that a low-level module like <code>vblist</code> is a convenient place to put the responsibility for managing debugging output. Someone else a lot higher up the food chain, like the app’s “main”, will be in a better position to know when to do it and what to do. Low-level users need merely extend <code>DbgClient</code>, and if one does this consistently, one winds up with a consistent vocabulary for debugging chores across all of one’s code.</p>
+<p>Modules cannot extend base classes and therefore require yet a different approach from classes. I do not have a good general strategy for this. An example can be found in <a href="fileutils.html"><code>fileutils</code> module</a>. A private class in that module does inherit from <code>DbgClient</code> and is used to maintain state for the module as well as to provide the API for the debugging manager. As you would expect, there are public module-level methods for starting, stopping, and ending debugging output. I am not altogether happy with this code, but for the moment, I don’t see a cleaner approach.</p>
+</body>
+</html>

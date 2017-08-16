@@ -1,0 +1,1198 @@
+""" <head> 
+Title: Vetted <span class="titleCode">blist</span>s
+Author: Jonathan Brezin
+Date: May, 2017
+Show source: yes
+""" # </head>
+
+from blist import *
+from idbg import DbgClient
+import sys
+import sysutils as su
+
+""" <md>
+
+## The <code>vblist</code> class ##
+
+[their_deque]: https://docs.python.org/3/library/collections.html#collections.deque
+[blist-module]: https://pypi.python.org/pypi/blist/?
+[blist-doc]: http://stutzbachenterprises.com/blist/
+[delfrmsrc]: delegator.html#delfrmsrc
+
+I have implemented vetted list semantics on top of [`blist`][blist-module], which is documented
+in [http://stutzbachenterprises.com/blist/][blist-doc].  "Vetting" refers to this code being
+less forgiving than `blist` in two ways:
+
+1) It allows you to provide a function that will be invoked to vet each item before it is added.
+If the item should not be added, the function should raise a `ValueError` (or some extension
+thereof). The normal return value for the function is the value to be added to the list.  In
+most cases, the item vetted is returned "as is", but that need not be the case.  If you want to
+preprocess the item before adding it, this function is the place to do it.  In fact, it is to
+allow pre-processing that I started down this trail.
+
+2) It allows you to limit the size of the collection and does not allow additions once that size
+is reached, unless some entries are deleted.  I think that limiting the size to `n` implies that
+it really should not be longer than `n` items.  It also does not mean that you to keep at most
+that many entries at a time by automatically shedding items to create room for additions once
+length `n` is reached, which is the strategy adopted by Python's
+[`collections.deque`][their_deque]:
+
+>  `collections.deque` allows the addition of an item to a full `deque`, but in order to make
+room for the late-comer, it silently discards elements at the opposite end from the insertion. I
+am very uncomfortable with that.  Elements at one or the other end of the `deque` vanish into
+the night without a trace, no matter what debugger you are using. I think that adding to a full
+store is, more often than not, an error for any application for which there are reasonable
+bounds, and it should be treated as such. I should add that if you really need to grow the
+store, doing so is a one-liner:
+
+<blockquote><pre class="exampleCode">
+
+          source = vblist(source, newSizeLimit, source.vet)
+
+</pre></blockquote>
+
+> Being explicit about the new limit, as in that code, makes visible the policy for growing the
+store. Otherwise, either one has a "one size fits all policy", like doubling the store, or one
+has to complicate the API to allow the user to manage the overflow.
+
+[buffer_error]: https://docs.python.org/3/library/exceptions.html#base-classes
+
+> There are times when the implicit recovery is what you want, and to make that reasonably easy
+to achieve, the `Exception` raised on trying to grow the list beyond its limit is a class
+"`BufferSizeError`" that is defined here and used only to report such overflows.  (Do not
+confuse `BufferSizeError` with the built-in [`BufferError`][buffer_error]: it is meant to be
+used at a lower level, mainly by C code implementing Python buffers of various sorts.)
+
+[static_delegator]: delegator.html#the-base-static-decorator-class-static_delegator
+
+>> It is easy to use [`delegate_from_source`][delfrmsrc] and its related "decorator"
+[`Static_Delegator`][static_delegator] to create a class that, by delegating the `vblist` ops to
+an instance member "`the_list`", allows you to grow the buffer implicitly by providing the
+delegating class with `add`, `addfirst`, and `insert` methods that handle a `BufferSizeError` by
+using the one-liner above to assign the `the_list` a new `vblist` with a larger maximum size.
+The same considerations apply to `vbdeque`s, `vbqueue`s and `vbstack`s.  See
+[examples/vblist.test.py](examples/vblist.test.py) for an example.
+
+> Setting a maximum size does _not_ preallocate the storage.  I allow the underlying `blist`
+code to grow the list gracefully until the limit is reached.  Of course, if at some point you
+find you want to _decrease_ the maximum allowed size of an instance `vbl`, the assignment
+`vbl.maxsize = newSizeLimit` will do just what you want, unless--of course--`vbl` is already
+bigger than the new limit.
+
+This functionality could equally well be implemented on top of the standard libary's
+[`collections.deque`][their_deque].  I chose to work with `blist` because its API is much more
+limited without losing any methods central to creating a clean API for the various types of
+lists one uses all the time: vanilla lists, queues, deques, and stacks.  In addition, the
+performance of `blist`s versus `deque`s on the basic append/delete operations is essenially the
+same.  You can get some timings by executing [`blist_vs_list`](examples/blist_vs_list.py).  On
+my hardware, `blist` is anywhere from 1% to 5% slower than `deque` over a mix of peek, add, and
+remove operations.  If are doing random reads into the store, rather than just peeking at the
+head, `blist` is about 200 times faster. Of course, you shouldn't be reading random entries from
+your queue or stack, should you?
+
+> For what it's worth, Python `list` objects are optimized for fast operations for fixed length
+instances--in other words, for accessing random entries from a fixed list.  On the other hand,
+one incurs `O(n)` memory movement costs for adding to or removing items from the head of a
+`list` of size `n`, because these operations change both the size of the store and the position
+of the entries within the store. `collections.deque` claims to incur only `O(1)`, and `blist`
+only `O(log n)`, for both these operations. Appending to or deleting from the end of a `list`
+costs `O(1)`.
+
+Finally, why implement deques, queues and stacks here?  Answer: it costs almost nothing, and the
+same vetting is equally worth having for those collections.  Okay, but then why call them
+`vbdeque`, `vbqueue` and `vbstack`, not just `deque`, `queue`, and `stack`?  Again a simple
+answer, but in two parts: 1) it makes it easier to use these classes in an application together
+with other implementations of the same data structures that have different virtues, and 2) there
+is nothing to stop you from executing
+
+<blockquote><pre class="exampleCode">
+
+        from blist import vbstack as stack
+
+</pre></blockquote>
+
+if you really want your code to say "`stack`".  
+
+### The constructor <code>vblist(iterable=[], maxsize=sys.maxsize, vet=None)</code> {#vblist_con}
+
+The constructor and the constructors for `vbdeque`, `vbqueue` and `vbstack` all have three
+arguments:
+
+> __`iterable`__ is a set of initial values to enter into the list in the order they are returned
+by `iterable`.  The default for `iterable` is an empty list.
+
+> __`maxsize`__ is an integer that is the maximum number of entries in the list at at any one
+time. The default for `maxsize` is the system-wide, run-time imposed limit, from the Standard
+Library's [`sys` module](https://docs.python.org/3/library/sys.html), on how large a
+collection may be, which  effectively means "no limit".  You can impose a limit, but you need
+not.  The value is assigned to the public instance attribute "`maxsize`", which is read-write
+within the limitation described earlier: you can decrease it, but not increase it.
+
+> __`vet`__ is a function that vets data before it is actually added to the list, as described
+earlier.  This function is assigned to the public instance attribute "`.vet`", which is
+read-write and may be re-assigned at your convenience, although that is probably a bad thing to
+do, except in very special circumstances.
+
+There is only one other public non-method instance attribute:  __"`size`"__. which is the number
+of entries currently in the list, and is read-only. 
+
+### A word about debugging and some examples:
+
+This code can make use of the [`dbg` module](dbg.html) to produce debugging output. The interface
+["`DbgClient`"](idbg.html) is a base class for the various collection classes here.   The file
+[examples/vblist.test.py](examples/vblist.test.py) contains code that uses `dbg`'s debug manager.
+It also has some examples of vetting and of using this class as the target of a delegator to handle
+buffer overflows.
+
+""" # </md>
+
+class BufferSizeError(Exception):
+   def __init__(self, victim):
+      msg = "size limit {0} for this {1} exceeded"
+      super().__init__(msg.format(victim.maxsize, victim.__class__.__name__))
+
+class _sizeProperty(object):
+   """ read-only access to the current vblist size """
+   def __get__(self, obj, objtype):
+      return len(obj)
+   def __set__(self, obj, val):
+      self.raise_error(AttributeError("The vblist's current size is a read-only attribute"))
+
+class _sizelimitProperty(object):
+   """  the maximum vblist size can be decreased, but not increased. """
+   limits = {}
+   def __get__(self, obj, objtype):
+      theId = id(obj)
+      return self.limits[theId] if theId in self.limits else sys.maxsize
+   def __set__(self, obj, val):
+      """ I only track those vblists whose length is constrained """
+      theId = id(obj)
+      val = int(val) if val != None else sys.maxsize
+      if theId not in self.limits:
+         if val < sys.maxsize:
+            self.limits[theId] = val 
+      else:
+         if val <= self.limits[theId]:
+            if val < obj.size:
+               msg = "New size limit, {}, less than the current size, {}"
+               self.raise_error(ValueError(msg.format(val, obj.size)))
+            self.limits[theId] = val
+         else:
+            before = self.limits[theId]
+            msg = "You cannot increase the size limit {} to {}"
+            self.raise_error(ValueError(msg.format(before, val)))
+
+""" <md>
+
+## Some shared instance methods {#shared_methods}
+
+### Some magic methods
+
+I need to override the methods for `+` and `+=` from their `blist` originals in order to make sure
+that vetting makes sense--and to say what limit, if any, is to be put on the size of the sum. The
+"in-place add" is the easier of the two: `a+=b` means the same thing as adding every item in `b` to
+`a`. The sum `a+b` is more subtle.  I take the easy way out: I make a copy of `a` with no size
+restriction in the copy, vet the items in `b` using `a`'s vetter if need be, and then jam all the
+vetted items into the copy.
+
+#### <code>&lowbar;&lowbar;add&lowbar;&lowbar;(other)</code>
+
+forms an instance of the invoker's class _with no size limit_ and the same collection as the 
+invoker.  I then use this copy of the invoker to call the `add_all` method to add in whatever items
+are in `other`.  The return value is updated copy.
+
+#### <code>&lowbar;&lowbar;iadd&lowbar;&lowbar;(other)</code>
+
+is an update add: one just uses the invoker to call `add_all` to add in whatever items are in
+`other`.  The return value is the invoker.
+
+#### <code>&lowbar;&lowbar;radd&lowbar;&lowbar;(other)</code>
+
+is the same as "`other.__add__(self)`".  Nota bene: it is `other`'s add method that gets called, so
+the return value's type depends on `other`'s type, and only minimally, if at all, on `self`'s.
+
+#### <code>&lowbar;&lowbar;copy&lowbar;&lowbar;()</code>
+  
+[copy-copy]: https://docs.python.org/3.5/library/copy.html
+
+This is a little delicate.  The copy module's [`copy()` method][copy-copy] creates a shallow
+copy by calling the source's `__copy()__` method, if it has one.  In order to make sure that I
+am consistent with that code, I provided that "magic method" here. 
+
+__BEWARE!__ `__copy__()` copies the entries from `self` into the new copy without vetting them a
+second time, so if you have extended this class in a way that vetting has side effects on the
+class or on the particular instance, you should override `__copy__()`.
+
+I did not worry about deep copies, so I am not sure if there is any problem in implementing it
+to work with the `copy` module's method.  It may require nothing at all...I just did not care.
+
+#### <code>&lowbar;&lowbar;eq&lowbar;&lowbar;(other)</code>
+#### <code>&lowbar;&lowbar;ne&lowbar;&lowbar;(other)</code>
+
+`__eq__` checks that the invoker and `other` have the same vetter and the same size limit, in
+addition to checking that as instances of the invoker's superclass they are `__eq__`.  `__ne__`
+is just "`not __eq__`"
+
+`blist` implements the magic methods for comparing a `blist` with another iterable.  I need to
+override the equality test here to enforce that the vetting be the same, and the maximum size.
+The `blist` API is such that `blist([1,2])` `==` `[1,2]` is `True`, but that won't do for
+`vblist`s.  I want to guarantee that `a==b` means that you can substitute `b` for `a` in _any_
+expression that depends only on `a`'s API as `vblist`, and not on `a`'s identity as an object.
+The vetting and size constraints for a `vblist` are part of its API and hence must be taken into
+account.
+
+As for the containment comparisons ("`<`", _etc._), no override is necessary, because they only are
+concerned with what entries appear in the two collections,  _and not with the order in which those
+entries appear._  One could do otherwise, but that would be dangerous, since Python's `list` behaves
+the same way `blist` does. One could also implement `begins_with` and `contains` methods that
+implement "is a sublist" rather than "is a subset".  I haven't, because I haven't been convinced of
+the need.
+
+> Be careful: `a>=b` does _not_ mean "`a>b` `or` `a==b`" for `list`s, `blist`s, or `vblist`s.
+Try executing "`blist([1,2])` `==` `[2,1]`" and "`blist([1,2])` `<=` `[2,1]`".
+
+####<code>&lowbar;&lowbar;repr&lowbar;&lowbar;</code>
+
+This method just replaces the superclass name at the beginning of its return value with the
+name of the class of the invoking object.
+
+#### <code>&lowbar;&lowbar;mul&lowbar;&lowbar;(k)</code>
+
+`k` must an `int`.  A new instance of the invoker's class is created with no size limit, but the
+same vetter.  The instance will contain `k` copies of invoker's collection.
+
+#### <code>&lowbar;&lowbar;imul&lowbar;&lowbar;(other)</code>
+
+is an update multiply, so it will only happen if the invoker's size limit allows it.  Again, `k` is
+an integer and the effect is to add the original collection of the invoker into itself `k-1` times.
+The return value is the invoker.
+
+#### <code>&lowbar;&lowbar;rmul&lowbar;&lowbar;(k)</code>
+
+is the same as "`self.__mul__(k)`".  Multiplication is commutative here!
+
+### Read access: getting entries and slices ###
+
+#### <code>copy()</code> 
+
+is a synonym for `__copy__`. I have exposed the magic method as the public method `copy()`, so that
+you do not have to import the `copy` module if you don't mind using "`stuff.copy()`"  rather than
+"`copy(stuff)`".
+
+#### <code>find(what)</code>
+
+traverses the list to find an entry `item` satisfying "`item == what`" and returns that index.
+If no such entry is not found, -1 is returned.  _Cf._ [`blist.index`][blist-doc]
+
+#### <code>head(howMany=None)</code> and <code>tail(howMany=None)</code> {#head_or_tail}
+
+retrieve, but do not remove, entries from the beginning (`head`) or end (`tail`) of the list.
+`howMany` must be either `None` or non-negative and at most the current list size.  If it is
+`None`, the first (or last) entry in the queue is returned.  If it is a non- negative integer,
+that many entries from the head (or tail) of the queue will be returned as a `blist`.
+
+#### <code>isAVettedCollection(stuff)</code>
+
+is a static method that answers `True` if its argument is an instance of one of the vetted
+collection classes defined in this module, `False` otherwise.
+
+#### <code>isEmpty()</code> ####
+
+`q.isEmpty()` is just a synonym for `q.size is 0`.
+
+Slicing works as you think: `self[first:stop]` retrieves the slice, just as it would for a
+`list`. 
+
+It is sometimes convenient to ask for a larger slice than is available, particular from
+the head or tail of a list, particularly when the list is being used as a queue or stack.  That
+is the rationale for providing `peek()`:
+
+#### <code>peek(howMany=None, &ast;, orElse=None)</code> {#peek}
+
+retrieves, but does not remove, the first `howMany` entries from the head or the tail of the
+list. If `howMany` is positive, the items are from the head; otherwise they are from the tail
+This is intended to be consistent with Python's conventions for the `[]` operator.   If
+`howMany` is `None`, and the list is not empty, the first entry is returned;
+otherwise `orElse` is.
+
+If the list has fewer than `howMany` entries, the returned list is padded out with `orElse`s.
+The padding is at the end of the list, whether the head or tail was being looked at.
+
+### Adding one or more items 
+
+Adding items is almost the same for all of the classes here, but removing items is not.  So we
+share what we can!  The major difference is that for lists, one adds at the end, but for sorted
+collections, one adds by inserting in the correct position.  `blist` uses `extend` as the primitive
+for adding items from a collection at the end, and `update` for insertion into a sorted collection.
+
+#### <code>add(what, &ast;,dieOnFail=True)</code> ####
+
+adds the specified element to the end of the list, if it vets okay, and if it is possible to do
+so without violating capacity restrictions. `True` is returned upon success.  Otherwise, if
+vetting fails, a `ValueError` is raised, and if there is no room at the inn, either an
+`IndexError` is  raised or, if `dieOnFail` is `False`, `False` is returned.
+
+The reason for adding the `dieOnFail` argument is that multi-threaded code may inadvertently add
+to a full list and be willing to wait to try again later.  The same leniency does _not_ apply
+to  vetting failures: if a piece of data is not okay to add, don't add it, period!
+
+#### <code>add_all(iterable, &ast;, dieOnFail=True)</code>
+
+adds the items yielded by the literal into the invoker's collection.  If the iterable is a vetted
+collection (as implemented here), the superclass's presumably faster multiple insertion call is
+used, if we can know a priori whether the final collection will satisfy the invoker's size limit.
+Otherwise, we're stuck vetting the collection and then doing the insertions.
+
+""" # </md>
+
+class _sharedMethods:
+   def __add__(self, other):
+      return self.__class__(self, vet=self.vet).add_all(other)
+
+   def __copy__(self):
+       # do not vet the entries again: let vet be None initially
+      newlist = self.__class__(self, maxsize=self.maxsize, vet=None)
+      newlist.vet = self.vet
+      return newlist
+      
+   def __eq__(self, other):
+      return isinstance(other, self.__class__)  and \
+      self.vet == other.vet and \
+      self.maxsize == other.maxsize and\
+      super().__eq__(other)
+
+   def __iadd__(self, other):
+      return self.add_all(other)
+
+   def __imul__(self, k):
+      original = self.__class__(self)
+      for n in range(0,int(k)-1):
+         self += original
+
+   def __mul__(self, k):
+      answer = self.__class__(self)
+      for n in range(0,int(k)-1):
+         answer += self
+      answer.vet = self.vet
+
+   def __ne__(self, other):
+      return not self.__eq__(other)
+
+   def __radd__(self, other):
+      return other.__add__(self)
+
+   def __rmul__(self, k):
+      return self.__mul__(k)
+
+   def __repr__(self):
+      #print("Ur class: {}".format(self.__class__))
+      inherited = super().__repr__()
+      tail = inherited[inherited.find('('):]
+      return self.__class__.__name__+tail
+
+   def handle_overflow(self, dieOnFail):
+      if dieOnFail:
+         self.raise_error(BufferSizeError(self))
+      else:
+         msg = "attempt to add to {2} failed for size {0} and bound {1}"
+         self.issue_warning(msg.format(self.size, self.maxsize, su.a_classname(self)))
+         return False
+
+   def add_all(self, an_iterable,  *, dieOnFail=True):
+      if not _sharedMethods.isAVettedCollection(an_iterable) or (self.vet != an_iterable.vet):
+         an_iterable = [self.vet(item) for item in an_iterable]
+      if self.maxsize == sys.maxsize or self.size+len(an_iterable) <= self.maxsize:
+         if hasattr(self, "extend"):
+            super().extend(an_iterable) # for collections where "add" means "add at end"
+         else:
+            for item in an_iterable: self.add(item)
+      else:
+         for item in an_iterable:
+            if not self.add(item, dieOnFail=dieOnFail): # fail on overflow?
+               break
+      return self
+
+   def copy(self):
+      return self.__copy__()
+
+   def find(self, what):
+      try:
+         return self.index(what)
+      except:
+         return -1
+
+   def head(self, howMany = None):
+      if howMany is None: # return the entry, not a list!! 
+         return self[0]
+      if howMany > self.size:
+         msg = "{} entries requested, but only {} available"
+         self.raise_error(IndexError(msg.format(howMany, self.size)))
+      else:
+         return self[0: howMany]
+
+   def isEmpty(self): return self.size is 0
+
+   @staticmethod
+   def isAVettedCollection(stuff):
+      return isinstance(stuff, vblist) or isinstance(stuff, vbdeque) or \
+            isinstance(stuff, vsortedlist) or isinstance(stuff, vsortedset)
+
+   def peek(self, howMany = None, *, orElse = None, reverse=True):
+      if howMany is None:
+         return orElse if self.size == 0 else self[0]
+      else:
+         if howMany > 0: 
+            available = self.size if self.size < howMany else howMany
+            values = self[0 : available] 
+         else:
+            howMany = -howMany
+            available = self.size if self.size < howMany else howMany
+            values = self[-available:]
+            if reverse: values.reverse()
+         leftToAdd = howMany - available
+         return values if leftToAdd is 0 else values + ([orElse]*leftToAdd)
+
+   def tail(self, howMany = None):
+      if howMany is None: # return the entry, not a list!! 
+         return self[-1]
+      if howMany > self.size:
+         msg = "{} entries requested, but only {} available"
+         self.raise_error(IndexError(msg.format(howMany, self.size)))
+      else:
+         return self[-howMany:]
+
+class vblist(_sharedMethods, blist, DbgClient):
+   size   = _sizeProperty()
+   maxsize = _sizelimitProperty()
+   # buffered debugging available, but left off for the moment:
+   def __init__(self, iterable=[], maxsize = sys.maxsize, vet=None):
+      blist.__init__(self, [])
+      # local public attributes:
+      self.maxsize = maxsize
+      if vet is None: # don't waste time vetting the initial entries
+         blist.extend(self, iterable)
+         self.vet = lambda data: data
+      else:
+         self.vet = vet
+         for entry in iterable:
+            self.add(entry)
+
+""" <md>
+
+## The <code>vblist</code> instance API ##
+
+All methods for `blist` that are _not_ overridden here are available, of course.  As of this
+writing, the list includes `count`, `index`, `iter`, `remove`, and `sort`, as well as those
+["magic methods"](magicmethods.pdf), like `__len__` that are not
+explicitly overridden here.
+
+### Generic methods ###
+
+#### Concatentating a list to a `vblist`
+
+What follows are the methods that make a `vblist` a list. I have tried to keep the number of methods
+minimal.
+
+
+### Write access: adding and removing entries ###
+
+The whole `blist` set of methods is available to you.  I have had to wrap the methods that add
+to the list to make sure that the size limit is enforced and that entries are vetted before
+insertion.  In particular, this means that I have to override the `[]` operator when it is used
+to name an assignment target:
+
+> "`self[first:stop] = ` `iterable`" replaces the original slice with the items in the right-
+hand side, just as it would for a `blist`, except that, as I just said, the items inserted must
+be vetted, and the final list may not be longer than prescribed size limit.  Inserting  `k`
+items in a list of length `n` can cost `O(abs(k)*log(n))`, at least as implemented here, if the
+slice being inserted differs in size from the slice of "`self`".
+
+#### <code>append(what)</code> ####
+
+is a synonym for `add(what, dieOnFail=True)`.
+
+#### <code>extend(iterable, &ast;, dieOnFail=True)</code> ####
+
+add all of the results of the iteration to the end of the list.  Failures are handled just as they
+are for `add()`.  This is here only to override the `blist` method of the same name.  It is just the
+obvious `for` loop over the iterable, adding one item at a time.  I need the override to make sure
+that vetting is done and that the list does not overflow.
+
+#### <code>insert(index, value, &ast;, dieOnFail=True)</code> {#insert}
+
+inserts `value`, after vetting it, into the list at index "`index`".  The normal return value is
+`True`.  Vet failures raise a `ValueError`.  If the list is full, and `dieOnFail` is `True`, a
+`BufferSizeError` is raised; otherwise the call fails and returns `False`.  If `index` is _not_ a valid
+index for the operation `self[index]`, an `IndexError` will be raised _regardless of the value of
+`dieOnFail`._
+
+#### <code>next_or_else(orElse, howMany=None)</code>>####
+
+If `howMany` is `None` and the list is not empty, the head is removed and returned.  Otherwise
+`howMany` must be a non-zero integer, and the first `howMany` entries are removed from the head
+or tail of the list and returned as a `list`.  If `howMany` is positive, the items are removed
+from the head, otherwise they are removed from the tail. 
+
+If not enough values are available to fulfill the request, the keyword argument `orElse` comes
+into play.   If `howMany` is `None`, `orElse` itself will be returned.  Otherwise, `orElse` will
+be used to fill out the returned `list` to the desired length.  The default value for `orElse`
+is `None`.
+
+#### <code>next(howMany=None)</code></code> ####
+
+The arguments have the same meanings as they do for `next_or_else`.  The only difference is that
+if there are not enough entries in the list to satisfy the request, an `IndexError` is raised.
+
+#### <code>prepend(iterable, &ast;, dieOnFail=True)</code> ####
+
+adds all of the results of the iteration to the end of the list.  Failures are handled just as they
+are for `add()`.  The effect is to concatenate the list implied by `iterable` and `self`'s list.
+In particular, the entries from the iterable appear in the same order in the result as they do when
+traversing `iterable`.  There is no value returned.
+
+#### <code>push(item)</code>
+
+appends the item to the list.  If the append succeeds, `True` is returned, otherwise `False`.
+
+#### <code>replace(indexOrRange, iterable, dieOnFail=True)</code> {#replace}
+
+"`indexOrRange`" is either an index or a range that has step 1 (that is, a range whose start less
+than its stop and that covers a whole (possibly empty) interval of indices).  The call removes the
+item at the index, or all items in the index range, and then inserts in their place all the items in
+the iterable.  Nota bene: `insert` inserts single value, `replace` inserts an iterable.  If the
+range is empty, the effect is to insert the entries from the iterable at the start of the range.
+
+""" # </md>
+
+   def __setitem__(self, which_indices, data):
+      if isinstance(which_indices, int):
+         added = self.vet(data)
+         if which_indices >= 0:
+            if which_indices < self.size:
+               blist.__setitem__(self, which_indices, added)
+               return
+         elif which_indices >= -self.size:
+               blist.__setitem__(self, which_indices, added)
+               return
+         else:
+            msg = "index {0} is not in range(-{1},{1}), as required."
+            self.raise_error(IndexError(msg.format(which_indices, self.size)))
+      elif isinstance(which_indices, slice):
+         self.dbg_write("get [{0}] slice".format(which_indices))
+         the_range = su.slice2range(which_indices, max=self.size)
+      elif isinstance(which_indices, range):
+         the_range = which_indices
+      else:
+         template = "{0} cannot be used to index {1}"
+         msg = template.format(su.a_classname(which_indices), su.a_classname(self))
+         self.raise_error(TypeError(msg))
+      if the_range.start < 0 or the_range.stop > self.size:
+         msg = "{} is not a subrange of range(0,{}), as required"
+         self.raise_error(IndexError(msg.format(the_range, self.size)))
+      if len(range) >= len(entries):
+         # possibly shrink the list, but first overwrite what is there
+         next_in = range.start
+         for entry in entries:
+            self[next_in] = entry
+            next_in += 1
+         if next_in < range.stop:
+            del self[next_in:range.stop]
+      else: 
+         # need to expand the list, so just blow away self[slice] and insert data
+         # in its place
+         del self[the_range]
+         next_in = the_range.start
+         for entry in entries:
+            self.insert(next_in, entry)
+            next_in += 1
+
+   def add(self, what, *, dieOnFail=True):
+      what = self.vet(what)
+      if self.size < self.maxsize:
+         super().append(what)
+         return True
+      else:
+         return self.handle_overflow(dieOnFail)
+
+   def add_all(self, an_iterable,  *, dieOnFail=True):
+      if not _sharedMethods.isAVettedCollection(an_iterable) or (self.vet != an_iterable.vet):
+         an_iterable = [self.vet(item) for item in an_iterable]
+      if self.size+len(an_iterable) <= self.maxsize:
+         super().extend(an_iterable) 
+      else:
+         self.handle_overflow(dieOnFail)
+      return self
+
+   def add_first(self, what, *, dieOnFail=True):
+      if self.size < self.maxsize:
+         super().insert(0, what)
+         return True
+      else:
+         self.handle_overflow(dieOnFail)
+      return False
+
+   def append(self, what):
+      return self.add(what)
+
+   def extend(self, iterable, dieOnFail=True):
+      return self.add_all(iterable, dieOnFail=dieOnFail)
+
+   def insert(self, where, what, dieOnFail=True):
+      what = self.vet(what)
+      if self.size < self.maxsize:
+         blist.insert(self, where, what)
+         return True
+      else:
+         template = "Attempt to insert into a full {}, size {}"
+         msg = template.format(self.__class__.__name, self.size)
+         if dieOnFail:
+            self.raise_error(BufferSizeError(msg))
+         else:
+            self.dbg_write(msg)
+            return False
+
+   def next(self, howMany=None):
+      if howMany is None:
+         if self.size > 0:
+            answer = self[0]
+            del self[0]
+            return answer
+         else:
+            msg = "Request for next from an empty "+self.__class__.__name__
+            self.raise_error(IndexError(msg))
+      elif howMany > 0 and howMany <= self.size:
+         answer = self[0:howMany]
+         del self[0:howMany]
+         return answer
+      elif howMany < 0 and (-howMany) <= self.size:
+         answer = self[-howMany:]
+         del self[-howMany:]
+         return answer
+      else:
+         msg = "{0} entries requested, only {1} available"
+         self.raise_error(IndexError(msg.format(abs(howMany), self._count_)))
+
+   def next_or_else(self, howMany=None, orElse=None):
+      if howMany is None:
+         try:
+            return self.next()
+         except IndexError:
+            return orElse
+      elif abs(howMany) <= self.size:
+         return self.next(howMany)
+      else:
+         fromList = self.next(howMany=self.size)
+         need = abs(howMany) - self.size
+         return fromList + ([orElse]*need)
+
+   def prepend(self, iterable):
+      added = list(iterable)
+      added.reverse()
+      for x in added:
+         self.add_first(x)
+
+   def push(self, what):
+      return self.add(what, dieOnFail=False)
+
+   def replace(self, indexOrRange, iterable, dieOnFail=True):
+      if isinstance(indexOrRange, int):
+         insertionpoint = indexOrRange
+         del self[insertionpoint]
+      else:
+         if indexOrRange.step != 1:
+            self.raise_error(ValueError("expected a range with step 1, not {}", indexOrRange.step))
+         insertionpoint = indexOrRange.start
+         del self[insertionpoint: indexOrRange.stop]
+      for v in iterable:
+         self.insert(v, insertionpoint)
+         insertionpoint += 1
+
+vblist.configure_debugging("vblist") 
+
+""" <md>
+
+## The <code>vbdeque</code> class
+
+""" #</md>
+
+class vbdeque(vblist):
+   def __init__(self, iterable=[], maxsize = sys.maxsize, vet = None):
+      super().__init__(iterable, maxsize, vet)
+
+""" <md>
+
+The `vbdeque` class is a constrained extension of `vblist` whose API is limited to safe deque
+operations. 
+
+### <code>vbdeque(iterable=[], maxsize = sys.maxsize, vet=None)</code>
+
+The constructor takes the same arguments as the generic `vblist`.  `maxsize` is maximum number
+of entries the `vbdeque` may contain, `vet` is the function that is applied to each value
+inserted, and `iterable` is used to populate the new deque: its entries are added in the order
+given by traversing the iterable.   
+
+The public non-method instance attributes of a `vbdeque` are also the same as those for a
+`vblist`. `size` is the number of entries and is read-only.  The other two are just the saved
+values of the constructor's arguments: `maxsize` and `vet`.
+
+All methods for `vblist` that are _not_ overridden here are available, of course.  
+
+The square-bracket operator, `[]`, is restricted here to being read-only.  The only
+modifications permitted to a deque are adding and removing entries from its beginning and its
+end.
+
+### Forbidden fruit ###
+
+The following methods from `vblist`'s API are forbidden:
+
+#### <code>insert(index, what)</code> ####
+
+For `blists`, this call inserts `what` at index `index`, after shifting the trailing entries
+over to make room.  Deques are not lists, and there is no reason to support random insertions
+into a deque. Indeed, the whole point of a deque is that stuff enters and leaves only from
+its beginning or its end.
+
+#### <code>remove()</code> ####
+
+Random deletions from a deque, like random insertions, are _not_ permitted.
+
+#### <code>reverse()</code> ####
+
+If someone comes up with a convincing example of the need to reverse the entries in a deque,
+I'll listen, but until then: forbidden.
+
+#### <code>sort()</code> ####
+
+The same argument goes for `sort` as for `reverse`.  If you really, really need this, and don't
+insist on the sort (or the reverse) being done in place, it is not that hard to implement.  Let
+`q` be a `vbdeque`:
+
+<pre class="exampleCode">
+
+sorted = list(q)
+sorted.sort() # sort() returns no value
+result = vbdeque(sorted, q.maxsize, q.vet)
+
+</pre>
+
+""" # </md>
+
+   def _forbid(self, msg):
+      self.raise_error(su.IllegalOpError(msg.format(self.__class__.__name__)))
+
+   def insert(self, index, object):
+      self._forbid("Random insertion into a {} is not supported")
+      
+   def remove(self, value):
+      self._forbid("Random removal from a {} is not supported.")
+
+   def reverse(self):
+      self._forbid("Reversing a {} is not supported")
+
+   def sort(self):
+      self.forbid("Sorting a {} is not supported")
+
+   def __setitem__(self, index, value):
+      self._forbid("{} indexing is only for read access")
+
+   def __delitem__(self, index):
+      if isinstance(index, int):
+         if index in (0, -1, self.size-1):
+            super().__delitem__(index)
+            return
+         else:
+            self._forbid("Deletion from the middle of a {} is not supported")
+      elif isinstance(index, slice):
+         self.dbg_write("get [{0}] slice".format(index))
+         the_range = su.slice2range(index, max=self.size)
+      elif isinstance(index, range):
+         the_range = index
+      else:
+         self.raise_error(TypeError("Illegal type for 'index': {}".format(type(index))))
+      if the_range.start == 0 or the_range.stop == self.size:
+         for n in range(0, len(the_range)): blist.__delitem__(self, the_range.start)
+      else:
+         self.forbid("Deletion from the middle of a {} is not supported")
+
+""" <md>
+
+## The <code>vbqueue</code> class ##
+
+The `vbqueue` class is a constrained extension of `vbdeque` whose API is limited to safe queue
+operations. 
+
+### The constructor <code>vbqueue(iterable, maxsize, vet)</code> 
+
+The constructor takes the same arguments as the generic `vblist`.  `maxsize` is maximum number
+of entries the `vbqueue` may contain, `vet` is the function that is applied to each value
+inserted, and `iterable` is used to populate the new deque: its entries are added in the order
+given by traversing the iterable.   
+
+The public non-method instance attributes of a `vbqueue` are also the same as those for a
+`vblist`. `size` is the number of entries and is read-only.  The other two are just the saved
+values of the constructor's arguments: `maxsize` and `vet`.
+
+### Forbidden Fruit ###
+
+#### <code>add_first(what)</code> and <code>prepend(iterable,*,dieOnFail)</code>
+
+Items are added to a queue only at its end.
+
+""" # </md>
+
+class vbqueue(vbdeque):
+   def __init__(self, iterable=[], maxsize = sys.maxsize, vet=None):
+      super().__init__(iterable, maxsize, vet)
+
+   def add_first(self, what):
+      self._forbid("A {} only grows from at its end")
+
+   def prepend(self, iterable, *, dieOnFail=True):
+      self._forbid("A {} only grows from at its end")
+
+""" <md>
+
+### Write access: adding and removing entries ##
+
+
+#### <code>next_or_else(orElse, howMany=None)</code>####
+
+If `howMany` is `None` and the queue is not empty, the head is removed and returned.  Otherwise
+`howMany` must be a non-negative integer, and the first `howMany` entries are removed from the
+queue and returned as a list with the same ordering as the queue.
+
+If not enough values are available to fulfill the request, the keyword argument `orElse` comes
+into play.   If `howMany` is `None`, `orElse` itself will be returned.  Otherwise, `orElse` will
+be used to fill out the returned `list` to the desired length.  The default value for `orElse`
+is `None`.
+
+#### <code>next(howMany=None)</code> ####
+
+is the same as `next_or_else`, but if `howMany` is greater than the queue size, or the queue is
+empty and `howMany` is `None`, an `IndexError` is raised.
+
+""" # </md>
+
+   def __delitem__(self, index):
+      if isinstance(index, int):
+         if index == 0:
+            super().__delitem__(index)
+            return
+         else:
+            self._forbid("Only deletion at the start of a {} is supported")
+      elif isinstance(index, slice):
+         self.dbg_write("get [{0}] slice".format(index))
+         the_range = su.slice2range(index, max=self.size)
+      elif isinstance(index, range):
+         the_range = index
+      else:
+         self.raise_error(TypeError("Illegal type for 'index': {}".format(type(index))))
+      if the_range.start == 0:
+         for n in range(0, len(the_range)): blist.__delitem__(self, the_range.start)
+      else:
+         msg = "Deletion from the middle of {} is not supported"
+         self.forbid(msg.format(su.a_classname(self)))
+
+   def next_or_else(self, howMany=None, orElse=None):
+      if howMany is None or howMany >= 0:
+         return super().next_or_else(howMany=howMany, orElse=orElse)
+      else:
+         self.raise_error(ValueError("Illegal 'next' count, {}".format(howMany)))
+
+   def next(self, howMany=None):
+      if howMany is None or howMany >= 0:
+         return super().next(howMany)
+      else:
+         self.raise_error(ValueError("Illegal 'next' count, {}".format(howMany)))
+
+
+"""  <md>
+
+## The <code>vbstack</code> class ##
+
+The `vbstack` class is a constrained extension of `vbdeque` whose API is limited to safe stack
+operations. 
+
+### The constructor <code>vbstack(iterable=[], maxsize=sys.maxsize, vet=None)</code> ###
+
+The arguments are exactly the same as those for its superclasses `vblist` and `vbdeque`.
+`maxsize` is maximum number of entries the `vbqueue` may contain, `vet` is the function that is
+applied to each value inserted, and `iterable` is used to populate the new deque: its entries
+are added in the order given by traversing the iterable.
+
+The public non-method instance attributes of a `vbstack` are also the same as those for a
+`vblist`. `size` is the number of entries and is read-only.  The other two are just the saved
+values of the constructor's arguments: `maxsize` and `vet`.
+
+For some test code, see [stack.test.py](examples/stack.test.py).
+
+### Forbidden Fruit ###
+
+#### <code>add_first(what)</code> and <code>prepend(iterable,*,dieOnFail)</code>
+
+Items are added to a stack only at its end.
+
+""" # </md>
+
+class vbstack(vbdeque):
+
+   def __init__(self, iterable=[], maxsize = None, vet=None):
+      super().__init__(iterable, maxsize, vet)
+
+   def add_first(self, what):
+      self._forbid("A {} only grows from at its end")
+
+   def prepend(self, iterable, *, dieOnFail=True):
+      self._forbid("A {} only grows from at its end")
+
+""" <md>
+
+### Write access: adding and removing entries ###
+
+#### <code>next_or_else(orElse, howMany=None)</code>####
+
+If `howMany` is `None` and the stack is not empty, the head is removed and returned.  Otherwise
+`howMany` must be a non-negative integer, and the first `howMany` entries are removed from the
+stack and returned as a list with the same ordering as the stack.
+
+If not enough values are available to fulfill the request, the keyword argument `orElse` comes
+into play.   If `howMany` is `None`, `orElse` itself will be returned.  Otherwise, `orElse` will
+be used to fill out the returned `list` to the desired length.  The default value for `orElse`
+is `None`.
+
+#### <code>next(howMany=None)</code> ####
+
+is the same as `next_or_else`, but if `howMany` is greater than the stack size, or the stack is
+empty and `howMany` is `None`, an `IndexError` is raised.
+
+#### <code>pop(howMany=None)</code> ####
+
+is a synonym for `next`.
+
+""" # </md>
+
+   def __delitem__(self, index):
+      if isinstance(index, int):
+         if index == -1 or index == self.size - 1:
+            super().__delitem__(index)
+            return
+         else:
+            self._forbid("Only deletion at the end of a {} is supported")
+      elif isinstance(index, slice):
+         self.dbg_write("get [{0}] slice".format(index))
+         the_range = su.slice2range(index, max=self.size)
+      elif isinstance(index, range):
+         the_range = index
+      else:
+         self.raise_error(TypeError("Illegal type for 'index': {}".format(type(index))))
+      if the_range.stop == self.size:
+         for n in range(0, len(the_range)): blist.__delitem__(self, the_range.start)
+      else:
+         msg = "Only deletion from the top of {} is supported"
+         self.forbid(msg.format(su.a_classname(self)))
+
+   def next_or_else(self, howMany=None, orElse=None):
+      if howMany is None:
+         return super().next_or_else(orElse=orElse, howMany=None)
+      if howMany >= 0:
+         return vblist.next_or_else(self, orElse=orElse, howMany=-howMany)
+      else:
+         self.raise_error(ValueError("Illegal 'next' count, {}".format(howMany)))
+
+   def next(self, howMany=None):
+      if howMany is None:
+         return vblist.next(self, howMany=-1)
+      elif howMany >= 0:
+         return vblist.next(self, howMany=-howMany)
+      else:
+         self.raise_error(ValueError("Illegal 'next' count, {}".format(howMany)))
+
+   def pop(self, howMany=None):
+      return self.next(howMany)
+
+""" <md>
+
+## The <code>vsortedlist</code> class
+
+Unlike the previous classes, this class uses the `blist` module's `sortedlist` class as a base.
+The shared methods take care of most of the differences between `sortedlist` and `vsortedlist`.
+
+""" # </md>
+
+class vsortedlist(_sharedMethods, sortedlist, DbgClient):
+   size   = _sizeProperty()
+   maxsize = _sizelimitProperty()
+   def __init__(self, an_iterable=[], maxsize = sys.maxsize, vet=None):
+      sortedlist.__init__(self, [])
+      DbgClient.__init__(self)
+      # local public attributes:
+      self.maxsize = maxsize
+      self.vet = (lambda data: data) if vet is None else vet
+      for entry in an_iterable:
+         self.add(entry)
+
+   def _forbid(self, msg):
+      self.raise_error(su.IllegalOpError(msg.format(self.__class__.__name__)))
+
+   def __setitem__(self, index, value):
+      self._forbid("{} indexing is only for read access")
+
+   def add(self, what, *, dieOnFail=True):
+      what = self.vet(what)
+      if self.size < self.maxsize:
+         super().add(what)
+         return True
+      else:
+         return self.handle_overflow(dieOnFail)
+
+   def add_all(self, an_iterable,  *, dieOnFail=True):
+      return self.update(an_iterable, dieOnFail=dieOnFail) 
+
+   def update(self, an_iterable, *, dieOnFail=True):
+      if not _sharedMethods.isAVettedCollection(an_iterable) or (self.vet != an_iterable.vet):
+         an_iterable = [self.vet(item) for item in an_iterable]
+      if self.maxsize == sys.maxsize or self.size+len(an_iterable) <= self.maxsize:
+         for item in an_iterable:
+            if not self.add(item, dieOnFail=dieOnFail):
+               break
+      else:
+         self.handle_overflow(dieOnFail)
+      return self
+
+""" <md>
+
+## The <code>vsortedset</code> class
+
+This class uses the `blist` module's `sortedset` class as a base.  The set operations that yield
+sets as results have to be overridden to return `vsortedsets`, rather than just sets.
+
+#### <code>difference(*iterables, maxsize=None)</code>
+
+The magic method for set difference, `__sub__` is implemented and this method is a wrapper around
+it. The call returns a new `vsortedset` with elements in the invoker that are not in the others. In
+the worst case, requires &Theta;`(m*log`<sup>2</sup>`(n + m))` operations and &Theta;`((m*log(n + m))`
+comparisons, where `m` is the combined size of all the other sets and `n` is the size of the
+invoker.  If the `maxsize` argument is not `None`, it will be used for the maximum size of the 
+result set; otherwise the invoker's size will be used.  
+
+#### <code>difference_update(*iterables)</code>
+
+is the in place version of set-theoretic difference and as such, returns the invoker.  This is again
+just a wrapper around the corresponding magic method, `__isub__`.
+
+#### <code>intersection(*iterables, maxsize=None)</code>
+
+returns a new `vsortedset` with elements common to the invoker and all of the others. In the worst
+case, requires &Theta;`((m*`log<sup>2</sup>`(n + m))` operations and &Theta;`((m*log(n + m))` comparisons,
+where `m` is the combined size of all the other sets and `n` is the size of the invoker.  If the
+`maxsize` is not `None`, it is used as the result's maximumn size; otherwise the invoker's maximum
+is used.
+
+This is a general form for the magic method `__and__`.
+
+#### <code>intersection_update(*others)</code>
+
+is the in place version of `intersection`, the corresponding magic method being `__iand__`.
+
+#### <code>symmetric_difference(other, *, maxsize=None)</code>
+
+returns a new `vsortedset` with elements in either operand, but not in both.  This is the
+implementation for the magic method `__xor__`.  If the `maxsize` is not `None`, it is used as the
+result's maximumn size; otherwise the invoker's maximum is used.
+
+In the worst case, requires &Theta;`((m*log`<sup>2</sup>`(n + m))` operations and &Theta;`((m*log(n + m))`
+comparisons, where `m` is the size of `other` and `n` is the size of the invoker.
+
+#### <code>symmetric_difference_update(other)</code>
+
+This is a synonym for the magic method `__ixor__`.
+
+""" # </md>
+
+class vsortedset(_sharedMethods, sortedset, DbgClient):
+   size   = _sizeProperty()
+   maxsize = _sizelimitProperty()
+   def __init__(self, an_iterable=[], maxsize = sys.maxsize, vet=None):
+      sortedset.__init__(self, [])
+      DbgClient.__init__(self)
+      # local public attributes:
+      self.maxsize = maxsize
+      self.vet = (lambda data: data) if vet is None else vet
+      for entry in an_iterable:
+         self.add(entry)
+
+   def _forbid(self, msg):
+      self.raise_error(su.IllegalOpError(msg.format(self.__class__.__name__)))
+
+   def __setitem__(self, index, value):
+      self._forbid("{} indexing is only for read access")
+
+   def __and__(other):
+      return self.intersection(other)
+
+   def __iand__(other):
+      return self.intersection_update(other)
+
+   def __or__(self, other):
+      return self.__class__(self, vet=self.vet).add_all(other)
+
+   def __ior__(self, other):
+      return self.add_all(other)
+
+   def __xor__(self, other):
+      return self.symmetric_difference(other)
+
+   def __ixor__(self, other):
+      return self.symmetric_difference_update(other)
+
+   def add(self, what, *, dieOnFail=True):
+      what = self.vet(what)
+      if self.size < self.maxsize:
+         super().add(what)
+         return True
+      else:
+         return self.handle_overflow(dieOnFail)
+
+   def add_all(self, an_iterable,  *, dieOnFail=True):
+      for item in an_iterable:
+         if not self.add(item, dieOnFail=dieOnFail): # fail on overflow?
+            break
+      return self
+
+   def intersection(self, *others, maxsize=None):
+      if maxsize == None:
+         maxsize = self.maxsize
+      a_copy = self.__class__(self, vet=self.vet, maxsize=maxsize)
+      return a_copy.intersection_update(other)
+
+   def intersection_update(self, *others):
+      left = self.size
+      for other in others:
+         for item in other:
+            if item not in self:
+               self.discard(item)
+               left -= 1
+               if left <= 0:
+                  break
+      return self
+
+   def symmetric_difference(self, other, maxsize=None):
+      if maxsize == None:
+         maxsize = self.maxsize
+      a_copy = self.__class__(self, vet=self.vet, maxsize=maxsize)
+      return a_copy.symmetric_difference_update(other)
+
+   def symmetric_difference_update(self, other):
+      in_both  = self & other
+      from_other = other - in_both
+      self &= in_both
+      self += from_other
+      return self
+
+   def union(self, *others, dieOnFail=True):
+      for other in others:
+         self.add_all(other, dieOnFail=dieOnFail)
+      return self
+
+   def update(self, an_iterable):
+      return self.add_all(an_iterable, dieOnFail=True) 

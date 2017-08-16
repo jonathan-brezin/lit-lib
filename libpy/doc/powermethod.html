@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>The Power Method Largest Eignenvalue Computation</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">The Power Method Largest Eignenvalue Computation</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">April, 2017</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#the-powermethodresult-class">The <code>PowerMethodResult</code> class</a><ul>
+<li><a href="#the-constructor-powermethodresultprogress-time">The constructor: <code>PowerMethodResult(progress, time)</code></a></li>
+<li><a href="#ev_to_str"><code>to_str(entries_shown=None, perline = 10)</code></a></li>
+</ul></li>
+<li><a href="#the-powermethodresults-class">The <code>PowerMethodResults</code> class</a><ul>
+<li><a href="#the-constructor-powermethodresultsmatrix-matrixinit_time0.0">The constructor <code>PowerMethodResults(matrix, matrixinit_time=0.0)</code></a></li>
+</ul></li>
+<li><a href="#progress">The <code>PowerMethodProgress</code> class</a><ul>
+<li><a href="#check"><code>check(new_vector)</code></a></li>
+</ul></li>
+<li><a href="#the-powermethod-class">The <code>PowerMethod</code> class</a><ul>
+<li><a href="#the-constructor-powermethodmatrix-options">The constructor: <code>PowerMethod(matrix, options = {})</code></a></li>
+<li><a href="#get_largest"><code>compute_largest_eigenvalue(results, initial_vector)</code></a></li>
+<li><a href="#get_qr"><code>compute_all_eigenvalues_via_qr(results)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="co">#! /usr/bin/env python</span>
+</code></pre>
+<pre class="sourceCode python"><code class="sourceCode python"></code></pre>
+<h2 id="overview">Overview</h2>
+<p>Instances of the <code>PowerMethod</code> class apply the power method eigenvalue computation in the special case where one knows an initial vector that is all but certain not to get one into trouble. Only the largest eigenvalue, together with a length 1 eigenvector, is computed. For convenience, a call to NumPy’s version of the QR algorithm is also provided, but that is mainly intended to debug this code, as NumPy’s QR interface, especially with a little help from my <a href="nputils.html#reading_csv"><code>nputils</code> module</a> for slightly more flexible input, is easy to use.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">import</span> cmdlineparser <span class="ch">as</span> clp
+<span class="ch">import</span> dbg
+<span class="ch">import</span> math
+<span class="ch">import</span> numpy <span class="ch">as</span> np
+<span class="ch">import</span> nputils <span class="ch">as</span> npu
+<span class="ch">from</span> randomdist <span class="ch">import</span> RandomDist
+<span class="ch">import</span> re
+<span class="ch">import</span> sys
+<span class="ch">import</span> sysutils <span class="ch">as</span> su
+<span class="ch">import</span> time
+</code></pre>
+<h2 id="the-powermethodresult-class">The <code>PowerMethodResult</code> class</h2>
+<p>An instance of the <code>PowerMethodResult</code> class holds all of the information about the result of applying the power method.</p>
+<h4 id="the-constructor-powermethodresultprogress-time">The constructor: <code>PowerMethodResult(progress, time)</code></h4>
+<p>The parameters are <code>progress</code>, the <code>PowerMethodProgress</code> instance that tracked the iterations, and <code>time</code>, the time required for the computation.</p>
+<p>There are two ways that the power method can fail:</p>
+<blockquote>
+<p>The length multiplier (the absolute value of the largest eigenvalue) can fail to converge in the number of iterations allowed.</p>
+</blockquote>
+<blockquote>
+<p>The multiplier can converge, but the unit vectors produced by the final iterations may not converge to constant multiples of one another. This can happen when the eigenspace for the largest eigevalue is multi-dimensional, or when there are two or more distinct eigevalues of the same magnitude.</p>
+</blockquote>
+<p>If the computation was successful,</p>
+<blockquote>
+<p>the instance’s attribute “<code>.vector</code>” will be the last unit vector computed, and<br /> the instance’s attribute “<code>.eigenvalue</code>” will be the eigenvalue</p>
+</blockquote>
+<p>If the computation failed, but the length multiplier computation succeeded, the instance’s attribute “<code>.absolute_multiplier</code>” will be the magnitude of the largest eigenvalue(s), and the boolean attribute “<code>.converged</code>” will be <code>True</code>; otherwise, “<code>converged</code>” will be <code>False</code>.</p>
+<p>The other instance attributes are</p>
+<blockquote>
+<p><code>.time</code>: the time, in the units returned by <a href="https://docs.python.org/3/library/time.html"><code>time.time()</code></a>,<br /><code>.progress</code>: the <a href="#progress"><code>PowerMethodProgress</code></a> instance used to track the iterations, and<br /><code>.iterations</code>: the number of iterations attempted.</p>
+</blockquote>
+<h4 id="ev_to_str"><code>to_str(entries_shown=None, perline = 10)</code></h4>
+<p>returns a string that contains the eigenvalue and some or all of the eigenvector’s entries. The default is to show all of them, at 10 entries per line. If you only want <code>n</code> entries, use <code>entries_shown=n</code>. If you want <code>k</code> entries per line, use <code>perline=k</code>. The failure message is minimal.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> _nearest_rotation(v, w):
+   best_delta = <span class="fl">4.0</span>
+   best_rotation = math.nan
+   <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, v.size):
+      <span class="kw">try</span>:
+         rotation = (v[n]/<span class="dt">abs</span>(v[n]))*(<span class="dt">abs</span>(w[n])/w[n])
+         <span class="co"># print(&quot;v[n]={}, w[n]={}, rot={}&quot;.format(v[n], w[n], rotation))</span>
+         delta  = npu.supnorm(v - (rotation*w))
+         <span class="kw">if</span> delta &lt; best_delta:
+            best_delta = delta
+            best_rotation = rotation
+      <span class="kw">except</span>:
+         <span class="kw">pass</span>
+   <span class="kw">return</span> (best_delta, rotation)
+
+<span class="kw">class</span> PowerMethodResult:
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, progress, time):
+      <span class="ot">self</span>.progress = progress
+      <span class="ot">self</span>.iterations = <span class="dt">len</span>(progress.lambdas) - <span class="dv">1</span>
+      <span class="ot">self</span>.time  = time
+      <span class="ot">self</span>.absolute_multiplier = math.nan
+      <span class="ot">self</span>.eigenvalue = math.nan
+      <span class="ot">self</span>.vector = <span class="ot">None</span>
+      <span class="ot">self</span>.converged = (progress.delta_lambdas[-<span class="dv">1</span>] &lt;= progress.pm.length_limit)
+      <span class="kw">if</span> <span class="ot">self</span>.converged:
+         <span class="ot">self</span>.absolute_multiplier = progress.lambdas[-<span class="dv">1</span>]
+         <span class="kw">if</span> progress.delta_norms[-<span class="dv">1</span>] &lt;= progress.pm.two_norm_limit or \
+               progress.delta_sups[-<span class="dv">1</span>] &lt;= progress.pm.sup_norm_limit:
+            <span class="ot">self</span>.eigenvalue = <span class="ot">self</span>.absolute_multiplier
+            <span class="ot">self</span>.vector = progress.new
+         <span class="kw">else</span>: <span class="co"># not a positive eigenvalue: may be negative or complex?</span>
+            best_delta, rotation = _nearest_rotation(progress.prior, progress.new)
+            <span class="kw">if</span> best_delta &lt;= progress.pm.sup_norm_limit:
+               <span class="ot">self</span>.eigenvalue = <span class="ot">self</span>.absolute_multiplier * rotation
+               <span class="ot">self</span>.vector = progress.new
+
+   <span class="kw">def</span> to_str(<span class="ot">self</span>, entries_shown=<span class="ot">None</span>, perline = <span class="dv">10</span>):
+      v = <span class="ot">self</span>.vector
+      <span class="kw">if</span> v is <span class="ot">None</span>:
+         failurefmt = <span class="st">&quot;failed after {} iterations with multiplier {}&quot;</span>
+         failure = failurefmt.<span class="dt">format</span>(<span class="ot">self</span>.iterations, <span class="ot">self</span>.progress.lambdas[-<span class="dv">1</span>])
+         <span class="kw">if</span> not <span class="ot">self</span>.converged:
+            <span class="kw">return</span> failure+<span class="st">&quot; and final delta  length {}&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.progress.delta_lambdas[-<span class="dv">1</span>])
+         <span class="kw">else</span>:
+            dn = <span class="ot">self</span>.progress.delta_norms[-<span class="dv">1</span>]
+            ds = <span class="ot">self</span>.progress.delta_sups[-<span class="dv">1</span>]
+            <span class="kw">return</span> failure+<span class="st">&quot; with final delta norm {} and delta sup {}&quot;</span>.<span class="dt">format</span>(dn, ds)
+      <span class="kw">else</span>:
+         <span class="kw">if</span> entries_shown == <span class="ot">None</span>: entries_shown = v.size
+         delta = <span class="ot">self</span>.progress.delta_lambdas[-<span class="dv">1</span>]
+         entries = npu.format_array(v, displaylimit=entries_shown,perline=perline)
+         msg = <span class="st">&quot;Eigenvalue {} after {} iterations and delta lambda: {}</span><span class="ch">\n</span><span class="st">entries:[</span><span class="ch">\n</span><span class="st">{}]</span><span class="ch">\n</span><span class="st">&quot;</span>
+         <span class="kw">return</span> msg.<span class="dt">format</span>(<span class="ot">self</span>.eigenvalue, <span class="ot">self</span>.iterations, delta, entries)
+
+   <span class="kw">def</span> <span class="ot">__str__</span>(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>.to_str(perline = <span class="dv">10</span>)
+</code></pre>
+<h2 id="the-powermethodresults-class">The <code>PowerMethodResults</code> class</h2>
+<h4 id="the-constructor-powermethodresultsmatrix-matrixinit_time0.0">The constructor <code>PowerMethodResults(matrix, matrixinit_time=0.0)</code></h4>
+<p>The first argument <code>matrix</code> is the input whose eigenvalues we want to compute, and the next is the time required either to read it from storage or to generate it from scratch. If not provided, it will be taken to be <code>0,0</code>–that is, I’ll assume you don’t care and want it added in to the total time. There are five attributes representing eigenvectors what we might compute. Only one, <code>left</code>, is always computed:</p>
+<blockquote>
+
+<table>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>left</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the <code>PowerMethodResult</code> for the largest left eigenvalue.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>right</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the <code>PowerMethodResult</code> for the largest right eigenvalue.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>qr_eigenvalues</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">an <code>ndarray</code> of all of the eigenvalues.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>qr_eigenvectors</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the corresponding array of the eigenvectors as <code>ndarray</code>s.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>qr_time</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the elapsed time, if any, for the QR computation.</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+
+
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> PowerMethodResults:
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, options, path, matrix):
+      <span class="kw">if</span> not <span class="dt">isinstance</span>(matrix, np.ndarray):
+         matrix, column_headings, row_headings = npu.readarray(path, options)
+         <span class="co">#print(&quot;matrix has type {} and is\n{}&quot;.format(type(matrix), matrix))</span>
+      <span class="kw">if</span> (<span class="dt">len</span>(matrix.shape) != <span class="dv">2</span>) or (matrix.shape[<span class="dv">0</span>] != matrix.shape[<span class="dv">1</span>]):
+         msg = <span class="st">&quot;Expected a square matrix, but got shape {}&quot;</span>.<span class="dt">format</span>(matrix.shape)
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(msg)
+      <span class="ot">self</span>.matrix          = matrix
+      <span class="ot">self</span>.rows            = matrix.shape[<span class="dv">0</span>]
+      <span class="ot">self</span>.left            = <span class="ot">None</span> 
+      <span class="ot">self</span>.right           = <span class="ot">None</span>
+      <span class="ot">self</span>.qr_eigenvalues  = <span class="ot">None</span> 
+      <span class="ot">self</span>.qr_eigenvectors = <span class="ot">None</span>
+      <span class="ot">self</span>.time2init       = <span class="fl">0.0</span>
+      <span class="ot">self</span>.qr_time         = <span class="fl">0.0</span> <span class="co"># elapsed time, if any, spent in QR</span>
+
+   <span class="kw">def</span> powermethod_time(<span class="ot">self</span>):
+      gettime = <span class="kw">lambda</span> ev: ev.time <span class="kw">if</span> ev != <span class="ot">None</span> <span class="kw">else</span> <span class="fl">0.0</span>
+      <span class="kw">return</span> gettime(<span class="ot">self</span>.left)  +  gettime(<span class="ot">self</span>.right)
+
+   <span class="kw">def</span> total_time(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>.time2init + <span class="ot">self</span>.qr_time + <span class="ot">self</span>.powermethod_time()
+
+   <span class="kw">def</span> to_str(<span class="ot">self</span>, entries_shown=<span class="ot">None</span>, perline = <span class="dv">10</span>, timeunit=<span class="dv">3</span>):
+      <span class="kw">if</span> <span class="ot">self</span>.left == <span class="ot">None</span>: firstleft = <span class="st">&quot;&quot;</span>
+      <span class="kw">else</span>: firstleft = <span class="st">&quot;First left: &quot;</span>+<span class="ot">self</span>.left.to_str(entries_shown, perline)
+      <span class="kw">if</span> <span class="ot">self</span>.right == <span class="ot">None</span>: firstright = <span class="st">&quot;&quot;</span>
+      <span class="kw">else</span>: firstright = <span class="st">&quot;First right: &quot;</span>+<span class="ot">self</span>.right.to_str(entries_shown, perline)
+      <span class="kw">if</span> <span class="dt">isinstance</span>(<span class="ot">self</span>.qr_eigenvalues, <span class="dt">type</span>(<span class="ot">None</span>)): qr_eigenvalues = <span class="st">&quot;&quot;</span>
+      <span class="kw">else</span>: 
+         qr_eigenvalues = <span class="st">&quot;QR eigenvalues: &quot;</span> + \
+            npu.format_array(<span class="ot">self</span>.qr_eigenvalues, displaylimit=entries_shown, perline=perline)
+      powertime = su.time2IntLiteral(<span class="ot">self</span>.powermethod_time(), placesToSave=timeunit)
+      totaltime = su.time2IntLiteral(<span class="ot">self</span>.total_time(), placesToSave=timeunit)
+      unit = su.time_units(timeunit)
+      times = <span class="st">&quot;</span><span class="ch">\n</span><span class="st">Power time: {} {}, total time: {} {}</span><span class="ch">\n</span><span class="st">&quot;</span>.<span class="dt">format</span>(
+         powertime, unit, totaltime, unit
+      )
+      <span class="kw">return</span> <span class="st">&quot;{}</span><span class="ch">\n</span><span class="st">{}</span><span class="ch">\n</span><span class="st">{}</span><span class="ch">\n</span><span class="st">{}</span><span class="ch">\n</span><span class="st">&quot;</span>.<span class="dt">format</span>(firstleft, firstright, qr_eigenvalues, times)
+
+   <span class="kw">def</span> <span class="ot">__str__</span>(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>.to_str()
+
+</code></pre>
+<h2 id="progress">The <code>PowerMethodProgress</code> class</h2>
+<h4 id="check"><code>check(new_vector)</code></h4>
+<p>The power method drives an initial guess for an eigenvector toward a final answer. If the problem has a unique solution, and the current iteration drives the prior vector to <code>new_vector</code>, then, if we are at all close to success, these two vectors will be close to collinear– <em>i.e.</em> <code>new_vector</code> is essentially equal to λ*<code>prior</code> for some (complex) constant λ. This method computes a reasonable approximation to λ in a two step process.</p>
+<ol type="1">
+<li><p>The first step computes the absolute value, |λ|, of λ as the quotient of the 2-norms, ‖<code>new_vector</code>‖<sub>2</sub><code>/</code>‖<code>prior</code>‖<sub>2</sub>.</p></li>
+<li><p>The second step computes a complex value φ of absolute value <code>1</code> that I’ll call the “phase shift”, which would yield <code>new_vector=</code>|λ|*φ*<code>prior</code> if <code>new_vector</code> really were an eigenvector with eigenvalue λ = |λ|*φ. In practice, the simplest approach is to look at each of the coordinate ratios φ<sub>n</sub> =<code>new_vector</code><sub>n</sub><code>/prior</code><sub>n</sub> and choose the one that minimizes the sup-norm ‖<code>new_vector -</code> |λ|*φ<sub>n</sub>*<code>prior</code>‖<sub>∞</sub>.</p></li>
+</ol>
+<p>The sup-norm of the difference provides a check for the case when the absolute value |λ| does not uniquely determine λ (and hence also φ). Consider a linear transformation <code>T</code> with orthogonal eigenvectors <code>Tv=v</code> and <code>Tw=-w</code> having eigenvalues 1 and -1:</p>
+<blockquote>
+<p>If <code>prior</code> in the discussion above happens to be <code>v+w</code>, and if we use <code>v</code> and <code>w</code> as our basis vectors, then |λ| is <code>1</code>, because both <code>prior=(1,1)</code> and <code>T*prior=v-w=(1,-1)</code> have length √<code>2</code>. My strategy for computing φ in this example uses the first coordinate of the two vectors, and yields φ <code>=</code> φ<sub>0</sub> <code>= 1</code>. The sup-norm of the difference between the normalized unit vector <code>prior/</code>√<code>2</code> and its image under <code>T</code> is the difference between their second coordinates, which is <code>2/</code> √<code>2 =</code> √<code>2</code>. That is far from ‘0’, which is what we want.</p>
+</blockquote>
+<p>It is important to remember that the power method is <em>not</em> designed to give sensible answers for random linear operators. That is why the instances of <code>PowerMethodProgress</code> should track information from the whole set of iterations. If the process fails to converge, one can easily review the progress, or lack thereof, at each iteration. The instance attributes are:</p>
+<blockquote>
+
+<table>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>pm</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the <code>PowerMethod</code> instance doing the iteration</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>size</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the dimension of the vector space = the size of the vector</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>shape</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the initial shape of the vector (as a NumPy <code>ndarray</code>)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>prior</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the previous iteration’s result, normalized to length 1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>new</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the current iterations’s result, normalized to length 1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>lambdas</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the lengths of the sequence of <code>T*prior</code>s</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>delta_lambdas</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the absolute value of the relative change in lambda</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>delta_sups</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the sup-norm of <code>prior-new</code> at each iteration</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>delta_norms</code></td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">the 2-norm of <code>prior-new</code> at each iteration</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+
+<p>In a successful application, one should see the entries in <code>delta_lambdas</code> rapidly decrease to <code>0</code>, and the tail of the <code>lambdas</code> array should be constant or (slowly) monotone increasing. If there is a unique largest eigenvalue and it is real, the <code>delta_norms</code> should decrease to <code>0</code>, as should <code>delta_sups</code>. If the lambdas converge, but the series of vectors computed this way does not, we have to use a phase-shift, as described above, to get the correct complex eigenvalue and eigenvector. This will succeed if there is a one-dimensional eigenspace for the largest eigenvalue.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> PowerMethodProgress:
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, pm, first_vector):
+      <span class="ot">self</span>.pm = pm
+      <span class="ot">self</span>.size = first_vector.size
+      <span class="ot">self</span>.shape = first_vector.shape
+      <span class="ot">self</span>.new = first_vector.reshape((<span class="ot">self</span>.size,))
+      <span class="ot">self</span>.lambdas = [npu.twonorm(<span class="ot">self</span>.new)]
+      <span class="ot">self</span>.new /= <span class="ot">self</span>.lambdas[<span class="dv">0</span>]
+      <span class="ot">self</span>.prior = <span class="ot">None</span>
+      <span class="ot">self</span>.delta_lambdas = []
+      <span class="ot">self</span>.delta_sups = []
+      <span class="ot">self</span>.delta_norms = []
+
+   <span class="kw">def</span> check(<span class="ot">self</span>, new_vector):
+      <span class="kw">if</span> (<span class="ot">self</span>.shape != new_vector.shape):
+         msg = <span class="st">&quot;Wrong shape: expected={}, got={}&quot;</span>
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(<span class="ot">self</span>.shape, new_vector.shape))
+      <span class="ot">self</span>.prior = <span class="ot">self</span>.new
+      <span class="ot">self</span>.new = new_vector.reshape((<span class="ot">self</span>.size,))
+      new_lambda = npu.twonorm(<span class="ot">self</span>.new)
+      <span class="kw">if</span> new_lambda &lt; <span class="ot">self</span>.pm.two_norm_limit:
+         msg = <span class="st">&quot;New vector is too close to 0: its 2-norm: {} and sup-norm: {}&quot;</span>
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(new_lambda, npu.supnorm(<span class="ot">self</span>.new)))
+      <span class="ot">self</span>.new /= new_lambda    
+      relative_delta = <span class="dt">abs</span>((<span class="ot">self</span>.lambdas[-<span class="dv">1</span>]-new_lambda)/new_lambda)
+      <span class="ot">self</span>.lambdas.append(new_lambda)
+      <span class="ot">self</span>.delta_lambdas.append(relative_delta)
+      delta = <span class="ot">self</span>.new - <span class="ot">self</span>.prior
+      <span class="ot">self</span>.delta_sups.append(npu.supnorm(delta))
+      <span class="ot">self</span>.delta_norms.append(npu.twonorm(delta))
+      <span class="kw">if</span> <span class="st">&quot;allpow&quot;</span> in <span class="ot">self</span>.pm.dbgmgr:
+         msg = <span class="st">&quot;{}. progress deltas are norm: {}, sup: {}, lengths: {}&quot;</span>
+         formatted = msg.<span class="dt">format</span>(
+            <span class="dt">len</span>(<span class="ot">self</span>.delta_norms), <span class="ot">self</span>.delta_norms[-<span class="dv">1</span>],
+            <span class="ot">self</span>.delta_sups[-<span class="dv">1</span>],<span class="ot">self</span>.delta_lambdas[-<span class="dv">1</span>]
+         )
+         <span class="ot">self</span>.pm.dbgmgr.dbg(<span class="st">&quot;allpow&quot;</span>, formatted)
+      <span class="kw">return</span> (<span class="ot">self</span>.delta_norms[-<span class="dv">1</span>], <span class="ot">self</span>.delta_sups[-<span class="dv">1</span>],<span class="ot">self</span>.delta_lambdas[-<span class="dv">1</span>])
+</code></pre>
+<h2 id="the-powermethod-class">The <code>PowerMethod</code> class</h2>
+<h4 id="the-constructor-powermethodmatrix-options">The constructor: <code>PowerMethod(matrix, options = {})</code></h4>
+<p>An instance holds all of the information about a particular execution of the power method for the matrix that is its first argument. The matrix must be a square <code>numpy</code> numeric <a href="http://docs.scipy.org/doc/numpy-1.10.1/reference/arrays.ndarray.html"><code>ndarray</code></a>.</p>
+</blockquote>
+
+<p>The <code>options</code> parameter is a <code>dict</code> include both parameters for each type of computation–e.g. how many iterations to allow–and flags for what computations are to be done–e.g. whether to do both left and right multiplications if the matrix may be non-symmetric. The first group of options are booleans that are <code>False</code> by default:</p>
+<blockquote>
+
+<table>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>both</code></td>
+<td style="text-align: center;">:</td>
+<td style="text-align: left;">compute both left and right eigenvectors for the power method</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>two</code></td>
+<td style="text-align: center;">:</td>
+<td style="text-align: left;">compute the first two largest eigenvalues, not just the first</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>all</code></td>
+<td style="text-align: center;">:</td>
+<td style="text-align: left;">use QR to get the whole set of eigenvalues</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>cmp</code></td>
+<td style="text-align: center;">:</td>
+<td style="text-align: left;">compare the QR results with the power method results</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"> </td>
+<td style="text-align: center;"></td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: center;">:</td>
+<td style="text-align: left;">display the time required for each part of the computation</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+
+<p>The remaining options for the constructor are parameters for the computations. The first three are threshholds for stopping the iteration. They all look at the delta between the previous vector and that produced by the current iteration. <code>iter</code> allows you to put a bound on the number of iterations regardless of whether the result might improve.<br /><code>minspan</code>, is a lower bound that is used only if one wants to compute a second eigenvalue. And just in case you want some debugging output, the option <code>dbg</code> takes as its value a comma-separated (no spaces, please!) list of keys for the parts of the debugging output you wish included.</p>
+<p>Here the options all are, with their default values:</p>
+<blockquote>
+
+<table>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>mindrl</code></td>
+<td style="text-align: center;">:</td>
+<td style="text-align: left;">quit when the delta’s relative length is less than this</td>
+<td style="text-align: center;">(<code>1.0/16384.0</code>)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>mind2n</code></td>
+<td style="text-align: center;">:</td>
+<td style="text-align: left;">quit when the delta’s 2-norm is less than this</td>
+<td style="text-align: center;">(<code>1.0/16384.0</code>)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>mindsup</code></td>
+<td style="text-align: center;">:</td>
+<td style="text-align: left;">quit when the delta’s sup-norm is less than this</td>
+<td style="text-align: center;">(<code>1.0/16384.0</code>)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>iter</code></td>
+<td style="text-align: center;">:</td>
+<td style="text-align: left;">quit after at most this many iterations</td>
+<td style="text-align: center;">(<code>10</code>)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>minspan</code></td>
+<td style="text-align: center;">:</td>
+<td style="text-align: left;">minimum dot product for two unit vectors to span a plane</td>
+<td style="text-align: center;">(<code>1.0/256.0</code>)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>dbg</code></td>
+<td style="text-align: center;">:</td>
+<td style="text-align: left;">comma-separated list of debugging flags to turn on</td>
+<td style="text-align: center;">(<code>&quot;&quot;</code>)</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+
+<p>These attributes do not have the world’s best mnemonics, but I’ve tried to make them not too clumsy to use as command line keys.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> PowerMethod:
+   <span class="kw">def</span> getOptionDefaults():
+      <span class="kw">return</span> {
+         <span class="st">'mindrl'</span>:  <span class="fl">1.0</span>/<span class="fl">16384.0</span>,   <span class="co"># quit when (delta length over length) is less than this</span>
+         <span class="co">'mind2n'</span>:  <span class="fl">1.0</span>/<span class="fl">16384.0</span>,   <span class="co"># quit when the 2-norm of the delta is less than this </span>
+         <span class="co">'mindsup'</span>: <span class="fl">1.0</span>/<span class="fl">16384.0</span>,   <span class="co"># quit when the sup-norm of the delta is less than this</span>
+         <span class="co">'min_v'</span>:   <span class="fl">0.001</span>,         <span class="co"># for the coordinates of the random vector</span>
+         <span class="co">'max_v'</span>:   <span class="fl">0.999</span> ,        <span class="co">#    ditto</span>
+
+         <span class="co">'iter'</span>: <span class="dv">10</span>,     <span class="co"># quit after at most this many iterations</span>
+         <span class="co">'size'</span>: <span class="dv">0</span>,      <span class="co"># number of rows if we are generating a random square matrix</span>
+         <span class="co">'both'</span>: <span class="ot">False</span>,  <span class="co"># get both left and right eigenvectors</span>
+         <span class="co">'all'</span>: <span class="ot">False</span>,   <span class="co"># use QR to compute all of the eigenvalues</span>
+         <span class="co">'dbg'</span>: <span class="st">&quot;&quot;</span>,      <span class="co"># debugging keys: show debug output for these keys</span>
+      }
+
+   <span class="kw">def</span> _option(<span class="ot">self</span>, name):
+      <span class="kw">try</span>:
+         <span class="kw">return</span> <span class="ot">self</span>.options.<span class="ot">__getattribute__</span>(name) 
+      <span class="kw">except</span>:  <span class="co"># options' keys include all of the options which have defaults</span>
+         <span class="kw">return</span> <span class="ot">self</span>.options[name]
+
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, options={}, initial_vector=<span class="ot">None</span>):
+      <span class="co"># fields constraining which computations are done and how they are done</span>
+      <span class="ot">self</span>.options = su.mergepairs(options, PowerMethod.getOptionDefaults(), clone=<span class="ot">True</span>)
+      <span class="ot">self</span>.options[<span class="st">'max'</span>]   = <span class="ot">self</span>.options[<span class="st">'max_v'</span>]
+      <span class="ot">self</span>.options[<span class="st">'min'</span>]   = <span class="ot">self</span>.options[<span class="st">'min_v'</span>]
+      <span class="ot">self</span>.random_vector    = RandomDist(<span class="ot">self</span>.options)
+      <span class="ot">self</span>.length_limit     = <span class="ot">self</span>._option(<span class="st">&quot;mindrl&quot;</span>)
+      <span class="ot">self</span>.two_norm_limit   = <span class="ot">self</span>._option(<span class="st">&quot;mind2n&quot;</span>)
+      <span class="ot">self</span>.sup_norm_limit   = <span class="ot">self</span>._option(<span class="st">&quot;mindsup&quot;</span>)
+      <span class="ot">self</span>.max_iterations   = <span class="ot">self</span>._option(<span class="st">&quot;iter&quot;</span>)
+      <span class="ot">self</span>.iteration_range  = <span class="dt">range</span>(<span class="dv">1</span>, <span class="dv">1</span>+<span class="ot">self</span>.max_iterations)
+
+      <span class="co"># and just in case we need to monitor things:</span>
+      <span class="ot">self</span>.dbgmgr = dbg.DbgMgr()
+      <span class="ot">self</span>.dbgmgr.dbg(<span class="st">&quot;rd&quot;</span>, <span class="st">&quot;vector distribution is {}&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.random_vector.<span class="ot">__str__</span>()))
+
+   <span class="kw">def</span> compute(<span class="ot">self</span>, path=<span class="ot">None</span>, matrix=<span class="ot">None</span>, initial_left=<span class="ot">None</span>, initial_right=<span class="ot">None</span>):
+      start = time.time()
+      results = PowerMethodResults(<span class="ot">self</span>.options, path, matrix)
+      rows = results.rows
+      results.time2init = time.time() - start
+      <span class="kw">if</span> <span class="dt">isinstance</span>(initial_left, np.ndarray):
+         initial_left = (<span class="fl">1.0+0.</span>0j)*initial_left.reshape(rows, <span class="dv">1</span>)
+      <span class="kw">else</span>:
+         initial_left = (<span class="fl">1.0+0.</span>0j)*<span class="ot">self</span>.random_vector.unit_vector((rows,<span class="dv">1</span>))
+      <span class="kw">try</span>:
+         <span class="ot">self</span>.compute_largest_eigenvalue(results, initial_left)
+         <span class="kw">if</span> <span class="ot">self</span>._option(<span class="st">&quot;both&quot;</span>):
+            <span class="kw">if</span> <span class="dt">isinstance</span>(initial_right, np.ndarray):
+               initial_right = (<span class="fl">1.0+0.</span>0j)*initial_right.reshape(<span class="dv">1</span>, rows)
+            <span class="kw">elif</span> <span class="dt">isinstance</span>(initial_left, np.ndarray):
+               initial_right = initial_left.copy().reshape(<span class="dv">1</span>, rows)
+            <span class="kw">else</span>:
+               initial_right = (<span class="fl">1.0+0.</span>0j)*<span class="ot">self</span>.random_vector.unit_vector((<span class="dv">1</span>, rows))
+            <span class="ot">self</span>.compute_largest_eigenvalue(results, initial_right)
+         <span class="kw">if</span> <span class="ot">self</span>._option(<span class="st">&quot;all&quot;</span>):
+            <span class="ot">self</span>.compute_all_eigenvalues_via_qr(results)
+      <span class="kw">except</span> <span class="ot">Exception</span> <span class="ch">as</span> exc:
+         <span class="kw">if</span> <span class="ot">self</span>.dbgmgr != <span class="ot">None</span>:
+            <span class="ot">self</span>.dbgmgr.err(<span class="dt">str</span>(exc))
+            <span class="ot">self</span>.dbgmgr.flush()
+         <span class="kw">raise</span>
+      <span class="kw">return</span> results
+</code></pre>
+<h4 id="get_largest"><code>compute_largest_eigenvalue(results, initial_vector)</code></h4>
+<p>repeatedly multiplies <code>initial_vector</code> by <code>results.matrix</code> until the result stabilizes sufficiently or the number of iterations allowed is reached. If the initial vector has shape <code>(1,n)</code>, it is multiplied on the left by the matrix; otherwise it is multiplied on the right. The method returns its result as an instance of <code>PowerMethodResult</code> and also leaves the result in as the value of <code>results....</code>, where the ellipsis is filled in with <code>left</code> or <code>right</code>, as appropriate.</p>
+<p>If some iteration yields zero, the unit vector that got multiplied to 0 is returned as the eigenvector, and 0 as the eigenvalue. I anticipate that this is a rare occurence, at least in a context where the power method legitimately applies, but for purposes of experimenting with “random” data, one has to allow for it. Future work might be to try another initial vector in the hopes of getting a non-zero eigenvalue, but how many tries, and how to generate the new vector?</p>
+<h4 id="get_qr"><code>compute_all_eigenvalues_via_qr(results)</code></h4>
+<p>applies NumPy’s <a href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.linalg.eig.html">QR code</a> to the matrix and leaves its results in the <code>results.qr_...</code> fields of <code>results</code>. This is a very thin wrapper around numpy’s call that was provided for purposes of debugging the power method code on sizes where both power <em>and QR</em> are fast. If <code>&quot;allqr&quot;</code> and/or <code>&quot;qr&quot;</code> are alive as debugging keys, the results are posted to the debugging stream.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> compute_largest_eigenvalue(<span class="ot">self</span>, results, initial_vector):
+      matrix = results.matrix
+      wants_left = (initial_vector.shape[<span class="dv">0</span>] &gt; <span class="dv">1</span>)
+      vector     = initial_vector/np.linalg.norm(initial_vector)
+      product    = (<span class="kw">lambda</span> m, v: np.dot(m, v)) <span class="kw">if</span> wants_left <span class="kw">else</span> (<span class="kw">lambda</span> m, v: np.dot(v, m))
+      <span class="ot">self</span>.dbgmgr.dbg(<span class="st">&quot;pow&quot;</span>, <span class="st">&quot;Iteration over: {} for {}&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.iteration_range, vector))
+      progress = PowerMethodProgress(<span class="ot">self</span>, vector)
+      before = time.time()
+      <span class="kw">for</span> n in <span class="ot">self</span>.iteration_range:
+         new_vector = product(matrix, vector)
+         delta_n, delta_s, delta_l = progress.check(new_vector)
+         <span class="kw">if</span> (delta_n &lt;= <span class="ot">self</span>.two_norm_limit or delta_s &lt;= <span class="ot">self</span>.sup_norm_limit) and \
+               delta_l &lt;= <span class="ot">self</span>.length_limit:
+            <span class="kw">break</span>
+         <span class="kw">else</span>:
+            vector = new_vector
+      result = PowerMethodResult(progress, time.time() - before)
+      <span class="kw">if</span> wants_left:
+         results.left = result
+      <span class="kw">else</span>:
+         results.right = result
+      pass_name = <span class="st">&quot;Left multiplying:</span><span class="ch">\n</span><span class="st">&quot;</span> <span class="kw">if</span> wants_left <span class="kw">else</span> <span class="st">&quot;Right multiplying:</span><span class="ch">\n</span><span class="st">&quot;</span>
+      <span class="ot">self</span>.dbgmgr.dbg(<span class="st">&quot;pow&quot;</span>, pass_name + <span class="dt">str</span>(result))
+      <span class="kw">return</span> result
+
+   <span class="kw">def</span> compute_all_eigenvalues_via_qr(<span class="ot">self</span>, results):  
+      before = time.time()
+      evalues, evectors = np.linalg.eig(results.matrix)
+      results.qr_time = time.time() - before
+      results.qr_eigenvectors = evectors
+      results.qr_eigenvalues = evalues
+      <span class="kw">if</span> not (<span class="st">&quot;allqr&quot;</span> in <span class="ot">self</span>.dbgmgr or <span class="st">&quot;qr&quot;</span> in <span class="ot">self</span>.dbgmgr):
+         <span class="kw">return</span>
+      <span class="co"># That is correct: everything from here on down is only for debugging output.</span>
+      evs = results.qr_eigenvalues
+      max_index = np.argmax(<span class="dt">abs</span>(evs))
+      evmax = <span class="dt">abs</span>(evs[max_index])
+      min_index = np.argmin(<span class="dt">abs</span>(evs))
+      evmin = <span class="dt">abs</span>(evs[min_index])
+      answer = <span class="st">&quot;The eigenvalue size range is [{}, {}]</span><span class="ch">\n</span><span class="st">&quot;</span>.<span class="dt">format</span>(evmin, evmax)
+      <span class="kw">if</span> <span class="st">&quot;allqr&quot;</span> in <span class="ot">self</span>.dbgmgr:
+         answer += <span class="st">&quot;Eigenvalues:</span><span class="ch">\n</span><span class="st">   &quot;</span>+npu.format_array(evs, displaylimit=<span class="dv">10</span>)+<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>;\
+         vctrs = results.qr_eigenvectors
+         answer += <span class="st">&quot;Eigenvectors:</span><span class="ch">\n</span><span class="st">   &quot;</span>+npu.format_array(vctrs, displaylimit=<span class="dv">10</span>)+<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>;          
+      largestEV = results.left.eigenvalue
+      answer += <span class="st">&quot;The relative difference between power's eignvalue and QR's is&quot;</span>
+      answer += <span class="st">&quot;{}&quot;</span>.<span class="dt">format</span>(<span class="dt">abs</span>(largestEV - evs[max_index])/largestEV)
+      powervector = results.left.vector
+      qrvector = results.qr_eigenvectors[max_index]
+      qrvector.shape = powervector.shape
+      (diff, r) = _nearest_rotation(qrvector, powervector)
+      msg = <span class="st">&quot;The difference in the two eigenvectors, power's - eig's, is</span><span class="ch">\n</span><span class="st">{}&quot;</span>
+      <span class="ot">self</span>.dbgmgr.dbg(<span class="st">&quot;qr&quot;</span>, msg.<span class="dt">format</span>(npu.format_array(diff, displaylimit=<span class="dv">10</span>)))
+      normmsg = <span class="st">&quot;</span><span class="ch">\n</span><span class="st">The 2 norm of this difference is {} and the sup norm is {}.&quot;</span>
+      norm = npu.twonorm(diff)
+      sup  = npu.supnorm(diff)
+      <span class="ot">self</span>.dbgmgr.dbg(<span class="st">&quot;qr&quot;</span>, normmsg.<span class="dt">format</span>(norm, sup))
+
+<span class="co">#############################################################################</span>
+</code></pre>
+<p>The command line task starts here. The syntax for the command line is</p>
+<blockquote><pre class="exampleCode">
+powermethod [-sep re] [-rhdrs ?] [-chdrs ?] [-type ?] 
+      [-size ?] [mindrl ?] [mind2n ?] [mindsup ?] [iter ?] 
+      [-pct ?] [-dbg ?] [-eig] [-both] [-sym]
+      [paths]
+</pre></blockquote>
+
+<p>The question marks are numeric values to be supplied, <code>re</code> is a regular expression, and <code>path</code> is, as its name suggests, the path locating a file that holds the matrix. See the <a href="nputils.html#generic-array-file-io"><code>nputils</code> module</a>. The first four options are used only by <code>nputils</code> to read a matrix from an input file. The remaining options are explained here.</p>
+<p>If no path is supplied, the size <code>n</code> must be specified, and an <code>n x n</code> random matrix of that size will be used.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> setCmdLineArgs(parser):
+      DEFAULTS = PowerMethod.getOptionDefaults()
+      RandomDist.setCmdLineArgs(parser) <span class="co"># do these first so that the path positional is LAST!</span>
+      parser.add_a_flag(<span class="st">&quot;-all&quot;</span>,  <span class="st">&quot;use QR to get all the eignenvalues&quot;</span>)
+      parser.add_a_flag(<span class="st">&quot;-both&quot;</span>, <span class="st">&quot;get both left and right vectors&quot;</span>)
+      parser.add_a_flag(<span class="st">&quot;-eig&quot;</span>,  <span class="st">&quot;compare with NumPy eig call&quot;</span>)
+      parser.add_a_flag(<span class="st">&quot;-sym&quot;</span>,  <span class="st">&quot;generate a symmetric random matrix&quot;</span>)
+
+      parser.add_a_float(<span class="st">&quot;-mindrl&quot;</span>,  DEFAULTS[<span class="st">&quot;mindrl&quot;</span>],
+         <span class="co">&quot;min acceptable relative length change&quot;</span>)
+      parser.add_a_float(<span class="st">&quot;-mind2n&quot;</span>,  DEFAULTS[<span class="st">&quot;mind2n&quot;</span>], 
+         <span class="co">&quot;min acceptable 2-norm vector change&quot;</span>) 
+      parser.add_a_float(<span class="st">&quot;-mindsup&quot;</span>, DEFAULTS[<span class="st">&quot;mindsup&quot;</span>],
+         <span class="co">&quot;min acceptable sup-norm vector change&quot;</span>)
+      parser.add_a_float(<span class="st">&quot;-min_m&quot;</span>, -<span class="fl">1023.0</span>,
+         <span class="co">&quot;minimum value for random matrix entries&quot;</span>)
+      parser.add_a_float(<span class="st">&quot;-max_m&quot;</span>, <span class="fl">1023.0</span>,
+         <span class="co">&quot;maximum value for random matrix entries&quot;</span>)
+      parser.add_an_int(<span class="st">&quot;-iter&quot;</span>,  DEFAULTS[<span class="st">&quot;iter&quot;</span>],
+         <span class="co">&quot;quit after at most this many iterations&quot;</span>)
+      parser.add_an_int(<span class="st">&quot;-size&quot;</span>, DEFAULTS[<span class="st">&quot;size&quot;</span>], 
+         <span class="co">&quot;for random matrices, the number of rows, and integer &gt;= 2&quot;</span>)
+
+      parser.add_a_str(<span class="st">&quot;-np_type&quot;</span>, <span class="st">&quot;int16&quot;</span>, 
+         <span class="co">&quot;for random matrices, the NumPy type for an entry&quot;</span>)
+
+      parser.add_an_optional_list(<span class="st">&quot;paths&quot;</span>, <span class="st">&quot;path(s) to matrix source file(s)&quot;</span>)
+
+   <span class="kw">def</span> fromCmdLine():
+      USAGE = <span class="st">&quot;&quot;&quot;\</span>
+<span class="st">Apply the power method and, optionally, the QR method to a matrix.</span>
+
+<span class="st">The final argument in the call is a (possibly empty) list of paths.  If it is non-empty,</span>
+<span class="st">each will be read for a matrix to compute.  If it is empty, a random matrix will be</span>
+<span class="st">generated with the number of rows and columns both equal to the value the &quot;-size&quot;</span>
+<span class="st">argument.  This random matrix will be made symmetric if &quot;-sym&quot; is one of the arguments.</span>
+
+<span class="st">      &quot;&quot;&quot;</span>
+      options = clp.args_dict(clp.parse_args(PowerMethod, usage=USAGE))
+      <span class="co">#if options[&quot;dbg&quot;] == &quot;&quot;: options[&quot;dbg&quot;] = &quot;*&quot;</span>
+      pm =  PowerMethod(options)
+      paths = options[<span class="st">&quot;paths&quot;</span>]
+      <span class="kw">with</span> dbg.initDbgMgr(low=(options[<span class="st">&quot;dbg&quot;</span>] or <span class="st">&quot;&quot;</span>)) <span class="ch">as</span> dbgmgr:
+         <span class="kw">if</span> <span class="dt">len</span>(paths) &gt; <span class="dv">0</span>:
+            <span class="kw">for</span> path in paths:
+               results = pm.compute(path=path)
+               <span class="dt">print</span>(<span class="dt">str</span>(results))
+         <span class="kw">else</span>:
+            options[<span class="st">'max'</span>] = options[<span class="st">'max_m'</span>]
+            options[<span class="st">'min'</span>] = options[<span class="st">'min_m'</span>]
+            options[<span class="st">'dtype'</span>] = npu.numpytype(options[<span class="st">'np_type'</span>])
+            matrix_rd = RandomDist(options)
+            size = options[<span class="st">&quot;size&quot;</span>]
+            <span class="kw">if</span> (size &lt; <span class="dv">2</span>) or not <span class="dt">isinstance</span>(size, <span class="dt">int</span>):
+               <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;The size must be an integer &gt;= 2, not {}&quot;</span>.<span class="dt">format</span>(size))
+            matrix = matrix_rd.square_matrix(dim=size)
+            <span class="kw">if</span> options[<span class="st">&quot;sym&quot;</span>]: matrix = (matrix + matrix.transpose())/<span class="dv">2</span>
+            <span class="kw">if</span> size &lt; <span class="dv">10</span>:
+               <span class="dt">print</span>(<span class="st">&quot;Array:</span><span class="ch">\n</span><span class="st">{}</span><span class="ch">\n</span><span class="st">&quot;</span>.<span class="dt">format</span>(npu.format_array(matrix, perline=size)))
+            results = pm.compute(matrix=matrix)
+            <span class="dt">print</span>(results.to_str(entries_shown=<span class="dv">100</span>))
+
+<span class="kw">if</span> <span class="ot">__name__</span> == <span class="st">'__main__'</span>: <span class="co"># we are testing this code from the command line</span>
+
+   PowerMethod.fromCmdLine()
+     </code></pre>
+</body>
+</html>

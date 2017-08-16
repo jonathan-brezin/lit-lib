@@ -1,0 +1,7 @@
+#? shape=3x3&dtype=float64
+#I am a table header
+8.922384e+01|2.956281e+01|5.233023e+00
+5.188899e+01|4.028697e+00|6.841724e+00
+5.082872e+01|4.064365e+01|7.936081e+01
+#I am a table footer
+#I am the last footer

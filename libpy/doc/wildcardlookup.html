@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>WildCardLookup: simple wild-card matching</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title"><span class="titleCode">WildCardLookup</span>: simple wild-card matching</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">April, 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#the-structure-of-the-store">The structure of the store</a></li>
+<li><a href="#details-of-the-api">Details of the API</a><ul>
+<li><a href="#the-constructor-wildcardlookuppatterns">The constructor, <code>WildCardLookup(*patterns)</code></a></li>
+<li><a href="#set-operations">Set operations</a><ul>
+<li><a href="#len"><code><strong>len</strong>()</code></a></li>
+<li><a href="#addnew_patterns"><code>add(*new_patterns)</code></a></li>
+<li><a href="#removedead_patterns"><code>remove(*dead_patterns)</code></a></li>
+<li><a href="#patterns"><code>patterns()</code></a></li>
+<li><a href="#awildcardlookup-other"><code>aWildCardLookup == other</code></a></li>
+<li><a href="#awildcardlookup-other-1"><code>aWildCardLookup != other</code></a></li>
+<li><a href="#isdisjointother"><code>isdisjoint(other)</code></a></li>
+<li><a href="#issubsetother"><code>issubset(other)</code></a></li>
+<li><a href="#awildcardlookup-other-2"><code>aWildCardLookup &lt;= other </code></a></li>
+<li><a href="#awildcardlookup-other-3"><code>aWildCardLookup &lt; other</code></a></li>
+<li><a href="#issupersetother"><code>issuperset(other)</code></a></li>
+<li><a href="#awildcardlookup-other-4"><code>aWildCardLookup &gt;= other</code></a></li>
+<li><a href="#awildcardlookup-other-5"><code>aWildCardLookup &gt; other</code></a></li>
+<li><a href="#unionothers"><code>union(*others)</code></a></li>
+<li><a href="#awildcardlookup-other1"><code>aWildCardLookup | other1 | …</code></a></li>
+<li><a href="#intersectionothers"><code>intersection(*others)</code></a></li>
+<li><a href="#awildcardlookup-other-6"><code>aWildCardLookup &amp; other &amp; …</code></a></li>
+<li><a href="#differenceother"><code>difference(other)</code></a></li>
+<li><a href="#awildcardlookup---other"><code>aWildCardLookup - other</code></a></li>
+<li><a href="#symmetric_differenceother-and-awildcardlookup-other"><code>symmetric_difference(other)</code> and <code>aWildCardLookup ^ other</code></a></li>
+<li><a href="#awildcardlookup-other-7"><code>aWildCardLookup ^ other</code></a></li>
+</ul></li>
+<li><a href="#other-methods">Other Methods</a><ul>
+<li><a href="#anymatchedkeys"><code>anyMatched(*keys)</code></a></li>
+<li><a href="#allmatchedkeys"><code>allMatched(*keys)</code></a></li>
+<li><a href="#strictestpatternforkey"><code>strictestPatternFor(key)</code></a></li>
+<li><a href="#weakestpatternforkey"><code>weakestPatternFor(key)</code></a></li>
+<li><a href="#patternsmatchingkey"><code>patternsMatching(key)</code></a></li>
+</ul></li>
+<li><a href="#a-wildcardlookup-is-iterable.">A <code>WildCardLookup</code> is iterable.</a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python"></code></pre>
+<h2 id="overview">Overview</h2>
+<p>A common coding problem is to maintain a set of strings, normally patterns of some kind, in which the lookup is just a little looser than string equality. I’ll talk about the strings in my set as “patterns”, and the strings that I’m looking to match against these patterns as “keys”.</p>
+<p>What I mean by “looser” is the simplest sort of wild card match:</p>
+<blockquote>
+<p>If “*&quot; is one of the patterns in my set <code>wcs</code>, then <code>x in wcs</code> will be <code>True</code> whatever value <code>x</code> may have.</p>
+</blockquote>
+<blockquote>
+<p>Patterns whose syntax is “<code>*</code><em><code>xxx</code></em>” match all keys ending with “<em><code>xxx</code></em>” that are at least one character longer–e.g. <code>*_in</code> matches <code>x_in</code>, but not <code>_in</code>.</p>
+</blockquote>
+<blockquote>
+<p>Patterns whose syntax is “<em><code>xxx</code></em><code>*</code>” match all keys that start with “<em><code>xxx</code></em>” and (again) are at least one character longer.</p>
+</blockquote>
+<blockquote>
+<p>Patterns whose syntax is “<em><code>xxx</code></em><code>*</code><em><code>yyy</code></em>” match all keys that start with “<em><code>xxx</code></em>”, end with “<em><code>yyy</code></em>”, and are at least one character longer.</p>
+</blockquote>
+<p>The typical use cases have patterns like</p>
+<blockquote>
+<p><code>user_*</code>, <code>cart_*</code>, <code>prefs_*</code>, etc.</p>
+</blockquote>
+<blockquote>
+<p><code>*.txt</code>, <code>*.py</code>, etc.</p>
+</blockquote>
+<p>As might be clear from these examples, the flexibility permitted with the “*&quot; is what I felt is convenient for a couple of common tasks: filtering debugging code, as in <a href="dbg.html"><code>dbg.py</code></a>, and tracking sets of file paths with common directories or file-types. In both these examples, the pattern set is modest in size, and there is rarely any reason to have any more flexible pattern matching facility.</p>
+<p>Of course, some minimal care in choosing the patterns is required to get sensible behavior. Having, for instance, both<code>&quot;user&quot;</code> and <code>&quot;user*&quot;</code> as a pattern is a recipe for confusion–why not use <code>&quot;user_*&quot;</code> for the longer keys? Having both <code>&quot;*_in&quot;</code> and <code>&quot;file_*&quot;</code> as patterns and <code>&quot;file_in&quot;</code> as a key is also a good way to get confused.</p>
+<h2 id="the-structure-of-the-store">The structure of the store</h2>
+<p>The wild-card free patterns are kept in their own <code>set</code>. Since I only permit one ‘*’ per pattern, wild-card patterns split into start-end pairs. I keep them in a dictionary keyed by the start. The values for a given “start” string are the set of its associated “end” strings.<br />Either the start or the end string may be the empty string, <em>but not both.</em> The case of <code>*</code> by itself is handled specially.</p>
+<p>I also keep a dictionary that is a cache of the (key, boolean) pairs for the keys for which a match was attempted. A <code>True</code> value for the pair means that the key was matched. The cache is a modest efficiency hack. I want to avoid redoing wild-card checks repeatedly on the same key, particularly for keys that will not be matched. So, once a key is looked for, I cache it together whether its status: matched or not. If patterns are removed, I clear the positive entries of the cache that are affected. When keys are added, I do the same for the failed part of the cache. Once a key is in the cache, its lookup cost is <code>O(1)</code>.</p>
+<h2 id="details-of-the-api">Details of the API</h2>
+<h3 id="the-constructor-wildcardlookuppatterns">The constructor, <code>WildCardLookup(*patterns)</code></h3>
+<p>takes 0 or more strings as arguments. Each argument must be a <code>str</code> that is a comma-separated list of patterns. White space around the patterns is stripped, but <em>white space within the patterns is preserved</em>.</p>
+<p>No patterns are added–of course!–if no arguments are passed.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> collections <span class="ch">import</span> defaultdict
+
+<span class="kw">class</span> WildCardLookup():
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, *patterns):
+      <span class="ot">self</span>.exactmatch = <span class="dt">set</span>()   <span class="co"># no wild cards</span>
+      <span class="ot">self</span>.pairs = defaultdict(<span class="dt">set</span>) <span class="co"># key == start of match; the value is the set of ends.</span>
+      <span class="ot">self</span>.cache = {}           <span class="co"># the results of previous match attempts</span>
+      <span class="ot">self</span>.matchall = <span class="ot">False</span>     <span class="co"># any key matches, if this is True</span>
+      <span class="kw">if</span> <span class="dt">len</span>(patterns) &gt; <span class="dv">0</span>:
+         <span class="ot">self</span>.add(*patterns)
+</code></pre>
+<h3 id="set-operations">Set operations</h3>
+<p>You might ask why I didn’t just make wild card sets an extension of <code>set</code>. The problem has to do with my wanting the expression “<code>key</code> <code>in</code> <code>wcl</code>” to yield <code>True</code> when the <code>key</code> matches some pattern in the wild-card lookup <code>wcl</code>. A consequence of that decision is that <code>set</code> methods like <code>difference()</code> or <code>intersection()</code>, which have to do with what patterns are in the sets and not what they match, cannot be implemented using the <code>in</code> operator. The obvious code just won’t work:</p>
+<pre class="exampleCode">
+def intersection(self, other): return WildCardLookup([x for x in self if x in other])
+</pre>
+
+<p>One gets around this by implementing the whole menu of <code>set</code> operations explicitly for <code>WildCardLookup</code>. I want to emphasize again that this is all about patterns, not about what the patterns match. A <code>WildCardLookup</code> with <code>{&quot;*&quot;}</code> as its pattern set is disjoint from a <code>WildCardLookup</code> with <code>{&quot;*_in&quot;}</code> as its pattern set, even though the former matches every key that the latter does.</p>
+<p>That said, here are the set operation methods.</p>
+<h4 id="len"><code><strong>len</strong>()</code></h4>
+<p>returns the total number of patterns currently alive, including the universal match pattern, “*“.</p>
+<h4 id="addnew_patterns"><code>add(*new_patterns)</code></h4>
+<p>takes one or more pattern strings as arguments and adds those patterns to the active set. The arguments are the same as that for the constructor, namely comma-separated lists of patterns. In fact, the constructor just passes it arguments to <code>add()</code> to initialize the pattern set.</p>
+<h4 id="removedead_patterns"><code>remove(*dead_patterns)</code></h4>
+<p>takes one or more pattern strings as arguments and removes these now unwanted patterns from the set of active patterns. The arguments have the same format as for the constructor and for <code>add()</code>.</p>
+<h4 id="patterns"><code>patterns()</code></h4>
+<p>returns the set of all patterns currently alive, including <code>&quot;*&quot;</code>. All of the set operations that follow are based on the <code>set</code> returned here.</p>
+<h4 id="awildcardlookup-other"><code>aWildCardLookup == other</code></h4>
+<p>returns <code>True</code> if, and only if, both have exactly the same pattern set.</p>
+<h4 id="awildcardlookup-other-1"><code>aWildCardLookup != other</code></h4>
+<p>returns <code>True</code> if, and only if, there is some pattern in one that is not in the other.</p>
+<h4 id="isdisjointother"><code>isdisjoint(other)</code></h4>
+<p>returns <code>True</code> if, and only if, the two have no patterns in common.</p>
+<h4 id="issubsetother"><code>issubset(other)</code></h4>
+<p>returns <code>True</code> if, and only if, every pattern in the caller is also in <code>other</code>.</p>
+<h4 id="awildcardlookup-other-2"><code>aWildCardLookup &lt;= other </code></h4>
+<p>is a synonym for <code>aWildCardLookup.issubset(other)</code>.</p>
+<h4 id="awildcardlookup-other-3"><code>aWildCardLookup &lt; other</code></h4>
+<p>tests whether the pattern set of <code>aWildCardLookup</code> is a proper subset of the pattern set of <code>other</code>; i.e., <code>WildCardLookup &lt;= other</code> and <code>WildCardLookup != other</code>.</p>
+<h4 id="issupersetother"><code>issuperset(other)</code></h4>
+<p>returns <code>True</code> if, and only if, every pattern in <code>other</code> is also in the caller.</p>
+<h4 id="awildcardlookup-other-4"><code>aWildCardLookup &gt;= other</code></h4>
+<p>is a synonym for <code>aWildCardLookup.issuperset(other)</code></p>
+<h4 id="awildcardlookup-other-5"><code>aWildCardLookup &gt; other</code></h4>
+<p>is a synonym for <code>WildCardLookup&gt;=other and aWildCardLookup!=other</code>.</p>
+<h4 id="unionothers"><code>union(*others)</code></h4>
+<p>takes one or more <code>WildCardLookup</code>s as arguments and returns a new <code>WildCardLookup</code> with all of patterns from the caller and the arguments.</p>
+<h4 id="awildcardlookup-other1"><code>aWildCardLookup | other1 | …</code></h4>
+<p>is a synonym for <code>aWildCardLookup.union(other1, ...)</code>.</p>
+<h4 id="intersectionothers"><code>intersection(*others)</code></h4>
+<p>takes one or more <code>WildCardLookup</code>s as arguments and returns a new <code>WildCardLookup</code> with all of the patterns common to the caller and all of the arguments.</p>
+<h4 id="awildcardlookup-other-6"><code>aWildCardLookup &amp; other &amp; …</code></h4>
+<p>is a synonym for <code>aWildCardLookup.intersection(other, ...)</code></p>
+<h4 id="differenceother"><code>difference(other)</code></h4>
+<p>returns a new <code>WildCardLookup</code> containing all of the patterns in the <code>WildCardLookup</code> that are not in the <code>WildCardLookup</code> “<code>other</code>”.</p>
+<h4 id="awildcardlookup---other"><code>aWildCardLookup - other</code></h4>
+<p>is a synonym for <code>aWildCardLookup.difference(other)</code>.</p>
+<h4 id="symmetric_differenceother-and-awildcardlookup-other"><code>symmetric_difference(other)</code> and <code>aWildCardLookup ^ other</code></h4>
+<p>returns a new <code>WildCardLookup</code> with all of the patterns that are eitherin the caller or in the <code>WildCardLookup</code> “<code>other</code>”, but are <em>not</em> in both.</p>
+<h4 id="awildcardlookup-other-7"><code>aWildCardLookup ^ other</code></h4>
+<p>is a synonym for <code>aWildCardLookup.symmetric_difference(other)</code>.</p>
+<pre class="sourceCode python"><code class="sourceCode python">      
+   <span class="kw">def</span> <span class="ot">__contains__</span>(<span class="ot">self</span>, key):
+      <span class="kw">if</span> <span class="ot">self</span>.matchall:
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">elif</span> key in <span class="ot">self</span>.cache:
+         <span class="kw">return</span> <span class="ot">self</span>.cache[key]
+      <span class="kw">elif</span> key in <span class="ot">self</span>.exactmatch:
+         <span class="ot">self</span>.cache[key] = <span class="ot">True</span>
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">elif</span> <span class="dt">len</span>(key) &lt; <span class="dv">2</span>: <span class="co"># wild card matches need at least one character beyond the pattern</span>
+         <span class="ot">self</span>.cache[key] = <span class="ot">False</span>
+         <span class="kw">return</span> <span class="ot">False</span>
+      <span class="kw">else</span>:
+         <span class="kw">for</span> start in <span class="ot">self</span>.pairs:
+            <span class="kw">if</span> key.startswith(start):
+               restOfKey = key[<span class="dt">len</span>(start)+<span class="dv">1</span>:]
+               <span class="kw">for</span> end in <span class="ot">self</span>.pairs[start]:
+                  <span class="kw">if</span> restOfKey.endswith(end):
+                     <span class="ot">self</span>.cache[key] = <span class="ot">True</span>
+                     <span class="kw">return</span> <span class="ot">True</span>
+         <span class="ot">self</span>.cache[key] = <span class="ot">False</span>
+         <span class="kw">return</span> <span class="ot">False</span>
+
+   <span class="kw">def</span> <span class="ot">__len__</span>(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="dt">len</span>(<span class="ot">self</span>.exactmatch)+<span class="dt">len</span>(<span class="ot">self</span>.pairs)+(<span class="dv">1</span> <span class="kw">if</span> <span class="ot">self</span>.matchall <span class="kw">else</span> <span class="dv">0</span>)
+
+   <span class="kw">def</span> add(<span class="ot">self</span>, *newPatterns):
+      <span class="kw">for</span> newPattern in newPatterns:
+         <span class="kw">if</span> <span class="dt">type</span>(newPattern) is not <span class="dt">str</span>:
+            <span class="kw">raise</span> <span class="ot">TypeError</span>(<span class="st">&quot;Expected a key string, but got a </span><span class="ot">{0}</span><span class="st">&quot;</span>.<span class="dt">format</span>(<span class="dt">type</span>(newPattern)))
+         added = [x.strip() <span class="kw">for</span> x in newPattern.split(<span class="st">','</span>)]
+         <span class="kw">for</span> pattern in added:
+            <span class="kw">if</span> <span class="st">&quot;*&quot;</span> not in pattern:
+               <span class="ot">self</span>.exactmatch.add(pattern)
+               <span class="kw">if</span> pattern in <span class="ot">self</span>.cache and not <span class="ot">self</span>.cache[pattern]:
+                  <span class="ot">self</span>.cache[pattern] = <span class="ot">True</span>
+            <span class="kw">elif</span> pattern == <span class="st">&quot;*&quot;</span>:
+               <span class="ot">self</span>.matchall = <span class="ot">True</span>
+            <span class="kw">else</span>:
+               (start, end) = pattern.split(<span class="st">'*'</span>)
+               <span class="ot">self</span>.pairs[start].add(end)
+               <span class="kw">for</span> cached in <span class="ot">self</span>.cache:
+                  <span class="kw">if</span> not <span class="ot">self</span>.cache[cached]:
+                     <span class="kw">if</span> cached.startswith(start) and cached[<span class="dt">len</span>(start)+<span class="dv">1</span>:].endswith(end):
+                        <span class="ot">self</span>.cache[cached] = <span class="ot">True</span>
+
+   <span class="kw">def</span> remove(<span class="ot">self</span>, *deadPatterns):
+      resetTheCache = <span class="ot">False</span>
+      <span class="kw">for</span> deadPattern in deadPatterns:
+         parsed = [x.strip() <span class="kw">for</span> x in deadPattern.split(<span class="st">','</span>)]
+         <span class="kw">for</span> removed in parsed:
+            <span class="co">#print(&quot;remove '{}'&quot;.format(removed))</span>
+            <span class="kw">if</span> removed is <span class="st">'*'</span>:
+               <span class="ot">self</span>.matchall = <span class="ot">False</span>
+            <span class="kw">elif</span> removed in <span class="ot">self</span>.exactmatch: 
+               <span class="ot">self</span>.exactmatch.remove(removed)
+               <span class="kw">if</span> removed in <span class="ot">self</span>.cache:
+                  <span class="ot">self</span>.cache.pop(removed)
+            <span class="kw">else</span>:
+               (start, end) = removed.split(<span class="st">'*'</span>)
+               <span class="kw">if</span> start in <span class="ot">self</span>.pairs:
+                  startSet = <span class="ot">self</span>.pairs[start]
+                  <span class="kw">if</span> end in startSet:
+                     startSet.remove(end)
+                     <span class="kw">if</span> <span class="dt">len</span>(startSet) is <span class="dv">0</span>:
+                        <span class="ot">self</span>.pairs.pop(start)
+                     resetTheCache = <span class="ot">True</span>
+      <span class="kw">if</span> resetTheCache:
+         <span class="co"># simplest guess: invalidate all positive entries in the cache.  It is no more</span>
+         <span class="co"># expensive to check the entries that would have survived if they are encountered</span>
+         <span class="co"># afterward as guards</span>
+         <span class="kw">for</span> key in <span class="ot">self</span>.cache:
+            <span class="kw">if</span> <span class="ot">self</span>.cache[key]:
+               <span class="ot">self</span>.cache.pop(key) 
+
+   <span class="kw">def</span> patterns(<span class="ot">self</span>):
+      <span class="dt">all</span> = <span class="dt">set</span>(<span class="ot">self</span>.exactmatch)
+      <span class="kw">if</span> <span class="ot">self</span>.matchall: <span class="dt">all</span>.add(<span class="st">&quot;*&quot;</span>)
+      <span class="kw">for</span> start in <span class="ot">self</span>.pairs:
+         <span class="kw">for</span> end in <span class="ot">self</span>.pairs[start]:
+            <span class="dt">all</span>.add(start+<span class="st">&quot;*&quot;</span>+end)
+      <span class="kw">return</span> <span class="dt">all</span>
+
+   <span class="kw">def</span> isdisjoint(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.patterns().isdisjoint(other.patterns())
+
+   <span class="kw">def</span> issubset(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.patterns().issubset(other.patterns())
+
+   <span class="kw">def</span> <span class="ot">__eq__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.matchall==other.matchall and <span class="ot">self</span>.patterns() == other.patterns
+
+   <span class="kw">def</span> <span class="ot">__ne__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.matchall!=other.matchall or <span class="ot">self</span>.patterns() != other.patterns
+
+   <span class="kw">def</span> <span class="ot">__le__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.issubset(other)
+
+   <span class="kw">def</span> <span class="ot">__lt__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.issubset(other) and <span class="ot">self</span>.<span class="ot">__ne__</span>(other)
+
+   <span class="kw">def</span> issuperset(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.patterns().issuperset(other.patterns())
+
+   <span class="kw">def</span> <span class="ot">__ge__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.issuperset(other)
+
+   <span class="kw">def</span> <span class="ot">__gt__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.issuperset(other) and <span class="ot">self</span>.<span class="ot">__ne__</span>(other)
+
+   <span class="kw">def</span> union(<span class="ot">self</span>, *others):
+      asSet = <span class="ot">self</span>.patterns().union(*[other.patterns() <span class="kw">for</span> other in others])
+      <span class="kw">return</span> WildCardLookup(*<span class="dt">list</span>(asSet))
+
+   <span class="kw">def</span> <span class="ot">__or__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.union(other)
+
+   <span class="kw">def</span> intersection(<span class="ot">self</span>, *others):
+      asSet = <span class="ot">self</span>.patterns().intersection(*[other.patterns() <span class="kw">for</span> other in others])
+      <span class="kw">return</span> WildCardLookup(*<span class="dt">list</span>(asSet))
+
+   <span class="kw">def</span> <span class="ot">__and__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.intersection(other)
+
+   <span class="kw">def</span> difference(<span class="ot">self</span>, *others):
+      asSet = <span class="ot">self</span>.patterns().difference(*[other.patterns() <span class="kw">for</span> other in others])
+      <span class="kw">return</span> WildCardLookup(*<span class="dt">list</span>(asSet))
+
+   <span class="kw">def</span> <span class="ot">__sub__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.difference(other)
+
+   <span class="kw">def</span> symmetric_difference(<span class="ot">self</span>, other):
+      asSet = <span class="ot">self</span>.patterns().symmetric_difference(other.patterns())
+      <span class="kw">return</span> WildCardLookup(*<span class="dt">list</span>(asSet))
+
+   <span class="kw">def</span> <span class="ot">__xor__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.symmetric_difference(other)
+
+</code></pre>
+<h3 id="other-methods">Other Methods</h3>
+<p>There are two methods that provide tests not convenient to write just using the wild card “*” and the “<code>in</code>” operator.</p>
+<h4 id="anymatchedkeys"><code>anyMatched(*keys)</code></h4>
+<p>The arguments are the keys that one wants matched, or comma-separated lists of those keys. The return value is <code>True</code> if at least one of the keys named by the argument is matched by a pattern. At least one argument is required.</p>
+<h4 id="allmatchedkeys"><code>allMatched(*keys)</code></h4>
+<p>The arguments are the same as for <code>anyMatched()</code>. The return value is <code>True</code> if all of the keys named by its argument are matched by patterns. Again, at least one argument is required.</p>
+<p>Finally, here are a few methods that are mostly useful for debugging this class. They deal with which patterns match a given key.</p>
+<h4 id="strictestpatternforkey"><code>strictestPatternFor(key)</code></h4>
+<p>returns the longest pattern that matches the given <code>key</code>–that is, the pattern with the fewest matches. If the key appears as an exact match pattern, it will be returned. Otherwise, if there are two patterns of the same length, the first in lexicographic order wins. If no real pattern matches and “*&quot; is a live pattern, it will be returned.</p>
+<h4 id="weakestpatternforkey"><code>weakestPatternFor(key)</code></h4>
+<p>returns the shortest pattern that matches the given <code>key</code>–that is, the pattern with the most matches. If there are two patterns of the same length, the first in lexicographic order wins. If there is any pattern other than “*&quot; that works, it will be returned. “*&quot; will be returned only if it is a live pattern and no other pattern works. The idea is to be able to find out easily if a key has a match <em>only because all keys do.</em></p>
+<h4 id="patternsmatchingkey"><code>patternsMatching(key)</code></h4>
+<p>returns a list of all of the patterns that match <code>key</code>. You get the whole list of patterns drawn from the exact matches and the (start, end) wild-card pairs. They are listed in lexicographic order. “*&quot; is not included: only substantive patterns are. If there are no patterns matching <code>key</code>, the empty list will be returned.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> strictestPatternFor(<span class="ot">self</span>, key):
+      <span class="kw">if</span> key in <span class="ot">self</span>.exactmatch:
+         <span class="co"># the exact match is definitely the strictest: look no further </span>
+         <span class="kw">return</span> key
+      allmatches = <span class="ot">self</span>.patternsMatching(key)
+      <span class="kw">if</span> <span class="dt">len</span>(allmatches) is <span class="dv">0</span>:
+         <span class="kw">return</span> <span class="st">&quot;*&quot;</span> <span class="kw">if</span> <span class="ot">self</span>.matchall <span class="kw">else</span> <span class="ot">None</span>
+      <span class="kw">else</span>:
+         sizes = [<span class="dt">len</span>(x) <span class="kw">for</span> x in allmatches]
+         winner = sizes.index(<span class="dt">max</span>(sizes))
+         <span class="kw">return</span> allmatches[winner]
+
+   <span class="kw">def</span> weakestPatternFor(<span class="ot">self</span>, key):
+      allmatches = <span class="ot">self</span>.patternsMatching(key)
+      <span class="kw">if</span> <span class="dt">len</span>(allmatches) is <span class="dv">0</span>:
+         <span class="kw">return</span> <span class="st">&quot;*&quot;</span> <span class="kw">if</span> <span class="ot">self</span>.matchall <span class="kw">else</span> <span class="ot">None</span>
+      <span class="kw">else</span>:
+         sizes = [<span class="dt">len</span>(x) <span class="kw">for</span> x in allmatches]
+         winner = sizes.index(<span class="dt">min</span>(sizes))
+         <span class="kw">return</span> allmatches[winner]
+      <span class="kw">return</span> <span class="ot">self</span>._matchedBy(key, <span class="ot">False</span>)
+
+   <span class="kw">def</span> patternsMatching(<span class="ot">self</span>, key):
+      theList = []
+      <span class="kw">if</span> key in <span class="ot">self</span>.exactmatch:
+         theList.append(key)
+      <span class="kw">if</span> <span class="dt">len</span>(key) &lt; <span class="dv">2</span>:
+         <span class="kw">return</span> theList
+      <span class="kw">for</span> start in <span class="ot">self</span>.pairs:
+         <span class="kw">if</span> key.startswith(start):
+            rest = key[<span class="dt">len</span>(start)+<span class="dv">1</span>:]
+            <span class="kw">for</span> end in <span class="ot">self</span>.pairs[start]:
+               <span class="kw">if</span> rest.endswith(end):
+                  theList.append(start+<span class="st">&quot;*&quot;</span>+end)
+      theList.sort()
+      <span class="kw">return</span> theList
+
+   <span class="kw">def</span> anyMatched(<span class="ot">self</span>, *keys):
+      <span class="kw">if</span> <span class="dt">len</span>(keys) is <span class="dv">0</span>:
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;WildCardLookup.anyMatched requires at least one argument.&quot;</span>)
+      <span class="kw">elif</span> <span class="ot">self</span>.matchall:
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">else</span>:
+         <span class="kw">for</span> entry in keys:
+            tested = [x.strip() <span class="kw">for</span> x in entry.split(<span class="st">','</span>)]
+            <span class="kw">for</span> x in tested:
+               <span class="kw">if</span> <span class="ot">self</span>.<span class="ot">__contains__</span>(x): <span class="co"># NB. uses my _contains_, not set's!!!</span>
+                  <span class="kw">return</span> <span class="ot">True</span>
+         <span class="kw">return</span> <span class="ot">False</span>
+         
+   <span class="kw">def</span> allMatched(<span class="ot">self</span>, *keys):
+      <span class="kw">if</span> <span class="dt">len</span>(keys) is <span class="dv">0</span>:
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;WildCardLookup.allMatched requires at least one argument.&quot;</span>)
+      <span class="kw">elif</span> <span class="ot">self</span>.matchall:
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">else</span>:
+         <span class="kw">for</span> entry in keys:
+            tested = <span class="dt">set</span>(x.strip() <span class="kw">for</span> x in entry.split(<span class="st">','</span>))
+            <span class="kw">for</span> x in tested:
+               <span class="kw">if</span> not <span class="ot">self</span>.<span class="ot">__contains__</span>(x):
+                  <span class="kw">return</span> <span class="ot">False</span>
+         <span class="kw">return</span> <span class="ot">True</span>
+
+</code></pre>
+<h3 id="a-wildcardlookup-is-iterable.">A <code>WildCardLookup</code> is iterable.</h3>
+<p>The values you get are the patterns in lexicographic order. <code>&quot;*&quot;</code> collates before any alphanumeric character in all conventional character encodings. This implies, for example, that <code>&quot;a*&quot;</code> will appear before <code>&quot;ab&quot;</code> if both are patterns in the set, and by the same logic, <code>&quot;*a&quot;</code> will appear before both <code>&quot;a*&quot;</code> and <code>&quot;ab&quot;</code>.</p>
+<p>A dictionary of sets is used to hold the wild-card patterns, so creating the iterable is an <code>O(nlog(n))</code> cost operation when the number of patterns is <code>n</code>. The <code>log(n)</code> factor comes in from the cost of sorting the list of all the patterns gotten by flattening the dictionary of sets and then appending the exact matches. The uses I have in mind, like filtering debugging output, have fairly small pattern sets, so this cost is not a major consideration, but other situations might not be so simple. For my own debugging purposes, I felt it would be useful to see the patterns in some predictable order, no matter what, so I could see missing patterns or unexpected patterns easily. That’s why I am willing to pay the cost of sorting.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> <span class="ot">__iter__</span>(<span class="ot">self</span>):
+      <span class="dt">sorted</span> = <span class="dt">list</span>(<span class="ot">self</span>.patterns())
+      <span class="dt">sorted</span>.sort()
+      <span class="kw">return</span> <span class="dt">sorted</span>.<span class="ot">__iter__</span>()
+</code></pre>
+</body>
+</html>

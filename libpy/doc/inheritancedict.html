@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Inheritance dictionaries: a pure Python mappingproxy</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Inheritance dictionaries: a pure Python <span class="titleCode">mappingproxy</span></h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">November, 2015</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#the-read-only-aka-static-side-of-inheritance">The read-only (aka “static”) side of inheritance</a><ul>
+<li><a href="#the-class-readonlyinheritance">The class <code>ReadOnlyInheritance</code></a><ul>
+<li><a href="#the-constructor-readonlyinheritanceargs">The constructor: <code>ReadOnlyInheritance(∗args)</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#dynamic-inheritance">Dynamic inheritance</a><ul>
+<li><a href="#the-class-inheritancedict">The class <code>InheritanceDict</code></a><ul>
+<li><a href="#the-constructor-inheritancedictinheritedreadonlyinheritance-keytypestr">The constructor: <code>InheritanceDict(inherited=ReadOnlyInheritance(), keytype=str)</code></a></li>
+<li><a href="#isownkey"><code>isOwn(key)</code></a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">import</span> sysutils <span class="ch">as</span> su
+<span class="ch">from</span> collections <span class="ch">import</span> UserList
+<span class="ch">from</span> delegator <span class="ch">import</span> *
+<span class="ch">from</span> copy <span class="ch">import</span> copy
+<span class="ch">from</span> itertools <span class="ch">import</span> chain
+<span class="ch">from</span> readonlydict <span class="ch">import</span> ReadonlyDictAPI
+<span class="ch">import</span> reprlib
+</code></pre>
+<h2 id="overview">Overview</h2>
+<p>The intention is to mimic, in pure Python, the <code>mappingproxy</code> class that the Python runtime uses to implement attribute inheritance in the class hierarchy. I call my class “<code>InheritanceDict</code>”. This was an instructive exercise for several reasons, perhaps the most useful being that it forced me to understand how to write an abstract base class cleanly (easy enough to do, but there’s a first time for everything).</p>
+<p>Simple, static inheritance can be implemented as a read-only tuple of read-only dictionaries. The later a dictionary appears in the tuple, the higher it is in the inheritance chain, the object’s own dictionary being the first entry. Python allows multiple inheritance which it reduces to the same picture by having an algorithm for linearizing the class attribute dictionaries that are to be searched.</p>
+<p>Python, being dynamic, allows the creation and deletion of attributes for a given class or object on the fly. Thus, it requires both read-only access to a (short) sequence of dictionaries and read- write access to another dictionary that represents the effect of runtime modifications to the class’s (or object’s) attributes. Furthermore, the entries in the list of inherited dictionaries must be the read-write local dictionaries for the classes the object’s class extends, because each class in the inheritance hierarchy can modify its own local dictionary. even though the extending class cannot modify them (nor even see them as separate objects) using the <code>InheritanceDict</code> API.</p>
+<h2 id="the-read-only-aka-static-side-of-inheritance">The read-only (aka “static”) side of inheritance</h2>
+<h3 id="the-class-readonlyinheritance">The class <code>ReadOnlyInheritance</code></h3>
+<p>This implements the read-only part of the <code>dict</code> API for accessing not one, but a tuple of dictionaries. What is critical here is the use case for which this class was meant: a tuple of <strong><code>dict</code></strong>’s that implement multiple inheritance for attributes of a class or instance of a class. One expects that the number of entries in such a tuple is at most several tens, even in the most extreme cases. This allows me to implement key lookup by simply walking the members of the sequence in order and returning the first successful fetch.</p>
+<p>There is another subtlety here. While the user of a <code>ReadOnlyInheritance</code> instance cannot use it itself to modify any of the dictionaries in the tuple, the dictionaries’s actual owners certainly can. As I pointed out above, this is a necessary capability for implementing dynamic inheritance. It follows that it is more or less impossible to cache key/value pairs once found in order to avoid having always to work back through the dictionaries tuple. Neither the location of the key nor its value need remain the same.</p>
+<blockquote>
+<p>One can easily create an extension of this class that copies each dictionary into a <a href="frozendict.html"><code>FrozenDict</code></a> before adding it to the tuple, and that, whenever a request for a key’s value is made, caches the pair in an ordinary <code>dict</code>. One had better be sure, though, that that sort of static behavior is correct.</p>
+</blockquote>
+<h4 id="the-constructor-readonlyinheritanceargs">The constructor: <code>ReadOnlyInheritance(∗args)</code></h4>
+<p>The arguments for <code>ReadOnlyInheritance</code>’s constructor are either iterables for an ordered collection of objects implementing the <code>ReadonlyDictAPI</code>, or are individual objects that implement it.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> ReadOnlyInheritance(ReadonlyDictAPI):
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, *args):
+      theList = []
+      <span class="kw">for</span> arg in args:
+         <span class="kw">if</span> ReadonlyDictAPI.isimplementedby(arg):
+            theList.append(arg)
+         <span class="kw">else</span>:
+            <span class="kw">for</span> entry in arg:
+               <span class="kw">if</span> ReadonlyDictAPI.isimplementedby(arg):
+                  theList.append(entry)
+               <span class="kw">else</span>:
+                  msg =<span class="st">&quot;A read-only dictionary was expected, but </span><span class="ot">{0}</span><span class="st"> was provided&quot;</span>
+                  <span class="kw">raise</span> <span class="ot">TypeError</span>(msg.<span class="dt">format</span>(su.a_classname(entry)))
+      <span class="ot">self</span>._all = <span class="dt">tuple</span>(theList)
+      <span class="ot">self</span>._size = <span class="ot">None</span> <span class="co"># computed lazily--may never be needed</span>
+
+   <span class="kw">def</span> <span class="ot">__len__</span>(<span class="ot">self</span>):
+      <span class="kw">if</span> <span class="ot">self</span>._size is <span class="ot">None</span>:
+         keys = <span class="dt">set</span>()
+         <span class="kw">for</span> dcnry in <span class="ot">self</span>._all:
+            <span class="kw">for</span> key in dcnry: keys.add(key)
+         <span class="ot">self</span>._size = <span class="dt">len</span>(keys)
+      <span class="kw">return</span> <span class="ot">self</span>._size
+
+   <span class="kw">def</span> <span class="ot">__getitem__</span>(<span class="ot">self</span>, key):
+      <span class="kw">for</span> dcnry in <span class="ot">self</span>._all:
+         <span class="kw">if</span> key in dcnry: <span class="kw">return</span> dcnry[key]
+      <span class="kw">raise</span> <span class="ot">KeyError</span>(<span class="st">&quot;'</span><span class="ot">{0}</span><span class="st">' was not found&quot;</span>.<span class="dt">format</span>(key))
+
+   <span class="kw">def</span> <span class="ot">__contains__</span>(<span class="ot">self</span>, key):
+      <span class="kw">for</span> dcnry in <span class="ot">self</span>._all:
+         <span class="kw">if</span> key in dcnry: <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">return</span> <span class="ot">False</span>
+
+   <span class="kw">def</span> <span class="ot">__iter__</span>(<span class="ot">self</span>):  <span class="co"># no, you cannot just chain the dcnry.iters for dcnry in self._all</span>
+      <span class="kw">return</span> <span class="ot">self</span>.keys()
+
+   <span class="kw">def</span> <span class="ot">__repr__</span>(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="st">&quot;</span><span class="ot">{0}{1}</span><span class="st">&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.__class__.<span class="ot">__name__</span>, reprlib.<span class="dt">repr</span>(<span class="ot">self</span>._all))
+
+   <span class="kw">def</span> <span class="ot">__str__</span>(<span class="ot">self</span>): <span class="kw">return</span> <span class="dt">str</span>(<span class="ot">self</span>._all)
+
+   <span class="kw">def</span> get(<span class="ot">self</span>, key, default=<span class="ot">None</span>):
+      <span class="co">'''Return the value for `key` if present, `default` otherwise.'''</span>
+      <span class="kw">for</span> dcnry in <span class="ot">self</span>._all:
+         <span class="kw">if</span> key in dcnry:
+            <span class="kw">return</span> dcnry[key]
+      <span class="kw">return</span> default
+
+   <span class="kw">def</span> copy(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>.__class__(<span class="ot">self</span>._all)
+
+   <span class="kw">def</span> items(<span class="ot">self</span>):
+      keys = <span class="dt">set</span>()
+      <span class="kw">for</span> dcnry in <span class="ot">self</span>._all:
+         <span class="kw">for</span> key in dcnry: 
+            <span class="kw">if</span> not key in keys:
+               keys.add(key)
+               <span class="kw">yield</span> (key, dcnry[key]) 
+
+   <span class="kw">def</span> keys(<span class="ot">self</span>):
+      keys = <span class="dt">set</span>()
+      <span class="kw">for</span> dcnry in <span class="ot">self</span>._all:
+         <span class="kw">for</span> key in dcnry:
+            <span class="kw">if</span> not key in keys:
+               keys.add(key)
+               <span class="kw">yield</span> key  
+
+   <span class="kw">def</span> values(<span class="ot">self</span>):
+      keys = <span class="dt">set</span>()
+      <span class="kw">for</span> dcnry in <span class="ot">self</span>._all:
+         <span class="kw">for</span> key in dcnry: 
+            <span class="kw">if</span> not key in keys:
+               keys.add(key)
+               <span class="kw">yield</span> dcnry[key]
+</code></pre>
+<h2 id="dynamic-inheritance">Dynamic inheritance</h2>
+<h3 id="the-class-inheritancedict">The class <code>InheritanceDict</code></h3>
+<p>We come at last the <em>raison d’etre</em> for this module, <code>InheritanceDict</code>s. They are designed so that, in order to get the behavior of a class hierarchy inheritance chain, one can use an <code>InheritanceDict</code> for the <code>__dict__</code> attribute of a <code>class</code> or <code>class</code> instance.</p>
+<p>Python classes are objects like any other and may acquire (and lose) attributes at any time during a program’s execution. Therefore, I need an implementation that is bullet-proof in tracking runtime changes to these keys and their values. This makes it a little slow to look up an attribute if it is buried in a dictionary that comes from a distant ancestor, which is to say, is buried deep in the list of superclasses. I count on the list size being of the order of several tens of superclasses.</p>
+<p>Computing the number of attributes is not only slow, it also uses space. The reason is simple: you have to track the attributes you have seen, so that the same key is not counted twice. Iterators like <code>keys()</code> aren’t too slow, but they pay the same space penalty for the same reason. <em>You have been warned.</em></p>
+<h4 id="the-constructor-inheritancedictinheritedreadonlyinheritance-keytypestr">The constructor: <code>InheritanceDict(inherited=ReadOnlyInheritance(), keytype=str)</code></h4>
+<p>The arguments for the constructor are</p>
+<blockquote>
+<p><code>inherited</code>: a <code>ReadOnlyInheritance</code> instance that contains the inherited keys. The default is an empty set.</p>
+</blockquote>
+<blockquote>
+<p><code>keytype</code>: the (Python) type of the key. Any hashable type will do. The default is the obvious one: <code>str</code>.</p>
+</blockquote>
+<p>In Python, inherited attributes are “copy on write”. This means that if an assignment is made to an inherited attribute, that attribute is added as a key to the local dictionary if it is not already there, and the new value is saved in the local copy, so that other objects inheriting the attribute do not see the modified value.</p>
+<p>I remind you that if an attribute’s value is a list, or some other mutable object, modifying the contents of the value does NOT create a local copy of the attribute. Modifying the state of an attribute’s value is NOT necessarily the same as assigning the attribute a new value.</p>
+<p>The API is the same as that for <a href="https://docs.python.org/3/library/stdtypes.html#dict"><code>dict</code></a>, except that <code>popkey()</code> is not supported, and there is one additional public method:</p>
+<h4 id="isownkey"><code>isOwn(key)</code></h4>
+<p>The method returns <code>True</code> if the key is in the local dictionary; otherwise it returns <code>False</code>. Whether the key was inherited initially and only got into the local dictionary on being assigned a value is beside the point. All that matters is that it is now in the local dictionary. This notion is the analogue for Python of a JavaScript object’s “own properties”.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> InheritanceDict:
+
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, inherited=ReadOnlyInheritance(), keytype=<span class="dt">str</span>):
+      <span class="ot">self</span>.own = {}              <span class="co"># cf JavaScript's &quot;own&quot; versus &quot;inherited&quot; properties</span>
+      <span class="ot">self</span>.inherited = inherited <span class="co"># read-only access to a set of keys</span>
+      <span class="ot">self</span>.keytype = keytype     <span class="co"># I enforce this: a key must be an instance of keytype</span>
+      <span class="ot">self</span>.overrides = <span class="dv">0</span>         <span class="co"># used to speed up computing the size of the whole key set a bit</span>
+
+   <span class="kw">def</span> <span class="ot">__len__</span>(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="dt">len</span>(<span class="ot">self</span>.own) + <span class="dt">len</span>(<span class="ot">self</span>.inherited) - <span class="ot">self</span>.overrides
+
+   <span class="kw">def</span> <span class="ot">__getitem__</span>(<span class="ot">self</span>, key):
+      <span class="ot">self</span>._vetkey(key)
+      <span class="kw">return</span> <span class="ot">self</span>.own.<span class="ot">__getitem__</span>(key) <span class="kw">if</span> key in <span class="ot">self</span>.own <span class="kw">else</span> <span class="ot">self</span>.inherited.<span class="ot">__getitem__</span>(key)
+
+   <span class="kw">def</span> <span class="ot">__setitem__</span>(<span class="ot">self</span>, key, value):
+      <span class="ot">self</span>._vetkey(key)
+      <span class="kw">if</span> key in <span class="ot">self</span>.inherited and not key in <span class="ot">self</span>.own:
+         <span class="ot">self</span>.overrides += <span class="dv">1</span>
+      <span class="ot">self</span>.own.<span class="ot">__setitem__</span>(key, value)
+
+   <span class="kw">def</span> <span class="ot">__delitem__</span>(<span class="ot">self</span>, key):
+      <span class="ot">self</span>._vetkey(key)
+      value = <span class="ot">self</span>.own[key]     <span class="co"># should throw a KeyError is key is NOT present </span>
+      <span class="kw">if</span> key in <span class="ot">self</span>.inherited: <span class="co"># if the key is an override, make sure we keep that count correct</span>
+         <span class="ot">self</span>.overrides -= <span class="dv">1</span>
+      <span class="ot">self</span>.own.<span class="ot">__delitem__</span>(key)
+      <span class="kw">return</span> value
+
+   <span class="kw">def</span> <span class="ot">__contains__</span>(<span class="ot">self</span>, key):
+      <span class="ot">self</span>._vetkey(key)
+      <span class="kw">if</span> <span class="ot">self</span>.own.<span class="ot">__contains__</span>(key):
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">else</span>:
+         <span class="kw">for</span> table in <span class="ot">self</span>.inherited:
+            <span class="kw">if</span> table.<span class="ot">__contains__</span>(key):
+               <span class="kw">return</span> <span class="ot">True</span>
+         <span class="kw">return</span> <span class="ot">False</span>
+
+   <span class="kw">def</span> <span class="ot">__iter__</span>(<span class="ot">self</span>): <span class="kw">return</span> <span class="ot">self</span>.keys()
+
+   <span class="kw">def</span> <span class="ot">__reversed__</span>(<span class="ot">self</span>): DOES_NOT_IMPLEMENT_REVERSAL(<span class="ot">self</span>)
+
+   <span class="kw">def</span> <span class="ot">__repr__</span>(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="st">&quot;</span><span class="ot">{0}</span><span class="st"> </span><span class="ot">{1}</span><span class="st">&quot;</span>.<span class="dt">format</span>(<span class="ot">self</span>.__class__.<span class="ot">__name__</span>, reprlib.<span class="dt">repr</span>(<span class="ot">self</span>.own))
+
+   <span class="kw">def</span> <span class="ot">__str__</span>(<span class="ot">self</span>): <span class="kw">return</span> <span class="dt">str</span>(<span class="ot">self</span>.own)
+
+   <span class="kw">def</span> _vetkey(<span class="ot">self</span>, key):
+      <span class="kw">if</span> not <span class="dt">isinstance</span>(key, <span class="ot">self</span>.keytype):
+         wanted = <span class="ot">self</span>.keytype
+         got = <span class="dt">type</span>(key)
+         <span class="kw">raise</span> <span class="ot">TypeError</span>(
+            <span class="st">&quot;Key of type </span><span class="ot">{0}</span><span class="st"> expected, but </span><span class="ot">{1}</span><span class="st"> has type </span><span class="ot">{2}</span><span class="st">&quot;</span>.<span class="dt">format</span>(wanted, key, got)
+            )
+
+   <span class="kw">def</span> clear(<span class="ot">self</span>):
+      <span class="co"># remove all items from the local dictionary.  Inherited values are unaffected</span>
+      <span class="ot">self</span>.own.clear()
+
+   <span class="kw">def</span> copy(<span class="ot">self</span>):
+      <span class="co"># Return a shallow copy as a InheritanceDict.</span>
+      clone = InheritanceDict(<span class="ot">self</span>.inherited, <span class="ot">self</span>.keytype)
+      clone.own = <span class="ot">self</span>.own.copy()
+      clone.overrides = <span class="ot">self</span>.overrides
+      <span class="kw">return</span> clone
+
+   <span class="kw">def</span> get(<span class="ot">self</span>, key, default=<span class="ot">None</span>):
+      <span class="kw">try</span>:
+         <span class="kw">return</span> <span class="ot">self</span>[key]
+      <span class="kw">except</span>:
+         <span class="kw">return</span> default
+
+   <span class="kw">def</span> isOwn(<span class="ot">self</span>, key):
+      <span class="kw">return</span> key in <span class="ot">self</span>.own
+
+   <span class="kw">def</span> items(<span class="ot">self</span>):
+      ours = ((key, <span class="ot">self</span>.own[key]) <span class="kw">for</span> key in <span class="ot">self</span>.own)
+      theirs = ((key, <span class="ot">self</span>.inherited[key]) <span class="kw">for</span> key in <span class="ot">self</span>.inherited <span class="kw">if</span> not key in <span class="ot">self</span>.own)
+      <span class="kw">return</span> chain(ours, theirs)
+
+   <span class="kw">def</span> keys(<span class="ot">self</span>):
+      ours = <span class="dt">iter</span>(<span class="ot">self</span>.own)
+      theirs = (key <span class="kw">for</span> key in <span class="ot">self</span>.inherited <span class="kw">if</span> not key in <span class="ot">self</span>.own)
+      <span class="kw">return</span> chain(ours, theirs)
+
+   <span class="kw">def</span> pop(<span class="ot">self</span>, key, default = <span class="ot">None</span>):
+      <span class="kw">if</span> key not in <span class="ot">self</span>.own:
+         <span class="kw">return</span> default
+      <span class="kw">else</span>:
+         <span class="kw">return</span> <span class="ot">self</span>.<span class="ot">__delitem__</span>(key)
+
+   <span class="kw">def</span> popkey(<span class="ot">self</span>):
+      msg = <span class="st">&quot;random key removal is not supported by </span><span class="ot">{0}</span><span class="st">&quot;</span>.<span class="dt">format</span>(su.a_classname(<span class="ot">self</span>))
+      <span class="kw">raise</span> <span class="ot">NotImplementedError</span>(msg)
+
+   <span class="kw">def</span> setdefault(<span class="ot">self</span>, key, default=<span class="ot">None</span>): 
+      <span class="kw">if</span> <span class="ot">self</span>.<span class="ot">__contains__</span>(key):
+         <span class="kw">return</span> <span class="ot">self</span>[key]
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.<span class="ot">__setitem__</span>(key, default)
+         <span class="kw">return</span> default
+
+   <span class="kw">def</span> update(<span class="ot">self</span>, dictLike={}, **kwargs):
+      <span class="kw">for</span> key in dictLike:
+         <span class="ot">self</span>.<span class="ot">__setitem__</span>(key, dictLike[key])
+      <span class="kw">for</span> key in kwargs:
+         <span class="ot">self</span>.<span class="ot">__setitem__</span>(key, kwargs[key])
+
+   <span class="kw">def</span> values(<span class="ot">self</span>):
+      ours = (<span class="ot">self</span>.own[key] <span class="kw">for</span> key in <span class="ot">self</span>.own)
+      theirs = (<span class="ot">self</span>.inherited[key] <span class="kw">for</span> key in <span class="ot">self</span>.inherited <span class="kw">if</span> not key in <span class="ot">self</span>.own)
+      <span class="kw">return</span> chain(ours, theirs)
+</code></pre>
+</body>
+</html>

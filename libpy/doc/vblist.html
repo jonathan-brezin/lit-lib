@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Vetted blists</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Vetted <span class="titleCode">blist</span>s</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">May, 2017</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#the-vblist-class">The <code>vblist</code> class</a><ul>
+<li><a href="#vblist_con">The constructor <code>vblist(iterable=[], maxsize=sys.maxsize, vet=None)</code></a></li>
+<li><a href="#a-word-about-debugging-and-some-examples">A word about debugging and some examples:</a></li>
+</ul></li>
+<li><a href="#shared_methods">Some shared instance methods</a><ul>
+<li><a href="#some-magic-methods">Some magic methods</a><ul>
+<li><a href="#add__other"><code>__add__(other)</code></a></li>
+<li><a href="#iadd__other"><code>__iadd__(other)</code></a></li>
+<li><a href="#radd__other"><code>__radd__(other)</code></a></li>
+<li><a href="#copy__"><code>__copy__()</code></a></li>
+<li><a href="#eq__other"><code>__eq__(other)</code></a></li>
+<li><a href="#ne__other"><code>__ne__(other)</code></a></li>
+<li><a href="#repr__"><code>__repr__</code></a></li>
+<li><a href="#mul__k"><code>__mul__(k)</code></a></li>
+<li><a href="#imul__other"><code>__imul__(other)</code></a></li>
+<li><a href="#rmul__k"><code>__rmul__(k)</code></a></li>
+</ul></li>
+<li><a href="#read-access-getting-entries-and-slices">Read access: getting entries and slices</a><ul>
+<li><a href="#copy"><code>copy()</code></a></li>
+<li><a href="#findwhat"><code>find(what)</code></a></li>
+<li><a href="#head_or_tail"><code>head(howMany=None)</code> and <code>tail(howMany=None)</code></a></li>
+<li><a href="#isavettedcollectionstuff"><code>isAVettedCollection(stuff)</code></a></li>
+<li><a href="#isempty"><code>isEmpty()</code></a></li>
+<li><a href="#peek"><code>peek(howMany=None, *, orElse=None)</code></a></li>
+</ul></li>
+<li><a href="#adding-one-or-more-items">Adding one or more items</a><ul>
+<li><a href="#addwhat-dieonfailtrue"><code>add(what, *,dieOnFail=True)</code></a></li>
+<li><a href="#add_alliterable-dieonfailtrue"><code>add_all(iterable, *, dieOnFail=True)</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#the-vblist-instance-api">The <code>vblist</code> instance API</a><ul>
+<li><a href="#generic-methods">Generic methods</a><ul>
+<li><a href="#concatentating-a-list-to-a-vblist">Concatentating a list to a <code>vblist</code></a></li>
+</ul></li>
+<li><a href="#write-access-adding-and-removing-entries">Write access: adding and removing entries</a><ul>
+<li><a href="#appendwhat"><code>append(what)</code></a></li>
+<li><a href="#extenditerable-dieonfailtrue"><code>extend(iterable, *, dieOnFail=True)</code></a></li>
+<li><a href="#insert"><code>insert(index, value, *, dieOnFail=True)</code></a></li>
+<li><a href="#next_or_elseorelse-howmanynone"><code>next_or_else(orElse, howMany=None)</code>&gt;</a></li>
+<li><a href="#nexthowmanynone"><code>next(howMany=None)</code></code></a></li>
+<li><a href="#prependiterable-dieonfailtrue"><code>prepend(iterable, *, dieOnFail=True)</code></a></li>
+<li><a href="#pushitem"><code>push(item)</code></a></li>
+<li><a href="#replace"><code>replace(indexOrRange, iterable, dieOnFail=True)</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#the-vbdeque-class">The <code>vbdeque</code> class</a><ul>
+<li><a href="#vbdequeiterable-maxsize-sys.maxsize-vetnone"><code>vbdeque(iterable=[], maxsize = sys.maxsize, vet=None)</code></a></li>
+<li><a href="#forbidden-fruit">Forbidden fruit</a><ul>
+<li><a href="#insertindex-what"><code>insert(index, what)</code></a></li>
+<li><a href="#remove"><code>remove()</code></a></li>
+<li><a href="#reverse"><code>reverse()</code></a></li>
+<li><a href="#sort"><code>sort()</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#the-vbqueue-class">The <code>vbqueue</code> class</a><ul>
+<li><a href="#the-constructor-vbqueueiterable-maxsize-vet">The constructor <code>vbqueue(iterable, maxsize, vet)</code></a></li>
+<li><a href="#forbidden-fruit-1">Forbidden Fruit</a><ul>
+<li><a href="#add_firstwhat-and-prependiterabledieonfail"><code>add_first(what)</code> and <code>prepend(iterable,*,dieOnFail)</code></a></li>
+</ul></li>
+<li><a href="#write-access-adding-and-removing-entries-1">Write access: adding and removing entries</a><ul>
+<li><a href="#next_or_elseorelse-howmanynone-1"><code>next_or_else(orElse, howMany=None)</code></a></li>
+<li><a href="#nexthowmanynone-1"><code>next(howMany=None)</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#the-vbstack-class">The <code>vbstack</code> class</a><ul>
+<li><a href="#the-constructor-vbstackiterable-maxsizesys.maxsize-vetnone">The constructor <code>vbstack(iterable=[], maxsize=sys.maxsize, vet=None)</code></a></li>
+<li><a href="#forbidden-fruit-2">Forbidden Fruit</a><ul>
+<li><a href="#add_firstwhat-and-prependiterabledieonfail-1"><code>add_first(what)</code> and <code>prepend(iterable,*,dieOnFail)</code></a></li>
+</ul></li>
+<li><a href="#write-access-adding-and-removing-entries-2">Write access: adding and removing entries</a><ul>
+<li><a href="#next_or_elseorelse-howmanynone-2"><code>next_or_else(orElse, howMany=None)</code></a></li>
+<li><a href="#nexthowmanynone-2"><code>next(howMany=None)</code></a></li>
+<li><a href="#pophowmanynone"><code>pop(howMany=None)</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#the-vsortedlist-class">The <code>vsortedlist</code> class</a></li>
+<li><a href="#the-vsortedset-class">The <code>vsortedset</code> class</a><ul>
+<li><a href="#differenceiterables-maxsizenone"><code>difference(*iterables, maxsize=None)</code></a></li>
+<li><a href="#difference_updateiterables"><code>difference_update(*iterables)</code></a></li>
+<li><a href="#intersectioniterables-maxsizenone"><code>intersection(*iterables, maxsize=None)</code></a></li>
+<li><a href="#intersection_updateothers"><code>intersection_update(*others)</code></a></li>
+<li><a href="#symmetric_differenceother-maxsizenone"><code>symmetric_difference(other, *, maxsize=None)</code></a></li>
+<li><a href="#symmetric_difference_updateother"><code>symmetric_difference_update(other)</code></a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> blist <span class="ch">import</span> *
+<span class="ch">from</span> idbg <span class="ch">import</span> DbgClient
+<span class="ch">import</span> sys
+<span class="ch">import</span> sysutils <span class="ch">as</span> su
+</code></pre>
+<h2 id="the-vblist-class">The <code>vblist</code> class</h2>
+<p>I have implemented vetted list semantics on top of <a href="https://pypi.python.org/pypi/blist/?"><code>blist</code></a>, which is documented in <a href="http://stutzbachenterprises.com/blist/">http://stutzbachenterprises.com/blist/</a>. “Vetting” refers to this code being less forgiving than <code>blist</code> in two ways:</p>
+<ol type="1">
+<li><p>It allows you to provide a function that will be invoked to vet each item before it is added. If the item should not be added, the function should raise a <code>ValueError</code> (or some extension thereof). The normal return value for the function is the value to be added to the list. In most cases, the item vetted is returned “as is”, but that need not be the case. If you want to preprocess the item before adding it, this function is the place to do it. In fact, it is to allow pre-processing that I started down this trail.</p></li>
+<li><p>It allows you to limit the size of the collection and does not allow additions once that size is reached, unless some entries are deleted. I think that limiting the size to <code>n</code> implies that it really should not be longer than <code>n</code> items. It also does not mean that you to keep at most that many entries at a time by automatically shedding items to create room for additions once length <code>n</code> is reached, which is the strategy adopted by Python’s <a href="https://docs.python.org/3/library/collections.html#collections.deque"><code>collections.deque</code></a>:</p></li>
+</ol>
+<blockquote>
+<p><code>collections.deque</code> allows the addition of an item to a full <code>deque</code>, but in order to make room for the late-comer, it silently discards elements at the opposite end from the insertion. I am very uncomfortable with that. Elements at one or the other end of the <code>deque</code> vanish into the night without a trace, no matter what debugger you are using. I think that adding to a full store is, more often than not, an error for any application for which there are reasonable bounds, and it should be treated as such. I should add that if you really need to grow the store, doing so is a one-liner:</p>
+</blockquote>
+<blockquote><pre class="exampleCode">
+
+          source = vblist(source, newSizeLimit, source.vet)
+
+</pre></blockquote>
+
+<blockquote>
+<p>Being explicit about the new limit, as in that code, makes visible the policy for growing the store. Otherwise, either one has a “one size fits all policy”, like doubling the store, or one has to complicate the API to allow the user to manage the overflow.</p>
+</blockquote>
+<blockquote>
+<p>There are times when the implicit recovery is what you want, and to make that reasonably easy to achieve, the <code>Exception</code> raised on trying to grow the list beyond its limit is a class “<code>BufferSizeError</code>” that is defined here and used only to report such overflows. (Do not confuse <code>BufferSizeError</code> with the built-in <a href="https://docs.python.org/3/library/exceptions.html#base-classes"><code>BufferError</code></a>: it is meant to be used at a lower level, mainly by C code implementing Python buffers of various sorts.)</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>It is easy to use <a href="delegator.html#delfrmsrc"><code>delegate_from_source</code></a> and its related “decorator” <a href="delegator.html#the-base-static-decorator-class-static_delegator"><code>Static_Delegator</code></a> to create a class that, by delegating the <code>vblist</code> ops to an instance member “<code>the_list</code>”, allows you to grow the buffer implicitly by providing the delegating class with <code>add</code>, <code>addfirst</code>, and <code>insert</code> methods that handle a <code>BufferSizeError</code> by using the one-liner above to assign the <code>the_list</code> a new <code>vblist</code> with a larger maximum size. The same considerations apply to <code>vbdeque</code>s, <code>vbqueue</code>s and <code>vbstack</code>s. See <a href="examples/vblist.test.py">examples/vblist.test.py</a> for an example.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<p>Setting a maximum size does <em>not</em> preallocate the storage. I allow the underlying <code>blist</code> code to grow the list gracefully until the limit is reached. Of course, if at some point you find you want to <em>decrease</em> the maximum allowed size of an instance <code>vbl</code>, the assignment <code>vbl.maxsize = newSizeLimit</code> will do just what you want, unless–of course–<code>vbl</code> is already bigger than the new limit.</p>
+</blockquote>
+<p>This functionality could equally well be implemented on top of the standard libary’s <a href="https://docs.python.org/3/library/collections.html#collections.deque"><code>collections.deque</code></a>. I chose to work with <code>blist</code> because its API is much more limited without losing any methods central to creating a clean API for the various types of lists one uses all the time: vanilla lists, queues, deques, and stacks. In addition, the performance of <code>blist</code>s versus <code>deque</code>s on the basic append/delete operations is essenially the same. You can get some timings by executing <a href="examples/blist_vs_list.py"><code>blist_vs_list</code></a>. On my hardware, <code>blist</code> is anywhere from 1% to 5% slower than <code>deque</code> over a mix of peek, add, and remove operations. If are doing random reads into the store, rather than just peeking at the head, <code>blist</code> is about 200 times faster. Of course, you shouldn’t be reading random entries from your queue or stack, should you?</p>
+<blockquote>
+<p>For what it’s worth, Python <code>list</code> objects are optimized for fast operations for fixed length instances–in other words, for accessing random entries from a fixed list. On the other hand, one incurs <code>O(n)</code> memory movement costs for adding to or removing items from the head of a <code>list</code> of size <code>n</code>, because these operations change both the size of the store and the position of the entries within the store. <code>collections.deque</code> claims to incur only <code>O(1)</code>, and <code>blist</code> only <code>O(log n)</code>, for both these operations. Appending to or deleting from the end of a <code>list</code> costs <code>O(1)</code>.</p>
+</blockquote>
+<p>Finally, why implement deques, queues and stacks here? Answer: it costs almost nothing, and the same vetting is equally worth having for those collections. Okay, but then why call them <code>vbdeque</code>, <code>vbqueue</code> and <code>vbstack</code>, not just <code>deque</code>, <code>queue</code>, and <code>stack</code>? Again a simple answer, but in two parts: 1) it makes it easier to use these classes in an application together with other implementations of the same data structures that have different virtues, and 2) there is nothing to stop you from executing</p>
+<blockquote><pre class="exampleCode">
+
+        from blist import vbstack as stack
+
+</pre></blockquote>
+
+<p>if you really want your code to say “<code>stack</code>”.</p>
+<h3 id="vblist_con">The constructor <code>vblist(iterable=[], maxsize=sys.maxsize, vet=None)</code></h3>
+<p>The constructor and the constructors for <code>vbdeque</code>, <code>vbqueue</code> and <code>vbstack</code> all have three arguments:</p>
+<blockquote>
+<p><strong><code>iterable</code></strong> is a set of initial values to enter into the list in the order they are returned by <code>iterable</code>. The default for <code>iterable</code> is an empty list.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>maxsize</code></strong> is an integer that is the maximum number of entries in the list at at any one time. The default for <code>maxsize</code> is the system-wide, run-time imposed limit, from the Standard Library’s <a href="https://docs.python.org/3/library/sys.html"><code>sys</code> module</a>, on how large a collection may be, which effectively means “no limit”. You can impose a limit, but you need not. The value is assigned to the public instance attribute “<code>maxsize</code>”, which is read-write within the limitation described earlier: you can decrease it, but not increase it.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>vet</code></strong> is a function that vets data before it is actually added to the list, as described earlier. This function is assigned to the public instance attribute “<code>.vet</code>”, which is read-write and may be re-assigned at your convenience, although that is probably a bad thing to do, except in very special circumstances.</p>
+</blockquote>
+<p>There is only one other public non-method instance attribute: <strong>“<code>size</code>”</strong>. which is the number of entries currently in the list, and is read-only.</p>
+<h3 id="a-word-about-debugging-and-some-examples">A word about debugging and some examples:</h3>
+<p>This code can make use of the <a href="dbg.html"><code>dbg</code> module</a> to produce debugging output. The interface <a href="idbg.html">“<code>DbgClient</code>”</a> is a base class for the various collection classes here. The file <a href="examples/vblist.test.py">examples/vblist.test.py</a> contains code that uses <code>dbg</code>’s debug manager. It also has some examples of vetting and of using this class as the target of a delegator to handle buffer overflows.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> BufferSizeError(<span class="ot">Exception</span>):
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, victim):
+      msg = <span class="st">&quot;size limit </span><span class="ot">{0}</span><span class="st"> for this </span><span class="ot">{1}</span><span class="st"> exceeded&quot;</span>
+      <span class="dt">super</span>().<span class="ot">__init__</span>(msg.<span class="dt">format</span>(victim.maxsize, victim.__class__.<span class="ot">__name__</span>))
+
+<span class="kw">class</span> _sizeProperty(<span class="dt">object</span>):
+   <span class="co">&quot;&quot;&quot; read-only access to the current vblist size &quot;&quot;&quot;</span>
+   <span class="kw">def</span> <span class="ot">__get__</span>(<span class="ot">self</span>, obj, objtype):
+      <span class="kw">return</span> <span class="dt">len</span>(obj)
+   <span class="kw">def</span> <span class="ot">__set__</span>(<span class="ot">self</span>, obj, val):
+      <span class="ot">self</span>.raise_error(<span class="ot">AttributeError</span>(<span class="st">&quot;The vblist's current size is a read-only attribute&quot;</span>))
+
+<span class="kw">class</span> _sizelimitProperty(<span class="dt">object</span>):
+   <span class="co">&quot;&quot;&quot;  the maximum vblist size can be decreased, but not increased. &quot;&quot;&quot;</span>
+   limits = {}
+   <span class="kw">def</span> <span class="ot">__get__</span>(<span class="ot">self</span>, obj, objtype):
+      theId = <span class="dt">id</span>(obj)
+      <span class="kw">return</span> <span class="ot">self</span>.limits[theId] <span class="kw">if</span> theId in <span class="ot">self</span>.limits <span class="kw">else</span> sys.maxsize
+   <span class="kw">def</span> <span class="ot">__set__</span>(<span class="ot">self</span>, obj, val):
+      <span class="co">&quot;&quot;&quot; I only track those vblists whose length is constrained &quot;&quot;&quot;</span>
+      theId = <span class="dt">id</span>(obj)
+      val = <span class="dt">int</span>(val) <span class="kw">if</span> val != <span class="ot">None</span> <span class="kw">else</span> sys.maxsize
+      <span class="kw">if</span> theId not in <span class="ot">self</span>.limits:
+         <span class="kw">if</span> val &lt; sys.maxsize:
+            <span class="ot">self</span>.limits[theId] = val 
+      <span class="kw">else</span>:
+         <span class="kw">if</span> val &lt;= <span class="ot">self</span>.limits[theId]:
+            <span class="kw">if</span> val &lt; obj.size:
+               msg = <span class="st">&quot;New size limit, {}, less than the current size, {}&quot;</span>
+               <span class="ot">self</span>.raise_error(<span class="ot">ValueError</span>(msg.<span class="dt">format</span>(val, obj.size)))
+            <span class="ot">self</span>.limits[theId] = val
+         <span class="kw">else</span>:
+            before = <span class="ot">self</span>.limits[theId]
+            msg = <span class="st">&quot;You cannot increase the size limit {} to {}&quot;</span>
+            <span class="ot">self</span>.raise_error(<span class="ot">ValueError</span>(msg.<span class="dt">format</span>(before, val)))
+</code></pre>
+<h2 id="shared_methods">Some shared instance methods</h2>
+<h3 id="some-magic-methods">Some magic methods</h3>
+<p>I need to override the methods for <code>+</code> and <code>+=</code> from their <code>blist</code> originals in order to make sure that vetting makes sense–and to say what limit, if any, is to be put on the size of the sum. The “in-place add” is the easier of the two: <code>a+=b</code> means the same thing as adding every item in <code>b</code> to <code>a</code>. The sum <code>a+b</code> is more subtle. I take the easy way out: I make a copy of <code>a</code> with no size restriction in the copy, vet the items in <code>b</code> using <code>a</code>’s vetter if need be, and then jam all the vetted items into the copy.</p>
+<h4 id="add__other"><code>__add__(other)</code></h4>
+<p>forms an instance of the invoker’s class <em>with no size limit</em> and the same collection as the invoker. I then use this copy of the invoker to call the <code>add_all</code> method to add in whatever items are in <code>other</code>. The return value is updated copy.</p>
+<h4 id="iadd__other"><code>__iadd__(other)</code></h4>
+<p>is an update add: one just uses the invoker to call <code>add_all</code> to add in whatever items are in <code>other</code>. The return value is the invoker.</p>
+<h4 id="radd__other"><code>__radd__(other)</code></h4>
+<p>is the same as “<code>other.__add__(self)</code>”. Nota bene: it is <code>other</code>’s add method that gets called, so the return value’s type depends on <code>other</code>’s type, and only minimally, if at all, on <code>self</code>’s.</p>
+<h4 id="copy__"><code>__copy__()</code></h4>
+<p>This is a little delicate. The copy module’s <a href="https://docs.python.org/3.5/library/copy.html"><code>copy()</code> method</a> creates a shallow copy by calling the source’s <code>__copy()__</code> method, if it has one. In order to make sure that I am consistent with that code, I provided that “magic method” here.</p>
+<p><strong>BEWARE!</strong> <code>__copy__()</code> copies the entries from <code>self</code> into the new copy without vetting them a second time, so if you have extended this class in a way that vetting has side effects on the class or on the particular instance, you should override <code>__copy__()</code>.</p>
+<p>I did not worry about deep copies, so I am not sure if there is any problem in implementing it to work with the <code>copy</code> module’s method. It may require nothing at all…I just did not care.</p>
+<h4 id="eq__other"><code>__eq__(other)</code></h4>
+<h4 id="ne__other"><code>__ne__(other)</code></h4>
+<p><code>__eq__</code> checks that the invoker and <code>other</code> have the same vetter and the same size limit, in addition to checking that as instances of the invoker’s superclass they are <code>__eq__</code>. <code>__ne__</code> is just “<code>not __eq__</code>”</p>
+<p><code>blist</code> implements the magic methods for comparing a <code>blist</code> with another iterable. I need to override the equality test here to enforce that the vetting be the same, and the maximum size. The <code>blist</code> API is such that <code>blist([1,2])</code> <code>==</code> <code>[1,2]</code> is <code>True</code>, but that won’t do for <code>vblist</code>s. I want to guarantee that <code>a==b</code> means that you can substitute <code>b</code> for <code>a</code> in <em>any</em> expression that depends only on <code>a</code>’s API as <code>vblist</code>, and not on <code>a</code>’s identity as an object. The vetting and size constraints for a <code>vblist</code> are part of its API and hence must be taken into account.</p>
+<p>As for the containment comparisons (“<code>&lt;</code>”, <em>etc.</em>), no override is necessary, because they only are concerned with what entries appear in the two collections, <em>and not with the order in which those entries appear.</em> One could do otherwise, but that would be dangerous, since Python’s <code>list</code> behaves the same way <code>blist</code> does. One could also implement <code>begins_with</code> and <code>contains</code> methods that implement “is a sublist” rather than “is a subset”. I haven’t, because I haven’t been convinced of the need.</p>
+<blockquote>
+<p>Be careful: <code>a&gt;=b</code> does <em>not</em> mean “<code>a&gt;b</code> <code>or</code> <code>a==b</code>” for <code>list</code>s, <code>blist</code>s, or <code>vblist</code>s. Try executing “<code>blist([1,2])</code> <code>==</code> <code>[2,1]</code>” and “<code>blist([1,2])</code> <code>&lt;=</code> <code>[2,1]</code>”.</p>
+</blockquote>
+<h4 id="repr__"><code>__repr__</code></h4>
+<p>This method just replaces the superclass name at the beginning of its return value with the name of the class of the invoking object.</p>
+<h4 id="mul__k"><code>__mul__(k)</code></h4>
+<p><code>k</code> must an <code>int</code>. A new instance of the invoker’s class is created with no size limit, but the same vetter. The instance will contain <code>k</code> copies of invoker’s collection.</p>
+<h4 id="imul__other"><code>__imul__(other)</code></h4>
+<p>is an update multiply, so it will only happen if the invoker’s size limit allows it. Again, <code>k</code> is an integer and the effect is to add the original collection of the invoker into itself <code>k-1</code> times. The return value is the invoker.</p>
+<h4 id="rmul__k"><code>__rmul__(k)</code></h4>
+<p>is the same as “<code>self.__mul__(k)</code>”. Multiplication is commutative here!</p>
+<h3 id="read-access-getting-entries-and-slices">Read access: getting entries and slices</h3>
+<h4 id="copy"><code>copy()</code></h4>
+<p>is a synonym for <code>__copy__</code>. I have exposed the magic method as the public method <code>copy()</code>, so that you do not have to import the <code>copy</code> module if you don’t mind using “<code>stuff.copy()</code>” rather than “<code>copy(stuff)</code>”.</p>
+<h4 id="findwhat"><code>find(what)</code></h4>
+<p>traverses the list to find an entry <code>item</code> satisfying “<code>item == what</code>” and returns that index. If no such entry is not found, -1 is returned. <em>Cf.</em> <a href="http://stutzbachenterprises.com/blist/"><code>blist.index</code></a></p>
+<h4 id="head_or_tail"><code>head(howMany=None)</code> and <code>tail(howMany=None)</code></h4>
+<p>retrieve, but do not remove, entries from the beginning (<code>head</code>) or end (<code>tail</code>) of the list. <code>howMany</code> must be either <code>None</code> or non-negative and at most the current list size. If it is <code>None</code>, the first (or last) entry in the queue is returned. If it is a non- negative integer, that many entries from the head (or tail) of the queue will be returned as a <code>blist</code>.</p>
+<h4 id="isavettedcollectionstuff"><code>isAVettedCollection(stuff)</code></h4>
+<p>is a static method that answers <code>True</code> if its argument is an instance of one of the vetted collection classes defined in this module, <code>False</code> otherwise.</p>
+<h4 id="isempty"><code>isEmpty()</code></h4>
+<p><code>q.isEmpty()</code> is just a synonym for <code>q.size is 0</code>.</p>
+<p>Slicing works as you think: <code>self[first:stop]</code> retrieves the slice, just as it would for a <code>list</code>.</p>
+<p>It is sometimes convenient to ask for a larger slice than is available, particular from the head or tail of a list, particularly when the list is being used as a queue or stack. That is the rationale for providing <code>peek()</code>:</p>
+<h4 id="peek"><code>peek(howMany=None, *, orElse=None)</code></h4>
+<p>retrieves, but does not remove, the first <code>howMany</code> entries from the head or the tail of the list. If <code>howMany</code> is positive, the items are from the head; otherwise they are from the tail This is intended to be consistent with Python’s conventions for the <code>[]</code> operator. If <code>howMany</code> is <code>None</code>, and the list is not empty, the first entry is returned; otherwise <code>orElse</code> is.</p>
+<p>If the list has fewer than <code>howMany</code> entries, the returned list is padded out with <code>orElse</code>s. The padding is at the end of the list, whether the head or tail was being looked at.</p>
+<h3 id="adding-one-or-more-items">Adding one or more items</h3>
+<p>Adding items is almost the same for all of the classes here, but removing items is not. So we share what we can! The major difference is that for lists, one adds at the end, but for sorted collections, one adds by inserting in the correct position. <code>blist</code> uses <code>extend</code> as the primitive for adding items from a collection at the end, and <code>update</code> for insertion into a sorted collection.</p>
+<h4 id="addwhat-dieonfailtrue"><code>add(what, *,dieOnFail=True)</code></h4>
+<p>adds the specified element to the end of the list, if it vets okay, and if it is possible to do so without violating capacity restrictions. <code>True</code> is returned upon success. Otherwise, if vetting fails, a <code>ValueError</code> is raised, and if there is no room at the inn, either an <code>IndexError</code> is raised or, if <code>dieOnFail</code> is <code>False</code>, <code>False</code> is returned.</p>
+<p>The reason for adding the <code>dieOnFail</code> argument is that multi-threaded code may inadvertently add to a full list and be willing to wait to try again later. The same leniency does <em>not</em> apply to vetting failures: if a piece of data is not okay to add, don’t add it, period!</p>
+<h4 id="add_alliterable-dieonfailtrue"><code>add_all(iterable, *, dieOnFail=True)</code></h4>
+<p>adds the items yielded by the literal into the invoker’s collection. If the iterable is a vetted collection (as implemented here), the superclass’s presumably faster multiple insertion call is used, if we can know a priori whether the final collection will satisfy the invoker’s size limit. Otherwise, we’re stuck vetting the collection and then doing the insertions.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> _sharedMethods:
+   <span class="kw">def</span> <span class="ot">__add__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.__class__(<span class="ot">self</span>, vet=<span class="ot">self</span>.vet).add_all(other)
+
+   <span class="kw">def</span> __copy__(<span class="ot">self</span>):
+       <span class="co"># do not vet the entries again: let vet be None initially</span>
+      newlist = <span class="ot">self</span>.__class__(<span class="ot">self</span>, maxsize=<span class="ot">self</span>.maxsize, vet=<span class="ot">None</span>)
+      newlist.vet = <span class="ot">self</span>.vet
+      <span class="kw">return</span> newlist
+      
+   <span class="kw">def</span> <span class="ot">__eq__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="dt">isinstance</span>(other, <span class="ot">self</span>.__class__)  and \
+      <span class="ot">self</span>.vet == other.vet and \
+      <span class="ot">self</span>.maxsize == other.maxsize and\
+      <span class="dt">super</span>().<span class="ot">__eq__</span>(other)
+
+   <span class="kw">def</span> <span class="ot">__iadd__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.add_all(other)
+
+   <span class="kw">def</span> <span class="ot">__imul__</span>(<span class="ot">self</span>, k):
+      original = <span class="ot">self</span>.__class__(<span class="ot">self</span>)
+      <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>,<span class="dt">int</span>(k)-<span class="dv">1</span>):
+         <span class="ot">self</span> += original
+
+   <span class="kw">def</span> <span class="ot">__mul__</span>(<span class="ot">self</span>, k):
+      answer = <span class="ot">self</span>.__class__(<span class="ot">self</span>)
+      <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>,<span class="dt">int</span>(k)-<span class="dv">1</span>):
+         answer += <span class="ot">self</span>
+      answer.vet = <span class="ot">self</span>.vet
+
+   <span class="kw">def</span> <span class="ot">__ne__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> not <span class="ot">self</span>.<span class="ot">__eq__</span>(other)
+
+   <span class="kw">def</span> <span class="ot">__radd__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> other.<span class="ot">__add__</span>(<span class="ot">self</span>)
+
+   <span class="kw">def</span> <span class="ot">__rmul__</span>(<span class="ot">self</span>, k):
+      <span class="kw">return</span> <span class="ot">self</span>.<span class="ot">__mul__</span>(k)
+
+   <span class="kw">def</span> <span class="ot">__repr__</span>(<span class="ot">self</span>):
+      <span class="co">#print(&quot;Ur class: {}&quot;.format(self.__class__))</span>
+      inherited = <span class="dt">super</span>().<span class="ot">__repr__</span>()
+      tail = inherited[inherited.find(<span class="st">'('</span>):]
+      <span class="kw">return</span> <span class="ot">self</span>.__class__.<span class="ot">__name__</span>+tail
+
+   <span class="kw">def</span> handle_overflow(<span class="ot">self</span>, dieOnFail):
+      <span class="kw">if</span> dieOnFail:
+         <span class="ot">self</span>.raise_error(BufferSizeError(<span class="ot">self</span>))
+      <span class="kw">else</span>:
+         msg = <span class="st">&quot;attempt to add to </span><span class="ot">{2}</span><span class="st"> failed for size </span><span class="ot">{0}</span><span class="st"> and bound </span><span class="ot">{1}</span><span class="st">&quot;</span>
+         <span class="ot">self</span>.issue_warning(msg.<span class="dt">format</span>(<span class="ot">self</span>.size, <span class="ot">self</span>.maxsize, su.a_classname(<span class="ot">self</span>)))
+         <span class="kw">return</span> <span class="ot">False</span>
+
+   <span class="kw">def</span> add_all(<span class="ot">self</span>, an_iterable,  *, dieOnFail=<span class="ot">True</span>):
+      <span class="kw">if</span> not _sharedMethods.isAVettedCollection(an_iterable) or (<span class="ot">self</span>.vet != an_iterable.vet):
+         an_iterable = [<span class="ot">self</span>.vet(item) <span class="kw">for</span> item in an_iterable]
+      <span class="kw">if</span> <span class="ot">self</span>.maxsize == sys.maxsize or <span class="ot">self</span>.size+<span class="dt">len</span>(an_iterable) &lt;= <span class="ot">self</span>.maxsize:
+         <span class="kw">if</span> <span class="dt">hasattr</span>(<span class="ot">self</span>, <span class="st">&quot;extend&quot;</span>):
+            <span class="dt">super</span>().extend(an_iterable) <span class="co"># for collections where &quot;add&quot; means &quot;add at end&quot;</span>
+         <span class="kw">else</span>:
+            <span class="kw">for</span> item in an_iterable: <span class="ot">self</span>.add(item)
+      <span class="kw">else</span>:
+         <span class="kw">for</span> item in an_iterable:
+            <span class="kw">if</span> not <span class="ot">self</span>.add(item, dieOnFail=dieOnFail): <span class="co"># fail on overflow?</span>
+               <span class="kw">break</span>
+      <span class="kw">return</span> <span class="ot">self</span>
+
+   <span class="kw">def</span> copy(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>.__copy__()
+
+   <span class="kw">def</span> find(<span class="ot">self</span>, what):
+      <span class="kw">try</span>:
+         <span class="kw">return</span> <span class="ot">self</span>.index(what)
+      <span class="kw">except</span>:
+         <span class="kw">return</span> -<span class="dv">1</span>
+
+   <span class="kw">def</span> head(<span class="ot">self</span>, howMany = <span class="ot">None</span>):
+      <span class="kw">if</span> howMany is <span class="ot">None</span>: <span class="co"># return the entry, not a list!! </span>
+         <span class="kw">return</span> <span class="ot">self</span>[<span class="dv">0</span>]
+      <span class="kw">if</span> howMany &gt; <span class="ot">self</span>.size:
+         msg = <span class="st">&quot;{} entries requested, but only {} available&quot;</span>
+         <span class="ot">self</span>.raise_error(<span class="ot">IndexError</span>(msg.<span class="dt">format</span>(howMany, <span class="ot">self</span>.size)))
+      <span class="kw">else</span>:
+         <span class="kw">return</span> <span class="ot">self</span>[<span class="dv">0</span>: howMany]
+
+   <span class="kw">def</span> isEmpty(<span class="ot">self</span>): <span class="kw">return</span> <span class="ot">self</span>.size is <span class="dv">0</span>
+
+   <span class="ot">@staticmethod</span>
+   <span class="kw">def</span> isAVettedCollection(stuff):
+      <span class="kw">return</span> <span class="dt">isinstance</span>(stuff, vblist) or <span class="dt">isinstance</span>(stuff, vbdeque) or \
+            <span class="dt">isinstance</span>(stuff, vsortedlist) or <span class="dt">isinstance</span>(stuff, vsortedset)
+
+   <span class="kw">def</span> peek(<span class="ot">self</span>, howMany = <span class="ot">None</span>, *, orElse = <span class="ot">None</span>, reverse=<span class="ot">True</span>):
+      <span class="kw">if</span> howMany is <span class="ot">None</span>:
+         <span class="kw">return</span> orElse <span class="kw">if</span> <span class="ot">self</span>.size == <span class="dv">0</span> <span class="kw">else</span> <span class="ot">self</span>[<span class="dv">0</span>]
+      <span class="kw">else</span>:
+         <span class="kw">if</span> howMany &gt; <span class="dv">0</span>: 
+            available = <span class="ot">self</span>.size <span class="kw">if</span> <span class="ot">self</span>.size &lt; howMany <span class="kw">else</span> howMany
+            values = <span class="ot">self</span>[<span class="dv">0</span> : available] 
+         <span class="kw">else</span>:
+            howMany = -howMany
+            available = <span class="ot">self</span>.size <span class="kw">if</span> <span class="ot">self</span>.size &lt; howMany <span class="kw">else</span> howMany
+            values = <span class="ot">self</span>[-available:]
+            <span class="kw">if</span> reverse: values.reverse()
+         leftToAdd = howMany - available
+         <span class="kw">return</span> values <span class="kw">if</span> leftToAdd is <span class="dv">0</span> <span class="kw">else</span> values + ([orElse]*leftToAdd)
+
+   <span class="kw">def</span> tail(<span class="ot">self</span>, howMany = <span class="ot">None</span>):
+      <span class="kw">if</span> howMany is <span class="ot">None</span>: <span class="co"># return the entry, not a list!! </span>
+         <span class="kw">return</span> <span class="ot">self</span>[-<span class="dv">1</span>]
+      <span class="kw">if</span> howMany &gt; <span class="ot">self</span>.size:
+         msg = <span class="st">&quot;{} entries requested, but only {} available&quot;</span>
+         <span class="ot">self</span>.raise_error(<span class="ot">IndexError</span>(msg.<span class="dt">format</span>(howMany, <span class="ot">self</span>.size)))
+      <span class="kw">else</span>:
+         <span class="kw">return</span> <span class="ot">self</span>[-howMany:]
+
+<span class="kw">class</span> vblist(_sharedMethods, blist, DbgClient):
+   size   = _sizeProperty()
+   maxsize = _sizelimitProperty()
+   <span class="co"># buffered debugging available, but left off for the moment:</span>
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, iterable=[], maxsize = sys.maxsize, vet=<span class="ot">None</span>):
+      blist.<span class="ot">__init__</span>(<span class="ot">self</span>, [])
+      <span class="co"># local public attributes:</span>
+      <span class="ot">self</span>.maxsize = maxsize
+      <span class="kw">if</span> vet is <span class="ot">None</span>: <span class="co"># don't waste time vetting the initial entries</span>
+         blist.extend(<span class="ot">self</span>, iterable)
+         <span class="ot">self</span>.vet = <span class="kw">lambda</span> data: data
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.vet = vet
+         <span class="kw">for</span> entry in iterable:
+            <span class="ot">self</span>.add(entry)
+</code></pre>
+<h2 id="the-vblist-instance-api">The <code>vblist</code> instance API</h2>
+<p>All methods for <code>blist</code> that are <em>not</em> overridden here are available, of course. As of this writing, the list includes <code>count</code>, <code>index</code>, <code>iter</code>, <code>remove</code>, and <code>sort</code>, as well as those <a href="magicmethods.pdf">“magic methods”</a>, like <code>__len__</code> that are not explicitly overridden here.</p>
+<h3 id="generic-methods">Generic methods</h3>
+<h4 id="concatentating-a-list-to-a-vblist">Concatentating a list to a <code>vblist</code></h4>
+<p>What follows are the methods that make a <code>vblist</code> a list. I have tried to keep the number of methods minimal.</p>
+<h3 id="write-access-adding-and-removing-entries">Write access: adding and removing entries</h3>
+<p>The whole <code>blist</code> set of methods is available to you. I have had to wrap the methods that add to the list to make sure that the size limit is enforced and that entries are vetted before insertion. In particular, this means that I have to override the <code>[]</code> operator when it is used to name an assignment target:</p>
+<blockquote>
+<p>“<code>self[first:stop] =</code> <code>iterable</code>” replaces the original slice with the items in the right- hand side, just as it would for a <code>blist</code>, except that, as I just said, the items inserted must be vetted, and the final list may not be longer than prescribed size limit. Inserting <code>k</code> items in a list of length <code>n</code> can cost <code>O(abs(k)*log(n))</code>, at least as implemented here, if the slice being inserted differs in size from the slice of “<code>self</code>”.</p>
+</blockquote>
+<h4 id="appendwhat"><code>append(what)</code></h4>
+<p>is a synonym for <code>add(what, dieOnFail=True)</code>.</p>
+<h4 id="extenditerable-dieonfailtrue"><code>extend(iterable, *, dieOnFail=True)</code></h4>
+<p>add all of the results of the iteration to the end of the list. Failures are handled just as they are for <code>add()</code>. This is here only to override the <code>blist</code> method of the same name. It is just the obvious <code>for</code> loop over the iterable, adding one item at a time. I need the override to make sure that vetting is done and that the list does not overflow.</p>
+<h4 id="insert"><code>insert(index, value, *, dieOnFail=True)</code></h4>
+<p>inserts <code>value</code>, after vetting it, into the list at index “<code>index</code>”. The normal return value is <code>True</code>. Vet failures raise a <code>ValueError</code>. If the list is full, and <code>dieOnFail</code> is <code>True</code>, a <code>BufferSizeError</code> is raised; otherwise the call fails and returns <code>False</code>. If <code>index</code> is <em>not</em> a valid index for the operation <code>self[index]</code>, an <code>IndexError</code> will be raised <em>regardless of the value of <code>dieOnFail</code>.</em></p>
+<h4 id="next_or_elseorelse-howmanynone"><code>next_or_else(orElse, howMany=None)</code>&gt;</h4>
+<p>If <code>howMany</code> is <code>None</code> and the list is not empty, the head is removed and returned. Otherwise <code>howMany</code> must be a non-zero integer, and the first <code>howMany</code> entries are removed from the head or tail of the list and returned as a <code>list</code>. If <code>howMany</code> is positive, the items are removed from the head, otherwise they are removed from the tail.</p>
+<p>If not enough values are available to fulfill the request, the keyword argument <code>orElse</code> comes into play. If <code>howMany</code> is <code>None</code>, <code>orElse</code> itself will be returned. Otherwise, <code>orElse</code> will be used to fill out the returned <code>list</code> to the desired length. The default value for <code>orElse</code> is <code>None</code>.</p>
+<h4 id="nexthowmanynone"><code>next(howMany=None)</code></code></h4>
+<p>The arguments have the same meanings as they do for <code>next_or_else</code>. The only difference is that if there are not enough entries in the list to satisfy the request, an <code>IndexError</code> is raised.</p>
+<h4 id="prependiterable-dieonfailtrue"><code>prepend(iterable, *, dieOnFail=True)</code></h4>
+<p>adds all of the results of the iteration to the end of the list. Failures are handled just as they are for <code>add()</code>. The effect is to concatenate the list implied by <code>iterable</code> and <code>self</code>’s list. In particular, the entries from the iterable appear in the same order in the result as they do when traversing <code>iterable</code>. There is no value returned.</p>
+<h4 id="pushitem"><code>push(item)</code></h4>
+<p>appends the item to the list. If the append succeeds, <code>True</code> is returned, otherwise <code>False</code>.</p>
+<h4 id="replace"><code>replace(indexOrRange, iterable, dieOnFail=True)</code></h4>
+<p>“<code>indexOrRange</code>” is either an index or a range that has step 1 (that is, a range whose start less than its stop and that covers a whole (possibly empty) interval of indices). The call removes the item at the index, or all items in the index range, and then inserts in their place all the items in the iterable. Nota bene: <code>insert</code> inserts single value, <code>replace</code> inserts an iterable. If the range is empty, the effect is to insert the entries from the iterable at the start of the range.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> <span class="ot">__setitem__</span>(<span class="ot">self</span>, which_indices, data):
+      <span class="kw">if</span> <span class="dt">isinstance</span>(which_indices, <span class="dt">int</span>):
+         added = <span class="ot">self</span>.vet(data)
+         <span class="kw">if</span> which_indices &gt;= <span class="dv">0</span>:
+            <span class="kw">if</span> which_indices &lt; <span class="ot">self</span>.size:
+               blist.<span class="ot">__setitem__</span>(<span class="ot">self</span>, which_indices, added)
+               <span class="kw">return</span>
+         <span class="kw">elif</span> which_indices &gt;= -<span class="ot">self</span>.size:
+               blist.<span class="ot">__setitem__</span>(<span class="ot">self</span>, which_indices, added)
+               <span class="kw">return</span>
+         <span class="kw">else</span>:
+            msg = <span class="st">&quot;index </span><span class="ot">{0}</span><span class="st"> is not in range(-</span><span class="ot">{1}</span><span class="st">,</span><span class="ot">{1}</span><span class="st">), as required.&quot;</span>
+            <span class="ot">self</span>.raise_error(<span class="ot">IndexError</span>(msg.<span class="dt">format</span>(which_indices, <span class="ot">self</span>.size)))
+      <span class="kw">elif</span> <span class="dt">isinstance</span>(which_indices, <span class="dt">slice</span>):
+         <span class="ot">self</span>.dbg_write(<span class="st">&quot;get [</span><span class="ot">{0}</span><span class="st">] slice&quot;</span>.<span class="dt">format</span>(which_indices))
+         the_range = su.slice2range(which_indices, <span class="dt">max</span>=<span class="ot">self</span>.size)
+      <span class="kw">elif</span> <span class="dt">isinstance</span>(which_indices, <span class="dt">range</span>):
+         the_range = which_indices
+      <span class="kw">else</span>:
+         template = <span class="st">&quot;</span><span class="ot">{0}</span><span class="st"> cannot be used to index </span><span class="ot">{1}</span><span class="st">&quot;</span>
+         msg = template.<span class="dt">format</span>(su.a_classname(which_indices), su.a_classname(<span class="ot">self</span>))
+         <span class="ot">self</span>.raise_error(<span class="ot">TypeError</span>(msg))
+      <span class="kw">if</span> the_range.start &lt; <span class="dv">0</span> or the_range.stop &gt; <span class="ot">self</span>.size:
+         msg = <span class="st">&quot;{} is not a subrange of range(0,{}), as required&quot;</span>
+         <span class="ot">self</span>.raise_error(<span class="ot">IndexError</span>(msg.<span class="dt">format</span>(the_range, <span class="ot">self</span>.size)))
+      <span class="kw">if</span> <span class="dt">len</span>(<span class="dt">range</span>) &gt;= <span class="dt">len</span>(entries):
+         <span class="co"># possibly shrink the list, but first overwrite what is there</span>
+         next_in = <span class="dt">range</span>.start
+         <span class="kw">for</span> entry in entries:
+            <span class="ot">self</span>[next_in] = entry
+            next_in += <span class="dv">1</span>
+         <span class="kw">if</span> next_in &lt; <span class="dt">range</span>.stop:
+            <span class="kw">del</span> <span class="ot">self</span>[next_in:<span class="dt">range</span>.stop]
+      <span class="kw">else</span>: 
+         <span class="co"># need to expand the list, so just blow away self[slice] and insert data</span>
+         <span class="co"># in its place</span>
+         <span class="kw">del</span> <span class="ot">self</span>[the_range]
+         next_in = the_range.start
+         <span class="kw">for</span> entry in entries:
+            <span class="ot">self</span>.insert(next_in, entry)
+            next_in += <span class="dv">1</span>
+
+   <span class="kw">def</span> add(<span class="ot">self</span>, what, *, dieOnFail=<span class="ot">True</span>):
+      what = <span class="ot">self</span>.vet(what)
+      <span class="kw">if</span> <span class="ot">self</span>.size &lt; <span class="ot">self</span>.maxsize:
+         <span class="dt">super</span>().append(what)
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">else</span>:
+         <span class="kw">return</span> <span class="ot">self</span>.handle_overflow(dieOnFail)
+
+   <span class="kw">def</span> add_all(<span class="ot">self</span>, an_iterable,  *, dieOnFail=<span class="ot">True</span>):
+      <span class="kw">if</span> not _sharedMethods.isAVettedCollection(an_iterable) or (<span class="ot">self</span>.vet != an_iterable.vet):
+         an_iterable = [<span class="ot">self</span>.vet(item) <span class="kw">for</span> item in an_iterable]
+      <span class="kw">if</span> <span class="ot">self</span>.size+<span class="dt">len</span>(an_iterable) &lt;= <span class="ot">self</span>.maxsize:
+         <span class="dt">super</span>().extend(an_iterable) 
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.handle_overflow(dieOnFail)
+      <span class="kw">return</span> <span class="ot">self</span>
+
+   <span class="kw">def</span> add_first(<span class="ot">self</span>, what, *, dieOnFail=<span class="ot">True</span>):
+      <span class="kw">if</span> <span class="ot">self</span>.size &lt; <span class="ot">self</span>.maxsize:
+         <span class="dt">super</span>().insert(<span class="dv">0</span>, what)
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.handle_overflow(dieOnFail)
+      <span class="kw">return</span> <span class="ot">False</span>
+
+   <span class="kw">def</span> append(<span class="ot">self</span>, what):
+      <span class="kw">return</span> <span class="ot">self</span>.add(what)
+
+   <span class="kw">def</span> extend(<span class="ot">self</span>, iterable, dieOnFail=<span class="ot">True</span>):
+      <span class="kw">return</span> <span class="ot">self</span>.add_all(iterable, dieOnFail=dieOnFail)
+
+   <span class="kw">def</span> insert(<span class="ot">self</span>, where, what, dieOnFail=<span class="ot">True</span>):
+      what = <span class="ot">self</span>.vet(what)
+      <span class="kw">if</span> <span class="ot">self</span>.size &lt; <span class="ot">self</span>.maxsize:
+         blist.insert(<span class="ot">self</span>, where, what)
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">else</span>:
+         template = <span class="st">&quot;Attempt to insert into a full {}, size {}&quot;</span>
+         msg = template.<span class="dt">format</span>(<span class="ot">self</span>.__class__.__name, <span class="ot">self</span>.size)
+         <span class="kw">if</span> dieOnFail:
+            <span class="ot">self</span>.raise_error(BufferSizeError(msg))
+         <span class="kw">else</span>:
+            <span class="ot">self</span>.dbg_write(msg)
+            <span class="kw">return</span> <span class="ot">False</span>
+
+   <span class="kw">def</span> <span class="dt">next</span>(<span class="ot">self</span>, howMany=<span class="ot">None</span>):
+      <span class="kw">if</span> howMany is <span class="ot">None</span>:
+         <span class="kw">if</span> <span class="ot">self</span>.size &gt; <span class="dv">0</span>:
+            answer = <span class="ot">self</span>[<span class="dv">0</span>]
+            <span class="kw">del</span> <span class="ot">self</span>[<span class="dv">0</span>]
+            <span class="kw">return</span> answer
+         <span class="kw">else</span>:
+            msg = <span class="st">&quot;Request for next from an empty &quot;</span>+<span class="ot">self</span>.__class__.<span class="ot">__name__</span>
+            <span class="ot">self</span>.raise_error(<span class="ot">IndexError</span>(msg))
+      <span class="kw">elif</span> howMany &gt; <span class="dv">0</span> and howMany &lt;= <span class="ot">self</span>.size:
+         answer = <span class="ot">self</span>[<span class="dv">0</span>:howMany]
+         <span class="kw">del</span> <span class="ot">self</span>[<span class="dv">0</span>:howMany]
+         <span class="kw">return</span> answer
+      <span class="kw">elif</span> howMany &lt; <span class="dv">0</span> and (-howMany) &lt;= <span class="ot">self</span>.size:
+         answer = <span class="ot">self</span>[-howMany:]
+         <span class="kw">del</span> <span class="ot">self</span>[-howMany:]
+         <span class="kw">return</span> answer
+      <span class="kw">else</span>:
+         msg = <span class="st">&quot;</span><span class="ot">{0}</span><span class="st"> entries requested, only </span><span class="ot">{1}</span><span class="st"> available&quot;</span>
+         <span class="ot">self</span>.raise_error(<span class="ot">IndexError</span>(msg.<span class="dt">format</span>(<span class="dt">abs</span>(howMany), <span class="ot">self</span>._count_)))
+
+   <span class="kw">def</span> next_or_else(<span class="ot">self</span>, howMany=<span class="ot">None</span>, orElse=<span class="ot">None</span>):
+      <span class="kw">if</span> howMany is <span class="ot">None</span>:
+         <span class="kw">try</span>:
+            <span class="kw">return</span> <span class="ot">self</span>.<span class="dt">next</span>()
+         <span class="kw">except</span> <span class="ot">IndexError</span>:
+            <span class="kw">return</span> orElse
+      <span class="kw">elif</span> <span class="dt">abs</span>(howMany) &lt;= <span class="ot">self</span>.size:
+         <span class="kw">return</span> <span class="ot">self</span>.<span class="dt">next</span>(howMany)
+      <span class="kw">else</span>:
+         fromList = <span class="ot">self</span>.<span class="dt">next</span>(howMany=<span class="ot">self</span>.size)
+         need = <span class="dt">abs</span>(howMany) - <span class="ot">self</span>.size
+         <span class="kw">return</span> fromList + ([orElse]*need)
+
+   <span class="kw">def</span> prepend(<span class="ot">self</span>, iterable):
+      added = <span class="dt">list</span>(iterable)
+      added.reverse()
+      <span class="kw">for</span> x in added:
+         <span class="ot">self</span>.add_first(x)
+
+   <span class="kw">def</span> push(<span class="ot">self</span>, what):
+      <span class="kw">return</span> <span class="ot">self</span>.add(what, dieOnFail=<span class="ot">False</span>)
+
+   <span class="kw">def</span> replace(<span class="ot">self</span>, indexOrRange, iterable, dieOnFail=<span class="ot">True</span>):
+      <span class="kw">if</span> <span class="dt">isinstance</span>(indexOrRange, <span class="dt">int</span>):
+         insertionpoint = indexOrRange
+         <span class="kw">del</span> <span class="ot">self</span>[insertionpoint]
+      <span class="kw">else</span>:
+         <span class="kw">if</span> indexOrRange.step != <span class="dv">1</span>:
+            <span class="ot">self</span>.raise_error(<span class="ot">ValueError</span>(<span class="st">&quot;expected a range with step 1, not {}&quot;</span>, indexOrRange.step))
+         insertionpoint = indexOrRange.start
+         <span class="kw">del</span> <span class="ot">self</span>[insertionpoint: indexOrRange.stop]
+      <span class="kw">for</span> v in iterable:
+         <span class="ot">self</span>.insert(v, insertionpoint)
+         insertionpoint += <span class="dv">1</span>
+
+vblist.configure_debugging(<span class="st">&quot;vblist&quot;</span>) 
+</code></pre>
+<h2 id="the-vbdeque-class">The <code>vbdeque</code> class</h2>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> vbdeque(vblist):
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, iterable=[], maxsize = sys.maxsize, vet = <span class="ot">None</span>):
+      <span class="dt">super</span>().<span class="ot">__init__</span>(iterable, maxsize, vet)
+</code></pre>
+<p>The <code>vbdeque</code> class is a constrained extension of <code>vblist</code> whose API is limited to safe deque operations.</p>
+<h3 id="vbdequeiterable-maxsize-sys.maxsize-vetnone"><code>vbdeque(iterable=[], maxsize = sys.maxsize, vet=None)</code></h3>
+<p>The constructor takes the same arguments as the generic <code>vblist</code>. <code>maxsize</code> is maximum number of entries the <code>vbdeque</code> may contain, <code>vet</code> is the function that is applied to each value inserted, and <code>iterable</code> is used to populate the new deque: its entries are added in the order given by traversing the iterable.</p>
+<p>The public non-method instance attributes of a <code>vbdeque</code> are also the same as those for a <code>vblist</code>. <code>size</code> is the number of entries and is read-only. The other two are just the saved values of the constructor’s arguments: <code>maxsize</code> and <code>vet</code>.</p>
+<p>All methods for <code>vblist</code> that are <em>not</em> overridden here are available, of course.</p>
+<p>The square-bracket operator, <code>[]</code>, is restricted here to being read-only. The only modifications permitted to a deque are adding and removing entries from its beginning and its end.</p>
+<h3 id="forbidden-fruit">Forbidden fruit</h3>
+<p>The following methods from <code>vblist</code>’s API are forbidden:</p>
+<h4 id="insertindex-what"><code>insert(index, what)</code></h4>
+<p>For <code>blists</code>, this call inserts <code>what</code> at index <code>index</code>, after shifting the trailing entries over to make room. Deques are not lists, and there is no reason to support random insertions into a deque. Indeed, the whole point of a deque is that stuff enters and leaves only from its beginning or its end.</p>
+<h4 id="remove"><code>remove()</code></h4>
+<p>Random deletions from a deque, like random insertions, are <em>not</em> permitted.</p>
+<h4 id="reverse"><code>reverse()</code></h4>
+<p>If someone comes up with a convincing example of the need to reverse the entries in a deque, I’ll listen, but until then: forbidden.</p>
+<h4 id="sort"><code>sort()</code></h4>
+<p>The same argument goes for <code>sort</code> as for <code>reverse</code>. If you really, really need this, and don’t insist on the sort (or the reverse) being done in place, it is not that hard to implement. Let <code>q</code> be a <code>vbdeque</code>:</p>
+<pre class="exampleCode">
+
+sorted = list(q)
+sorted.sort() # sort() returns no value
+result = vbdeque(sorted, q.maxsize, q.vet)
+
+</pre>
+
+
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> _forbid(<span class="ot">self</span>, msg):
+      <span class="ot">self</span>.raise_error(su.IllegalOpError(msg.<span class="dt">format</span>(<span class="ot">self</span>.__class__.<span class="ot">__name__</span>)))
+
+   <span class="kw">def</span> insert(<span class="ot">self</span>, index, <span class="dt">object</span>):
+      <span class="ot">self</span>._forbid(<span class="st">&quot;Random insertion into a {} is not supported&quot;</span>)
+      
+   <span class="kw">def</span> remove(<span class="ot">self</span>, value):
+      <span class="ot">self</span>._forbid(<span class="st">&quot;Random removal from a {} is not supported.&quot;</span>)
+
+   <span class="kw">def</span> reverse(<span class="ot">self</span>):
+      <span class="ot">self</span>._forbid(<span class="st">&quot;Reversing a {} is not supported&quot;</span>)
+
+   <span class="kw">def</span> sort(<span class="ot">self</span>):
+      <span class="ot">self</span>.forbid(<span class="st">&quot;Sorting a {} is not supported&quot;</span>)
+
+   <span class="kw">def</span> <span class="ot">__setitem__</span>(<span class="ot">self</span>, index, value):
+      <span class="ot">self</span>._forbid(<span class="st">&quot;{} indexing is only for read access&quot;</span>)
+
+   <span class="kw">def</span> <span class="ot">__delitem__</span>(<span class="ot">self</span>, index):
+      <span class="kw">if</span> <span class="dt">isinstance</span>(index, <span class="dt">int</span>):
+         <span class="kw">if</span> index in (<span class="dv">0</span>, -<span class="dv">1</span>, <span class="ot">self</span>.size<span class="dv">-1</span>):
+            <span class="dt">super</span>().<span class="ot">__delitem__</span>(index)
+            <span class="kw">return</span>
+         <span class="kw">else</span>:
+            <span class="ot">self</span>._forbid(<span class="st">&quot;Deletion from the middle of a {} is not supported&quot;</span>)
+      <span class="kw">elif</span> <span class="dt">isinstance</span>(index, <span class="dt">slice</span>):
+         <span class="ot">self</span>.dbg_write(<span class="st">&quot;get [</span><span class="ot">{0}</span><span class="st">] slice&quot;</span>.<span class="dt">format</span>(index))
+         the_range = su.slice2range(index, <span class="dt">max</span>=<span class="ot">self</span>.size)
+      <span class="kw">elif</span> <span class="dt">isinstance</span>(index, <span class="dt">range</span>):
+         the_range = index
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.raise_error(<span class="ot">TypeError</span>(<span class="st">&quot;Illegal type for 'index': {}&quot;</span>.<span class="dt">format</span>(<span class="dt">type</span>(index))))
+      <span class="kw">if</span> the_range.start == <span class="dv">0</span> or the_range.stop == <span class="ot">self</span>.size:
+         <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, <span class="dt">len</span>(the_range)): blist.<span class="ot">__delitem__</span>(<span class="ot">self</span>, the_range.start)
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.forbid(<span class="st">&quot;Deletion from the middle of a {} is not supported&quot;</span>)
+</code></pre>
+<h2 id="the-vbqueue-class">The <code>vbqueue</code> class</h2>
+<p>The <code>vbqueue</code> class is a constrained extension of <code>vbdeque</code> whose API is limited to safe queue operations.</p>
+<h3 id="the-constructor-vbqueueiterable-maxsize-vet">The constructor <code>vbqueue(iterable, maxsize, vet)</code></h3>
+<p>The constructor takes the same arguments as the generic <code>vblist</code>. <code>maxsize</code> is maximum number of entries the <code>vbqueue</code> may contain, <code>vet</code> is the function that is applied to each value inserted, and <code>iterable</code> is used to populate the new deque: its entries are added in the order given by traversing the iterable.</p>
+<p>The public non-method instance attributes of a <code>vbqueue</code> are also the same as those for a <code>vblist</code>. <code>size</code> is the number of entries and is read-only. The other two are just the saved values of the constructor’s arguments: <code>maxsize</code> and <code>vet</code>.</p>
+<h3 id="forbidden-fruit-1">Forbidden Fruit</h3>
+<h4 id="add_firstwhat-and-prependiterabledieonfail"><code>add_first(what)</code> and <code>prepend(iterable,*,dieOnFail)</code></h4>
+<p>Items are added to a queue only at its end.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> vbqueue(vbdeque):
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, iterable=[], maxsize = sys.maxsize, vet=<span class="ot">None</span>):
+      <span class="dt">super</span>().<span class="ot">__init__</span>(iterable, maxsize, vet)
+
+   <span class="kw">def</span> add_first(<span class="ot">self</span>, what):
+      <span class="ot">self</span>._forbid(<span class="st">&quot;A {} only grows from at its end&quot;</span>)
+
+   <span class="kw">def</span> prepend(<span class="ot">self</span>, iterable, *, dieOnFail=<span class="ot">True</span>):
+      <span class="ot">self</span>._forbid(<span class="st">&quot;A {} only grows from at its end&quot;</span>)
+</code></pre>
+<h3 id="write-access-adding-and-removing-entries-1">Write access: adding and removing entries</h3>
+<h4 id="next_or_elseorelse-howmanynone-1"><code>next_or_else(orElse, howMany=None)</code></h4>
+<p>If <code>howMany</code> is <code>None</code> and the queue is not empty, the head is removed and returned. Otherwise <code>howMany</code> must be a non-negative integer, and the first <code>howMany</code> entries are removed from the queue and returned as a list with the same ordering as the queue.</p>
+<p>If not enough values are available to fulfill the request, the keyword argument <code>orElse</code> comes into play. If <code>howMany</code> is <code>None</code>, <code>orElse</code> itself will be returned. Otherwise, <code>orElse</code> will be used to fill out the returned <code>list</code> to the desired length. The default value for <code>orElse</code> is <code>None</code>.</p>
+<h4 id="nexthowmanynone-1"><code>next(howMany=None)</code></h4>
+<p>is the same as <code>next_or_else</code>, but if <code>howMany</code> is greater than the queue size, or the queue is empty and <code>howMany</code> is <code>None</code>, an <code>IndexError</code> is raised.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> <span class="ot">__delitem__</span>(<span class="ot">self</span>, index):
+      <span class="kw">if</span> <span class="dt">isinstance</span>(index, <span class="dt">int</span>):
+         <span class="kw">if</span> index == <span class="dv">0</span>:
+            <span class="dt">super</span>().<span class="ot">__delitem__</span>(index)
+            <span class="kw">return</span>
+         <span class="kw">else</span>:
+            <span class="ot">self</span>._forbid(<span class="st">&quot;Only deletion at the start of a {} is supported&quot;</span>)
+      <span class="kw">elif</span> <span class="dt">isinstance</span>(index, <span class="dt">slice</span>):
+         <span class="ot">self</span>.dbg_write(<span class="st">&quot;get [</span><span class="ot">{0}</span><span class="st">] slice&quot;</span>.<span class="dt">format</span>(index))
+         the_range = su.slice2range(index, <span class="dt">max</span>=<span class="ot">self</span>.size)
+      <span class="kw">elif</span> <span class="dt">isinstance</span>(index, <span class="dt">range</span>):
+         the_range = index
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.raise_error(<span class="ot">TypeError</span>(<span class="st">&quot;Illegal type for 'index': {}&quot;</span>.<span class="dt">format</span>(<span class="dt">type</span>(index))))
+      <span class="kw">if</span> the_range.start == <span class="dv">0</span>:
+         <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, <span class="dt">len</span>(the_range)): blist.<span class="ot">__delitem__</span>(<span class="ot">self</span>, the_range.start)
+      <span class="kw">else</span>:
+         msg = <span class="st">&quot;Deletion from the middle of {} is not supported&quot;</span>
+         <span class="ot">self</span>.forbid(msg.<span class="dt">format</span>(su.a_classname(<span class="ot">self</span>)))
+
+   <span class="kw">def</span> next_or_else(<span class="ot">self</span>, howMany=<span class="ot">None</span>, orElse=<span class="ot">None</span>):
+      <span class="kw">if</span> howMany is <span class="ot">None</span> or howMany &gt;= <span class="dv">0</span>:
+         <span class="kw">return</span> <span class="dt">super</span>().next_or_else(howMany=howMany, orElse=orElse)
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.raise_error(<span class="ot">ValueError</span>(<span class="st">&quot;Illegal 'next' count, {}&quot;</span>.<span class="dt">format</span>(howMany)))
+
+   <span class="kw">def</span> <span class="dt">next</span>(<span class="ot">self</span>, howMany=<span class="ot">None</span>):
+      <span class="kw">if</span> howMany is <span class="ot">None</span> or howMany &gt;= <span class="dv">0</span>:
+         <span class="kw">return</span> <span class="dt">super</span>().<span class="dt">next</span>(howMany)
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.raise_error(<span class="ot">ValueError</span>(<span class="st">&quot;Illegal 'next' count, {}&quot;</span>.<span class="dt">format</span>(howMany)))
+
+</code></pre>
+<h2 id="the-vbstack-class">The <code>vbstack</code> class</h2>
+<p>The <code>vbstack</code> class is a constrained extension of <code>vbdeque</code> whose API is limited to safe stack operations.</p>
+<h3 id="the-constructor-vbstackiterable-maxsizesys.maxsize-vetnone">The constructor <code>vbstack(iterable=[], maxsize=sys.maxsize, vet=None)</code></h3>
+<p>The arguments are exactly the same as those for its superclasses <code>vblist</code> and <code>vbdeque</code>. <code>maxsize</code> is maximum number of entries the <code>vbqueue</code> may contain, <code>vet</code> is the function that is applied to each value inserted, and <code>iterable</code> is used to populate the new deque: its entries are added in the order given by traversing the iterable.</p>
+<p>The public non-method instance attributes of a <code>vbstack</code> are also the same as those for a <code>vblist</code>. <code>size</code> is the number of entries and is read-only. The other two are just the saved values of the constructor’s arguments: <code>maxsize</code> and <code>vet</code>.</p>
+<p>For some test code, see <a href="examples/stack.test.py">stack.test.py</a>.</p>
+<h3 id="forbidden-fruit-2">Forbidden Fruit</h3>
+<h4 id="add_firstwhat-and-prependiterabledieonfail-1"><code>add_first(what)</code> and <code>prepend(iterable,*,dieOnFail)</code></h4>
+<p>Items are added to a stack only at its end.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> vbstack(vbdeque):
+
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, iterable=[], maxsize = <span class="ot">None</span>, vet=<span class="ot">None</span>):
+      <span class="dt">super</span>().<span class="ot">__init__</span>(iterable, maxsize, vet)
+
+   <span class="kw">def</span> add_first(<span class="ot">self</span>, what):
+      <span class="ot">self</span>._forbid(<span class="st">&quot;A {} only grows from at its end&quot;</span>)
+
+   <span class="kw">def</span> prepend(<span class="ot">self</span>, iterable, *, dieOnFail=<span class="ot">True</span>):
+      <span class="ot">self</span>._forbid(<span class="st">&quot;A {} only grows from at its end&quot;</span>)
+</code></pre>
+<h3 id="write-access-adding-and-removing-entries-2">Write access: adding and removing entries</h3>
+<h4 id="next_or_elseorelse-howmanynone-2"><code>next_or_else(orElse, howMany=None)</code></h4>
+<p>If <code>howMany</code> is <code>None</code> and the stack is not empty, the head is removed and returned. Otherwise <code>howMany</code> must be a non-negative integer, and the first <code>howMany</code> entries are removed from the stack and returned as a list with the same ordering as the stack.</p>
+<p>If not enough values are available to fulfill the request, the keyword argument <code>orElse</code> comes into play. If <code>howMany</code> is <code>None</code>, <code>orElse</code> itself will be returned. Otherwise, <code>orElse</code> will be used to fill out the returned <code>list</code> to the desired length. The default value for <code>orElse</code> is <code>None</code>.</p>
+<h4 id="nexthowmanynone-2"><code>next(howMany=None)</code></h4>
+<p>is the same as <code>next_or_else</code>, but if <code>howMany</code> is greater than the stack size, or the stack is empty and <code>howMany</code> is <code>None</code>, an <code>IndexError</code> is raised.</p>
+<h4 id="pophowmanynone"><code>pop(howMany=None)</code></h4>
+<p>is a synonym for <code>next</code>.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> <span class="ot">__delitem__</span>(<span class="ot">self</span>, index):
+      <span class="kw">if</span> <span class="dt">isinstance</span>(index, <span class="dt">int</span>):
+         <span class="kw">if</span> index == -<span class="dv">1</span> or index == <span class="ot">self</span>.size - <span class="dv">1</span>:
+            <span class="dt">super</span>().<span class="ot">__delitem__</span>(index)
+            <span class="kw">return</span>
+         <span class="kw">else</span>:
+            <span class="ot">self</span>._forbid(<span class="st">&quot;Only deletion at the end of a {} is supported&quot;</span>)
+      <span class="kw">elif</span> <span class="dt">isinstance</span>(index, <span class="dt">slice</span>):
+         <span class="ot">self</span>.dbg_write(<span class="st">&quot;get [</span><span class="ot">{0}</span><span class="st">] slice&quot;</span>.<span class="dt">format</span>(index))
+         the_range = su.slice2range(index, <span class="dt">max</span>=<span class="ot">self</span>.size)
+      <span class="kw">elif</span> <span class="dt">isinstance</span>(index, <span class="dt">range</span>):
+         the_range = index
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.raise_error(<span class="ot">TypeError</span>(<span class="st">&quot;Illegal type for 'index': {}&quot;</span>.<span class="dt">format</span>(<span class="dt">type</span>(index))))
+      <span class="kw">if</span> the_range.stop == <span class="ot">self</span>.size:
+         <span class="kw">for</span> n in <span class="dt">range</span>(<span class="dv">0</span>, <span class="dt">len</span>(the_range)): blist.<span class="ot">__delitem__</span>(<span class="ot">self</span>, the_range.start)
+      <span class="kw">else</span>:
+         msg = <span class="st">&quot;Only deletion from the top of {} is supported&quot;</span>
+         <span class="ot">self</span>.forbid(msg.<span class="dt">format</span>(su.a_classname(<span class="ot">self</span>)))
+
+   <span class="kw">def</span> next_or_else(<span class="ot">self</span>, howMany=<span class="ot">None</span>, orElse=<span class="ot">None</span>):
+      <span class="kw">if</span> howMany is <span class="ot">None</span>:
+         <span class="kw">return</span> <span class="dt">super</span>().next_or_else(orElse=orElse, howMany=<span class="ot">None</span>)
+      <span class="kw">if</span> howMany &gt;= <span class="dv">0</span>:
+         <span class="kw">return</span> vblist.next_or_else(<span class="ot">self</span>, orElse=orElse, howMany=-howMany)
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.raise_error(<span class="ot">ValueError</span>(<span class="st">&quot;Illegal 'next' count, {}&quot;</span>.<span class="dt">format</span>(howMany)))
+
+   <span class="kw">def</span> <span class="dt">next</span>(<span class="ot">self</span>, howMany=<span class="ot">None</span>):
+      <span class="kw">if</span> howMany is <span class="ot">None</span>:
+         <span class="kw">return</span> vblist.<span class="dt">next</span>(<span class="ot">self</span>, howMany=-<span class="dv">1</span>)
+      <span class="kw">elif</span> howMany &gt;= <span class="dv">0</span>:
+         <span class="kw">return</span> vblist.<span class="dt">next</span>(<span class="ot">self</span>, howMany=-howMany)
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.raise_error(<span class="ot">ValueError</span>(<span class="st">&quot;Illegal 'next' count, {}&quot;</span>.<span class="dt">format</span>(howMany)))
+
+   <span class="kw">def</span> pop(<span class="ot">self</span>, howMany=<span class="ot">None</span>):
+      <span class="kw">return</span> <span class="ot">self</span>.<span class="dt">next</span>(howMany)
+</code></pre>
+<h2 id="the-vsortedlist-class">The <code>vsortedlist</code> class</h2>
+<p>Unlike the previous classes, this class uses the <code>blist</code> module’s <code>sortedlist</code> class as a base. The shared methods take care of most of the differences between <code>sortedlist</code> and <code>vsortedlist</code>.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> vsortedlist(_sharedMethods, sortedlist, DbgClient):
+   size   = _sizeProperty()
+   maxsize = _sizelimitProperty()
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, an_iterable=[], maxsize = sys.maxsize, vet=<span class="ot">None</span>):
+      sortedlist.<span class="ot">__init__</span>(<span class="ot">self</span>, [])
+      DbgClient.<span class="ot">__init__</span>(<span class="ot">self</span>)
+      <span class="co"># local public attributes:</span>
+      <span class="ot">self</span>.maxsize = maxsize
+      <span class="ot">self</span>.vet = (<span class="kw">lambda</span> data: data) <span class="kw">if</span> vet is <span class="ot">None</span> <span class="kw">else</span> vet
+      <span class="kw">for</span> entry in an_iterable:
+         <span class="ot">self</span>.add(entry)
+
+   <span class="kw">def</span> _forbid(<span class="ot">self</span>, msg):
+      <span class="ot">self</span>.raise_error(su.IllegalOpError(msg.<span class="dt">format</span>(<span class="ot">self</span>.__class__.<span class="ot">__name__</span>)))
+
+   <span class="kw">def</span> <span class="ot">__setitem__</span>(<span class="ot">self</span>, index, value):
+      <span class="ot">self</span>._forbid(<span class="st">&quot;{} indexing is only for read access&quot;</span>)
+
+   <span class="kw">def</span> add(<span class="ot">self</span>, what, *, dieOnFail=<span class="ot">True</span>):
+      what = <span class="ot">self</span>.vet(what)
+      <span class="kw">if</span> <span class="ot">self</span>.size &lt; <span class="ot">self</span>.maxsize:
+         <span class="dt">super</span>().add(what)
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">else</span>:
+         <span class="kw">return</span> <span class="ot">self</span>.handle_overflow(dieOnFail)
+
+   <span class="kw">def</span> add_all(<span class="ot">self</span>, an_iterable,  *, dieOnFail=<span class="ot">True</span>):
+      <span class="kw">return</span> <span class="ot">self</span>.update(an_iterable, dieOnFail=dieOnFail) 
+
+   <span class="kw">def</span> update(<span class="ot">self</span>, an_iterable, *, dieOnFail=<span class="ot">True</span>):
+      <span class="kw">if</span> not _sharedMethods.isAVettedCollection(an_iterable) or (<span class="ot">self</span>.vet != an_iterable.vet):
+         an_iterable = [<span class="ot">self</span>.vet(item) <span class="kw">for</span> item in an_iterable]
+      <span class="kw">if</span> <span class="ot">self</span>.maxsize == sys.maxsize or <span class="ot">self</span>.size+<span class="dt">len</span>(an_iterable) &lt;= <span class="ot">self</span>.maxsize:
+         <span class="kw">for</span> item in an_iterable:
+            <span class="kw">if</span> not <span class="ot">self</span>.add(item, dieOnFail=dieOnFail):
+               <span class="kw">break</span>
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.handle_overflow(dieOnFail)
+      <span class="kw">return</span> <span class="ot">self</span>
+</code></pre>
+<h2 id="the-vsortedset-class">The <code>vsortedset</code> class</h2>
+<p>This class uses the <code>blist</code> module’s <code>sortedset</code> class as a base. The set operations that yield sets as results have to be overridden to return <code>vsortedsets</code>, rather than just sets.</p>
+<h4 id="differenceiterables-maxsizenone"><code>difference(*iterables, maxsize=None)</code></h4>
+<p>The magic method for set difference, <code>__sub__</code> is implemented and this method is a wrapper around it. The call returns a new <code>vsortedset</code> with elements in the invoker that are not in the others. In the worst case, requires Θ<code>(m*log</code><sup>2</sup><code>(n + m))</code> operations and Θ<code>((m*log(n + m))</code> comparisons, where <code>m</code> is the combined size of all the other sets and <code>n</code> is the size of the invoker. If the <code>maxsize</code> argument is not <code>None</code>, it will be used for the maximum size of the result set; otherwise the invoker’s size will be used.</p>
+<h4 id="difference_updateiterables"><code>difference_update(*iterables)</code></h4>
+<p>is the in place version of set-theoretic difference and as such, returns the invoker. This is again just a wrapper around the corresponding magic method, <code>__isub__</code>.</p>
+<h4 id="intersectioniterables-maxsizenone"><code>intersection(*iterables, maxsize=None)</code></h4>
+<p>returns a new <code>vsortedset</code> with elements common to the invoker and all of the others. In the worst case, requires Θ<code>((m*</code>log<sup>2</sup><code>(n + m))</code> operations and Θ<code>((m*log(n + m))</code> comparisons, where <code>m</code> is the combined size of all the other sets and <code>n</code> is the size of the invoker. If the <code>maxsize</code> is not <code>None</code>, it is used as the result’s maximumn size; otherwise the invoker’s maximum is used.</p>
+<p>This is a general form for the magic method <code>__and__</code>.</p>
+<h4 id="intersection_updateothers"><code>intersection_update(*others)</code></h4>
+<p>is the in place version of <code>intersection</code>, the corresponding magic method being <code>__iand__</code>.</p>
+<h4 id="symmetric_differenceother-maxsizenone"><code>symmetric_difference(other, *, maxsize=None)</code></h4>
+<p>returns a new <code>vsortedset</code> with elements in either operand, but not in both. This is the implementation for the magic method <code>__xor__</code>. If the <code>maxsize</code> is not <code>None</code>, it is used as the result’s maximumn size; otherwise the invoker’s maximum is used.</p>
+<p>In the worst case, requires Θ<code>((m*log</code><sup>2</sup><code>(n + m))</code> operations and Θ<code>((m*log(n + m))</code> comparisons, where <code>m</code> is the size of <code>other</code> and <code>n</code> is the size of the invoker.</p>
+<h4 id="symmetric_difference_updateother"><code>symmetric_difference_update(other)</code></h4>
+<p>This is a synonym for the magic method <code>__ixor__</code>.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> vsortedset(_sharedMethods, sortedset, DbgClient):
+   size   = _sizeProperty()
+   maxsize = _sizelimitProperty()
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, an_iterable=[], maxsize = sys.maxsize, vet=<span class="ot">None</span>):
+      sortedset.<span class="ot">__init__</span>(<span class="ot">self</span>, [])
+      DbgClient.<span class="ot">__init__</span>(<span class="ot">self</span>)
+      <span class="co"># local public attributes:</span>
+      <span class="ot">self</span>.maxsize = maxsize
+      <span class="ot">self</span>.vet = (<span class="kw">lambda</span> data: data) <span class="kw">if</span> vet is <span class="ot">None</span> <span class="kw">else</span> vet
+      <span class="kw">for</span> entry in an_iterable:
+         <span class="ot">self</span>.add(entry)
+
+   <span class="kw">def</span> _forbid(<span class="ot">self</span>, msg):
+      <span class="ot">self</span>.raise_error(su.IllegalOpError(msg.<span class="dt">format</span>(<span class="ot">self</span>.__class__.<span class="ot">__name__</span>)))
+
+   <span class="kw">def</span> <span class="ot">__setitem__</span>(<span class="ot">self</span>, index, value):
+      <span class="ot">self</span>._forbid(<span class="st">&quot;{} indexing is only for read access&quot;</span>)
+
+   <span class="kw">def</span> <span class="ot">__and__</span>(other):
+      <span class="kw">return</span> <span class="ot">self</span>.intersection(other)
+
+   <span class="kw">def</span> <span class="ot">__iand__</span>(other):
+      <span class="kw">return</span> <span class="ot">self</span>.intersection_update(other)
+
+   <span class="kw">def</span> <span class="ot">__or__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.__class__(<span class="ot">self</span>, vet=<span class="ot">self</span>.vet).add_all(other)
+
+   <span class="kw">def</span> <span class="ot">__ior__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.add_all(other)
+
+   <span class="kw">def</span> <span class="ot">__xor__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.symmetric_difference(other)
+
+   <span class="kw">def</span> <span class="ot">__ixor__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.symmetric_difference_update(other)
+
+   <span class="kw">def</span> add(<span class="ot">self</span>, what, *, dieOnFail=<span class="ot">True</span>):
+      what = <span class="ot">self</span>.vet(what)
+      <span class="kw">if</span> <span class="ot">self</span>.size &lt; <span class="ot">self</span>.maxsize:
+         <span class="dt">super</span>().add(what)
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">else</span>:
+         <span class="kw">return</span> <span class="ot">self</span>.handle_overflow(dieOnFail)
+
+   <span class="kw">def</span> add_all(<span class="ot">self</span>, an_iterable,  *, dieOnFail=<span class="ot">True</span>):
+      <span class="kw">for</span> item in an_iterable:
+         <span class="kw">if</span> not <span class="ot">self</span>.add(item, dieOnFail=dieOnFail): <span class="co"># fail on overflow?</span>
+            <span class="kw">break</span>
+      <span class="kw">return</span> <span class="ot">self</span>
+
+   <span class="kw">def</span> intersection(<span class="ot">self</span>, *others, maxsize=<span class="ot">None</span>):
+      <span class="kw">if</span> maxsize == <span class="ot">None</span>:
+         maxsize = <span class="ot">self</span>.maxsize
+      a_copy = <span class="ot">self</span>.__class__(<span class="ot">self</span>, vet=<span class="ot">self</span>.vet, maxsize=maxsize)
+      <span class="kw">return</span> a_copy.intersection_update(other)
+
+   <span class="kw">def</span> intersection_update(<span class="ot">self</span>, *others):
+      left = <span class="ot">self</span>.size
+      <span class="kw">for</span> other in others:
+         <span class="kw">for</span> item in other:
+            <span class="kw">if</span> item not in <span class="ot">self</span>:
+               <span class="ot">self</span>.discard(item)
+               left -= <span class="dv">1</span>
+               <span class="kw">if</span> left &lt;= <span class="dv">0</span>:
+                  <span class="kw">break</span>
+      <span class="kw">return</span> <span class="ot">self</span>
+
+   <span class="kw">def</span> symmetric_difference(<span class="ot">self</span>, other, maxsize=<span class="ot">None</span>):
+      <span class="kw">if</span> maxsize == <span class="ot">None</span>:
+         maxsize = <span class="ot">self</span>.maxsize
+      a_copy = <span class="ot">self</span>.__class__(<span class="ot">self</span>, vet=<span class="ot">self</span>.vet, maxsize=maxsize)
+      <span class="kw">return</span> a_copy.symmetric_difference_update(other)
+
+   <span class="kw">def</span> symmetric_difference_update(<span class="ot">self</span>, other):
+      in_both  = <span class="ot">self</span> &amp; other
+      from_other = other - in_both
+      <span class="ot">self</span> &amp;= in_both
+      <span class="ot">self</span> += from_other
+      <span class="kw">return</span> <span class="ot">self</span>
+
+   <span class="kw">def</span> union(<span class="ot">self</span>, *others, dieOnFail=<span class="ot">True</span>):
+      <span class="kw">for</span> other in others:
+         <span class="ot">self</span>.add_all(other, dieOnFail=dieOnFail)
+      <span class="kw">return</span> <span class="ot">self</span>
+
+   <span class="kw">def</span> update(<span class="ot">self</span>, an_iterable):
+      <span class="kw">return</span> <span class="ot">self</span>.add_all(an_iterable, dieOnFail=<span class="ot">True</span>) </code></pre>
+</body>
+</html>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>A Dictionary With Keys As A Set</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">A Dictionary With Keys As A Set</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">July 2016</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#the-dictasset-class">The <code>DictAsSet</code> class</a><ul>
+<li><a href="#the-constructor-dictassetinitialdata-onconflictsdie-kwargs">The constructor <code>DictAsSet(initialdata=[], *, onconflicts=“die”, **kwargs)</code></a></li>
+<li><a href="#operations-on-the-dictasset-itself">Operations on the <code>DictAsSet</code> itself</a><ul>
+<li><a href="#copy"><code>copy()</code></a></li>
+<li><a href="#discardkey"><code>discard(key)</code></a></li>
+<li><a href="#removekey"><code>remove(key)</code></a></li>
+</ul></li>
+<li><a href="#comparison-operations">Comparison operations:</a><ul>
+<li><a href="#isdisjointfromother"><code>isdisjointfrom(other)</code></a></li>
+<li><a href="#the-operators-and">The operators <code>&lt;, &lt;=, &gt;=,</code> and <code>&gt;</code></a></li>
+</ul></li>
+<li><a href="#conflicts">Conflicts</a><ul>
+<li><a href="#general-remarks">General remarks</a></li>
+<li><a href="#handle_conflicts"><code>handle_conflicts(msg, result, conflicts, sources)</code></a></li>
+</ul></li>
+<li><a href="#binary-operators-----for-set-operations">Binary operators <code>+, +=, -, -=, &amp;, &amp;=, ^, ^=</code> for set operations</a></li>
+<li><a href="#unions-and-intersections-with-more-than-two-dictionaries">Unions and intersections with more than two dictionaries</a><ul>
+<li><a href="#intersectothers"><code>intersect(*others)</code></a></li>
+<li><a href="#update_intersectothers"><code>update_intersect(*others)</code></a></li>
+<li><a href="#unionothers"><code>union(*others)</code></a></li>
+<li><a href="#update_unionothers"><code>update_union(*others)</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#dictconflicterror">The <code>DictConflictError</code> class</a><ul>
+<li><a href="#the-constructor">The constructor: <code><DictConflictError(msg, result, conflicts, sources)< code></a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">import</span> sysutils <span class="ch">as</span> su
+</code></pre>
+<h2 id="the-dictasset-class">The <code>DictAsSet</code> class</h2>
+<p>This class extends <code>dict</code> in order to provide set-like operations such as forming the union of a set of dictionaries. The only subtle point here is how to handle “conflicts” where a given key has different values in the two or more dictionaries participating in a union or intersection. The obvious solution is to provide a conflict handler as an attribute of the dictionary, which is what I’ve done.</p>
+<blockquote>
+<p>One has to be careful about what one means by “different” values, because there are two natural candidates “<code>a</code> <code>!=</code> <code>b</code>” or “<code>not(a</code> <code>is</code> <code>b)</code>”. I did <em>not</em> provide a way of specifying which comparison to use. I decided to stay with the weaker one, “<code>!=</code>”, because the less rigorous comparison would cause fewer surprises. For example, when you say the value for a key is <code>[1,2]</code>, do you insist that only <em>that</em> array instance be the value, or will any identical array do? My sense is that in the overwhelming majority of cases, any old copy of the array will do.</p>
+</blockquote>
+<h4 id="the-constructor-dictassetinitialdata-onconflictsdie-kwargs">The constructor <code>DictAsSet(initialdata=[], *, onconflicts=“die”, **kwargs)</code></h4>
+<p>The first argument, <code>initialdata</code>, and the final set of keyword arguments, <code>kwargs</code>, are passed directly to <a href="https://docs.python.org/3/library/stdtypes.html#mapping-types-dict"><code>dict</code>’s constructor</a>. The initial keyword argument, “<code>onconflicts</code>”, determines how conflicts are handled when forming unions and intersections. The legal values for it are:</p>
+<blockquote>
+<p><code>&quot;die&quot;</code>: a <a href="#dictconflicterror"><code>DictConflictError</code></a> is raised if any conflicts are found. This is the default because I feel that this is the safest choice.</p>
+</blockquote>
+<blockquote>
+<p><code>&quot;first&quot;</code>: the first value seen for the key is assigned. The classic example for which this is a reasonable policy is configuring an app at run-time. One often has three ingredients: a command line, an optional config file and the app’s own set of defaults. If one begins by reading the command line, then reading a config file should add only those keys not overridden in the command line, and finally the app’s own generic default values should only be used to fill in any gaps that remain. Clearly “first wins” is what you want.</p>
+</blockquote>
+<blockquote>
+<p><code>&quot;last&quot;</code>: the last value seen for the key is assigned. Again, configuring an app is a reasonable example. After all, why look at the command line first? Why not start from the app’s defaults, override using the config file, and finally override using the command line?</p>
+</blockquote>
+<blockquote>
+<p><em>a function</em> <code>f(msg,result,conflicts,others)</code> <em>of four arguments</em>: Let’s call this “roll your own.” The function <code>f</code> is called and, if it returns, its return value is returned as the value of the union or intersection. Normally, it should raise an exception. See <a href="#handle_conflicts">the discussion below</a> of <code>handle_conflicts</code> for a description of the arguments.</p>
+</blockquote>
+<p>When I talk about “first” and “last”, I mean in the order in which the source dictionaries appear in the union or intersection request.</p>
+<h3 id="operations-on-the-dictasset-itself">Operations on the <code>DictAsSet</code> itself</h3>
+<h4 id="copy"><code>copy()</code></h4>
+<p>Create a clone of the caller, <code>self</code>.</p>
+<h4 id="discardkey"><code>discard(key)</code></h4>
+<h4 id="removekey"><code>remove(key)</code></h4>
+<p>if the given key appears, delete it from the <code>DictAsSet</code>. Missing keys are simply ignored. The two methods differ only in that <code>discard</code> does not return anything, but <code>remove</code> returns the value for the key, if it the key is present, <code>None</code> otherwise. Unless you need the value, use “<code>discard</code>”.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> DictAsSet(<span class="dt">dict</span>):
+
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, initialdata=[], onconflicts=<span class="st">&quot;die&quot;</span>, **kwargs):
+      <span class="dt">dict</span>.<span class="ot">__init__</span>(<span class="ot">self</span>, initialdata, **kwargs)
+      <span class="ot">self</span>.onconflicts = onconflicts
+
+   <span class="kw">def</span> __copy__(<span class="ot">self</span>):
+      clone = DictAsSet(<span class="ot">self</span>)
+      clone.onconflicts = <span class="ot">self</span>.onconflicts
+      <span class="kw">return</span> clone
+
+   <span class="kw">def</span> copy(<span class="ot">self</span>):
+      <span class="kw">return</span> <span class="ot">self</span>.__copy__()
+
+   <span class="kw">def</span> discard(<span class="ot">self</span>, key):
+      <span class="kw">if</span> key in <span class="ot">self</span>: <span class="kw">del</span> <span class="ot">self</span>[key]
+
+   <span class="kw">def</span> remove(<span class="ot">self</span>, key):
+      <span class="kw">if</span> key not in <span class="ot">self</span>:
+         <span class="kw">return</span> <span class="ot">None</span>
+      <span class="kw">else</span>:
+         self_key = <span class="ot">self</span>[key]
+         <span class="kw">del</span> <span class="ot">self</span>[key]
+         <span class="kw">return</span> self_key
+</code></pre>
+<h3 id="comparison-operations">Comparison operations:</h3>
+<h4 id="isdisjointfromother"><code>isdisjointfrom(other)</code></h4>
+<p>This method returns <code>True</code> if this <code>DictAsSet</code> has no keys in common with <code>other</code>, and <code>False</code> otherwise. <code>other</code> may be any iterable that yields a sequence of keys. This is not about values, but only about keys.</p>
+<h4 id="the-operators-and">The operators <code>&lt;, &lt;=, &gt;=,</code> and <code>&gt;</code></h4>
+<p>The four binary operators “<code>&lt;</code>”, “<code>&lt;=</code>”, “<code>&gt;=</code>”, and “<code>&gt;</code>” are implemented here and deal with whether the left-hand operand can be view as a (proper) subset or superset of the right-hand operand. The right-hand operand need not be a <code>DictAsSet</code>: any class extending <code>dict</code> will do.</p>
+<p>In contrast with <code>isdisjointfrom</code>, containment is as much about values as it is keys. If there is a key that occurs in both operands, but does not have the same value in both, all four of these comparisons will fail. In other words, <em>conflicting values for a key imply that neither dictionary is a subset or superset of the other.</em></p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> isdisjointfrom(<span class="ot">self</span>, other):
+      <span class="kw">if</span> not <span class="dt">isinstance</span>(other, <span class="dt">dict</span>):
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Argument is {}, but a dict is expected&quot;</span>.<span class="dt">format</span>(su.a_classname(other)))
+      <span class="kw">if</span> <span class="dt">len</span>(other) &lt; <span class="dt">len</span>(<span class="ot">self</span>):
+         <span class="kw">for</span> key in other:
+            <span class="kw">if</span> key in <span class="ot">self</span>: <span class="kw">return</span> <span class="ot">False</span>
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">else</span>:
+         <span class="kw">for</span> key in <span class="ot">self</span>:
+            <span class="kw">if</span> key in other: <span class="kw">return</span> <span class="ot">False</span>
+         <span class="kw">return</span> <span class="ot">True</span>
+
+   <span class="kw">def</span> <span class="ot">__le__</span>(<span class="ot">self</span>, other):
+      <span class="kw">if</span> not <span class="dt">isinstance</span>(other, <span class="dt">dict</span>):
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Cannot compare a DictAsSet with {}&quot;</span>.<span class="dt">format</span>(su.a_classname(other)))
+      <span class="kw">for</span> key in <span class="ot">self</span>:
+         <span class="kw">if</span> key not in other or <span class="ot">self</span>[key] != other[key]:
+            <span class="kw">return</span> <span class="ot">False</span>
+      <span class="kw">return</span> <span class="ot">True</span>
+
+   <span class="kw">def</span> <span class="ot">__lt__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.<span class="ot">__le__</span>(other) and <span class="dt">len</span>(<span class="ot">self</span>) &lt; <span class="dt">len</span>(other)
+
+   <span class="kw">def</span> <span class="ot">__ge__</span>(<span class="ot">self</span>, other):
+      <span class="kw">if</span> not <span class="dt">isinstance</span>(other, <span class="dt">dict</span>):
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Cannot compare a DictAsSet with {}&quot;</span>.<span class="dt">format</span>(su.a_classname(other)))
+      <span class="kw">for</span> key in other:
+         <span class="kw">if</span> key not in <span class="ot">self</span> or <span class="ot">self</span>[key] != other[key]:
+            <span class="kw">return</span> <span class="ot">False</span>
+      <span class="kw">return</span> <span class="ot">True</span>
+
+   <span class="kw">def</span> <span class="ot">__gt__</span>(<span class="ot">self</span>, other):
+      <span class="kw">return</span> <span class="ot">self</span>.<span class="ot">__ge__</span>(other) and <span class="dt">len</span>(<span class="ot">self</span>) &lt; <span class="dt">len</span>(other)
+</code></pre>
+<h3 id="conflicts">Conflicts</h3>
+<h4 id="general-remarks">General remarks</h4>
+<p>Once again: a conflict occurs when two <code>DictAsSet</code>s share a key, but the values in the two for that key are not the same. One needs to be precise about how conflicts are handled for each of the four set operations: union, intersection, difference and symmetric difference.</p>
+<blockquote>
+<p><em>Unions and intersections:</em> For the union <code>a+b</code> and the intersection <code>a&amp;b</code>, the keys that appear in both also appear in the result. My default is to bail out by raising an exception if there are any conflicts, but that is far from always the best policy: just the safest, absent other knowledge. The other two I provide “out of the box” here are “first wins” and “last wins”. To be precise: by “first wins” and “last wins”, I mean that keys are considered to have been entered first into <code>a</code>, and then into <code>b</code>, so “first” means “<code>a</code>” and “last” means “<code>b</code>”.</p>
+</blockquote>
+<blockquote>
+<p><em>Differences:</em> The final <code>DictAsSet</code> for a difference <code>a-b</code> contains those key-value pairs that appear in <code>a</code>, but not in <code>b</code>. Suppose that <code>a[key]</code> is not the same as <code>b[key]</code>. What should happen? I can imagine three reasonable solutions: (1) you keep <code>a[key]</code>, since it is not in both; (2) you ditch the key altogether and treat the difference as a function only of the key sets; and (3) “crash an burn”: raise an exception. My choice is (1), treat the difference as the difference between the two sets of key-value pairs. I am not at all comfortable with (2), because a dictionary really is a set of <em>pairs</em>, not <em>keys</em>. (3) is unnecessarily harsh.</p>
+</blockquote>
+<blockquote>
+<p><em>Symmetric differences (aka “xors”):</em> If <code>a</code> and <code>b</code> are sets, their symmetric difference is the set of things in <code>a</code> or in <code>b</code>, but not in both. The key thing here is the symmetry, and that makes conflicts difficult to handle here:</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>If a key <code>k</code> is in both and <code>a[k]!=b[k]</code>, <code>k</code> will appear as a key in both <code>a-b</code> and <code>b-a</code>, so when we form the <code>DictAsSet</code> <code>a^b</code>, which is the union of those two differences, we have a problem: two values for <code>k</code>. Unlike the other three operations, there’s no “natural” interpretation, in terms of practical applications, of “<code>a</code> wins” or “<code>b</code> wins”.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<p>As with differences, one could ignore the values and just look at the keys, keeping those that occur in one, but not both. The objection is the same as it was for differences. The only safe bet here is to crash and burn, so that’s what I do.</p>
+</blockquote>
+<h4 id="handle_conflicts"><code>handle_conflicts(msg, result, conflicts, sources)</code></h4>
+<p>is called if conflicts are discovered in computing either a union or intersection. The first argument is an error message that will be used if we are bailing out by raising a <code>DictConflictError</code>. The syntax of the error message is “<em><code>op name</code></em> <code>failed</code>”, where <code>op_name</code> is a short description of the call that failed. The second argument is the result for the failed operation. The third argument is a set consisting of those keys for which conflicts were found. The final argument is the array of other dictionaries that were participating in the union or intersection, other than the caller <code>self</code> itself.</p>
+<p>What happens is a function of the value of <code>self.onconflicts</code>:</p>
+<blockquote>
+<p>If it is “<code>die</code>”, then the message and the set of keys having conflicts are passed through to the <code>DictConflictError</code> constructor, and the resulting exception is raised.</p>
+</blockquote>
+<blockquote>
+<p>Otherwise, it must be a function <code>f(msg,result,conflicts,sources)</code> that will be called and, if it returns (ie. does not raise an exception), its return value will be returned as the result for <code>handle_conflicts</code>. <code>self</code> is prepended to the <code>sources</code> list passed in to <code>handle_conflicts</code>, and the other arguments are precisely those passed into <code>handle_conflicts</code>. This should provide enough context for just about any recovery procedure.</p>
+</blockquote>
+<p>One final design issue is: if the policy is to fail on conflicts, should we fail at the first conflict, or wait until we’ve seen them all? I decided to wait, because in the case where you are rolling your own conflict handler, you can see the whole situation at once.</p>
+<pre class="sourceCode python"><code class="sourceCode python">      
+   <span class="kw">def</span> handle_conflicts(<span class="ot">self</span>, msg, result, conflicts, others):
+      all_sources = [result]+<span class="dt">list</span>(others)
+      <span class="kw">if</span> <span class="ot">self</span>.onconflicts == <span class="st">&quot;die&quot;</span>:
+         <span class="kw">raise</span> DictConflictError(msg, result, conflicts, all_sources)
+      <span class="kw">elif</span> <span class="dt">callable</span>(<span class="ot">self</span>.onconflicts):
+         <span class="kw">return</span> <span class="ot">self</span>.onconflicts(msg, result, conflicts, all_sources)
+      <span class="kw">else</span>: <span class="co"># this should never happen</span>
+         err = <span class="st">&quot;Unexpected value, '{}', for self.onconflicts.&quot;</span>
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(err.<span class="dt">format</span>(<span class="ot">self</span>.onconflicts))
+</code></pre>
+<h3 id="binary-operators-----for-set-operations">Binary operators <code>+, +=, -, -=, &amp;, &amp;=, ^, ^=</code> for set operations</h3>
+<p>I implement the binary operators “<code>+</code>” for union, “<code>-</code>” for difference, “<code>&amp;</code>” for intersection, and “<code>^</code>” for symmetric difference. In each case, the right-hand operand need only be an instance of <code>dict</code>, not necessarily of <code>DictAsSet</code>. No type checking is done on the keys or the values. The result is a new <code>DictAsSet</code> that contains all the relevant key-value pairs.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> _validate_other(other, op):
+      <span class="kw">if</span> not <span class="dt">isinstance</span>(other, <span class="dt">dict</span>):
+         msg = <span class="st">&quot;{} right operand is a {}, not a dict.&quot;</span>
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(op), su.a_classname(other))
+
+   <span class="kw">def</span> <span class="ot">__add__</span>(<span class="ot">self</span>, other):
+      answer = <span class="ot">self</span>.copy()
+      answer.<span class="ot">__iadd__</span>(other)
+      <span class="kw">return</span> answer
+
+   <span class="kw">def</span> <span class="ot">__iadd__</span>(<span class="ot">self</span>, other):
+      DictAsSet._validate_other(other, <span class="st">&quot;+&quot;</span>)
+      conflicts = <span class="dt">set</span>()
+      <span class="kw">if</span> <span class="ot">self</span>.onconflicts == <span class="st">&quot;first&quot;</span>:
+         <span class="kw">for</span> key in other:
+            <span class="kw">if</span> key not in <span class="ot">self</span>: 
+               <span class="ot">self</span>[key] = other[key]
+      <span class="kw">elif</span> <span class="ot">self</span>.onconflicts == <span class="st">&quot;last&quot;</span>:
+         <span class="kw">for</span> key in other: 
+            <span class="ot">self</span>[key] = other[key]
+      <span class="kw">else</span>:
+         <span class="kw">for</span> key in other:
+            <span class="kw">if</span> key in <span class="ot">self</span>:
+               <span class="kw">if</span> <span class="ot">self</span>[key] != other[key]:
+                  conflicts.add(key)
+            <span class="kw">else</span>:
+               <span class="ot">self</span>[key] = other[key]
+      <span class="kw">if</span> <span class="dt">len</span>(conflicts) &gt; <span class="dv">0</span>:
+         msg = <span class="st">&quot;add in place failed&quot;</span>
+         <span class="kw">return</span> <span class="ot">self</span>.handle_conflicts(msg, answer, conflicts, [other])
+      <span class="kw">else</span>:
+         <span class="kw">return</span> <span class="ot">self</span>
+
+   <span class="kw">def</span> <span class="ot">__and__</span>(<span class="ot">self</span>, other):
+      answer = <span class="ot">self</span>.copy()
+      answer.<span class="ot">__iand__</span>(other)
+      <span class="kw">return</span> answer
+
+   <span class="kw">def</span> <span class="ot">__iand__</span>(<span class="ot">self</span>, other):
+      <span class="co"># we have to be careful NOT to delete from self while iterating over self</span>
+      <span class="co"># so we iterate over the dead bodies.</span>
+      DictAsSet._validate_other(other, <span class="st">&quot;&amp;&quot;</span>)
+      dead = <span class="dt">set</span>(<span class="ot">self</span>.keys()) - <span class="dt">set</span>(other.keys()) 
+      <span class="kw">for</span> key in dead:
+         <span class="kw">del</span> <span class="ot">self</span>[key]
+      <span class="kw">if</span> <span class="ot">self</span>.onconflicts == <span class="st">&quot;first&quot;</span>:
+         <span class="kw">return</span> <span class="ot">self</span>
+      <span class="kw">elif</span> <span class="ot">self</span>.onconflicts == <span class="st">&quot;last&quot;</span>:
+         <span class="kw">for</span> key in <span class="ot">self</span>:
+            <span class="ot">self</span>[key] = other[key]
+         <span class="kw">return</span> <span class="ot">self</span>
+      <span class="kw">else</span>:
+         conflicts = <span class="dt">set</span>()
+         <span class="kw">for</span> key in  <span class="ot">self</span>:
+            <span class="kw">if</span> <span class="ot">self</span>[key] != other[key]:
+               conflicts.add(key)
+               <span class="dt">print</span>(<span class="st">&quot;iand conflict: '{}'&quot;</span>.<span class="dt">format</span>(key))
+         <span class="kw">if</span> <span class="dt">len</span>(conflicts) == <span class="dv">0</span>:
+            <span class="kw">return</span> <span class="ot">self</span>
+         <span class="kw">else</span>:
+            <span class="kw">for</span> key in conflicts:
+               <span class="ot">self</span>.discard(key)
+            msg = <span class="st">&quot;'and 'in place failed&quot;</span>
+            <span class="kw">return</span> <span class="ot">self</span>.handle_conflicts(msg, <span class="ot">self</span>, conflicts, [other])
+
+   <span class="kw">def</span> <span class="ot">__sub__</span>(<span class="ot">self</span>, other):
+      answer = <span class="ot">self</span>.copy()
+      answer -= other
+      <span class="kw">return</span> answer
+
+   <span class="kw">def</span> <span class="ot">__isub__</span>(<span class="ot">self</span>, other):
+      DictAsSet._validate_other(other, <span class="st">&quot;-&quot;</span>)
+      common_keys = <span class="dt">set</span>(<span class="ot">self</span>.keys()).intersection(<span class="dt">set</span>(other.keys()))
+      <span class="kw">for</span> key in common_keys:
+         <span class="kw">if</span> <span class="ot">self</span>[key] == other[key]:
+            <span class="kw">del</span> <span class="ot">self</span>[key]
+      <span class="kw">return</span> <span class="ot">self</span>
+
+   <span class="kw">def</span> <span class="ot">__xor__</span>(<span class="ot">self</span>, other):
+      DictAsSet._validate_other(other, <span class="st">&quot;^&quot;</span>)
+      answer = DictAsSet(<span class="ot">self</span>-other, onconflicts=<span class="st">&quot;die&quot;</span>)
+      answer += (other - <span class="ot">self</span>) <span class="co"># will crash and burn on duplicate keys</span>
+      answer.onconflicts = <span class="ot">self</span>.onconflicts
+      <span class="kw">return</span> answer
+
+   <span class="kw">def</span> <span class="ot">__ixor__</span>(<span class="ot">self</span>, other):
+      DictAsSet._validate_other(other, <span class="st">&quot;^&quot;</span>)
+      saved = <span class="ot">self</span>.onconflicts
+      <span class="ot">self</span>.onconflicts = <span class="st">&quot;die&quot;</span>
+      <span class="kw">try</span>:
+         <span class="ot">self</span> -= other
+         <span class="ot">self</span> += (other - <span class="ot">self</span>) <span class="co"># will crash and burn on duplicate keys</span>
+      <span class="kw">except</span>:
+         <span class="ot">self</span>.onconflicts = saved
+         <span class="kw">raise</span>
+      <span class="kw">else</span>:
+         <span class="ot">self</span>.onconflicts = saved
+         <span class="kw">return</span> <span class="ot">self</span>
+</code></pre>
+<h3 id="unions-and-intersections-with-more-than-two-dictionaries">Unions and intersections with more than two dictionaries</h3>
+<p>Dealing with conflicts make simply repeatedly applying the binary “<code>+</code>” and “<code>&amp;</code>” operators an iffy business. For example, if “<code>self</code>” is honoring “die” or “roll your own” semantics, using the obvious loop to form a union from a list of <code>dict</code>s,</p>
+<pre class="exampleCode">
+
+         answer = self.copy()
+         for other in others: answer += other
+
+</pre>
+
+<p>fails at the first “<code>other</code>” that has a conflict. Surely it is desirable, far more often than not, to gather <em>all</em> of the conflicts before letting the caller know that the union failed. That is the <em>raison d’etre</em> for implementing <code>union()</code> and <code>update_union()</code>. The story for intersections is even more compelling. A key in “<code>self</code>” should be in the intersection if it also appears in each of the other <code>dict</code>s. A conflict occurs when the key does appear in all of them, but does not have the same value in each. The loop above, with “<code>&amp;</code>” in place of “<code>+</code>” does not fail that way at all. For example, if <code>others[0][k]</code> <code>!=</code> <code>self[k]</code> for some common key <code>k</code>, the very first “<code>&amp;</code>” would die, and we would never get to any later operands, <em>whether <code>k</code> is common to all the others and hence should be in the intersection, <b>or not</b></em>.</p>
+<h4 id="intersectothers"><code>intersect(*others)</code></h4>
+<h4 id="update_intersectothers"><code>update_intersect(*others)</code></h4>
+<p>The argument “<code>others</code>” is a list of instances of <code>dict</code>. The result is a <code>DictAsSet</code> whose keys are the intersection of its own keys with the key sets for the <code>dict</code>s in <code>others</code>. The “update” version updates “<code>self</code>”, while the vanilla version creates a new <code>DictAsSet</code>.</p>
+<p>The semantics of a call <code>a.intersect(b,c,...)</code> are the same as the semantics of <code>((a</code>&amp;<code>b)</code>&amp;<code>c)...</code> if there are no conflicts, or if the policy is “first wins”: the result in either case is simply a subset of the key/value pairs in <code>self</code>. When there are conflicts and last wins, the values appearing in the resulting intersection are dependent on the order of evaluation. <em>This is a bug waiting to be born.</em> If the policy is to die or to call a handler, the result and conflict sets passed to the conflict handler are order-independent.</p>
+<h4 id="unionothers"><code>union(*others)</code></h4>
+<h4 id="update_unionothers"><code>update_union(*others)</code></h4>
+<p>The argument “<code>others</code>” is a list of instances of <code>dict</code>. The result is a <code>DictAsSet</code> whose keys are those that appear in at least one of the operands. <code>update_union</code> updates “<code>self</code>”, while <code>union</code> creates a new <code>DictAsSet</code>. The key set of the result is order-independent, but if there are conflicts and the policy is either first or last wins, the corresponding values are order-dependent. If the policy is to die or call your handler, the result and conflict set passed to the handler are order-independent.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+   <span class="kw">def</span> intersect(<span class="ot">self</span>, *others):
+      answer = <span class="ot">self</span>.copy()
+      answer.update_intersect(*others)
+      <span class="kw">return</span> answer
+
+   <span class="kw">def</span> update_intersect(<span class="ot">self</span>, *others):
+      <span class="kw">if</span> (<span class="ot">self</span>.onconflicts in (<span class="st">&quot;first&quot;</span>, <span class="st">&quot;last&quot;</span>)) or (<span class="dt">len</span>(others) &lt;= <span class="dv">1</span>):
+         <span class="ot">self</span> &amp;= others[<span class="dv">0</span>]
+         <span class="kw">return</span> <span class="ot">self</span>
+      common_keys = <span class="dt">set</span>(<span class="ot">self</span>.keys())
+      <span class="co">#print(&quot;keys in self: {}&quot;.format(common_keys))</span>
+      <span class="kw">for</span> other in others:
+         DictAsSet._validate_other(other, <span class="st">&quot;intersect&quot;</span>)
+         common_keys &amp;= <span class="dt">set</span>(other.keys())
+         <span class="ot">self</span> -= (<span class="ot">self</span> - other)
+      <span class="kw">if</span> <span class="dt">len</span>(<span class="ot">self</span>) ==  <span class="dt">len</span>(common_keys):
+         <span class="kw">return</span> <span class="ot">self</span>
+      <span class="kw">else</span>:
+         conflicts = common_keys - <span class="dt">set</span>(<span class="ot">self</span>.keys())
+         msg = <span class="st">&quot;intersection failed.&quot;</span>
+         <span class="kw">return</span> <span class="ot">self</span>.handle_conflicts(msg, <span class="ot">self</span>, conflicts, others)
+
+   <span class="kw">def</span> union(<span class="ot">self</span>, *others):
+      answer = <span class="ot">self</span>.copy()
+      answer.update_union(*others)
+      <span class="kw">return</span> answer
+
+   <span class="kw">def</span> update_union(<span class="ot">self</span>, *others):
+      <span class="kw">if</span> <span class="ot">self</span>.onconflicts in (<span class="st">&quot;first&quot;</span>, <span class="st">&quot;last&quot;</span>) or <span class="dt">len</span>(others)&lt;=<span class="dv">1</span>:
+         <span class="kw">for</span> other in others:
+            <span class="ot">self</span>.<span class="ot">__iadd__</span>(other)
+         <span class="kw">return</span> <span class="ot">self</span>
+      conflicts = <span class="dt">set</span>()
+      <span class="kw">for</span> other in others:
+         DictAsSet._validate_other(other, <span class="st">&quot;union&quot;</span>)
+         new_conflicts = <span class="dt">set</span>()
+         <span class="kw">for</span> key in other:
+            <span class="kw">if</span> key in <span class="ot">self</span>:
+               <span class="kw">if</span> <span class="ot">self</span>[key] != other[key]:
+                  conflicts.add(key)
+            <span class="kw">else</span>:
+               <span class="ot">self</span>[key] = other[key]
+         conflicts.update(new_conflicts)
+      <span class="kw">if</span> <span class="dt">len</span>(conflicts) == <span class="dv">0</span>:
+         <span class="kw">return</span> <span class="ot">self</span>
+      <span class="kw">else</span>:
+         msg = <span class="st">&quot;union failed&quot;</span>
+         <span class="kw">return</span> <span class="ot">self</span>.handle_conflicts(msg, <span class="ot">self</span>, conflicts, others)
+</code></pre>
+<h2 id="dictconflicterror">The <code>DictConflictError</code> class</h2>
+<p>This class extends <code>Exception</code> and is what is raised by default when conflicts are discovered.</p>
+<h3 id="the-constructor">The constructor: <code><DictConflictError(msg, result, conflicts, sources)< code></h3>
+<p>The constructor’s first argument is the usual message string. Its second is the result of the operation, and the third is the set of those keys that have conflicts. The final argument is the source dictionaries, in order, starting with the invoking <code>DictAsSet</code>.</p>
+<p>Be aware that if it is an in place operation that failed, the first entry in the source array will be the same as the result. I may clean that one up some time, but to keep the original invoker around means making a (possible large) copy of it for situations that very rarely should arise.</p>
+<p>The argument values are assigned to attributes of the instance with the same names.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">class</span> DictConflictError(<span class="ot">Exception</span>):
+   <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, msg, result, conflicts, sources):
+      <span class="ot">Exception</span>.<span class="ot">__init__</span>(<span class="ot">self</span>, msg)
+      <span class="ot">self</span>.result = result
+      <span class="ot">self</span>.conflicts = conflicts
+      <span class="ot">self</span>.sources = sources</code></pre>
+</body>
+</html>

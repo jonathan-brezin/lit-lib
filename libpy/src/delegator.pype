@@ -1,0 +1,1407 @@
+""" <head>
+
+Title: The Delegate Pattern
+Author: Jonathan Brezin
+Date: June 2016
+Show source: yes
+
+"""
+
+import functools
+from dictasset import DictAsSet 
+import sysutils as su
+from types import new_class
+
+""" <md>
+
+## Some basic conventions ##
+
+I'm going to begin with some perhaps unnecessarily pedantic prose.  Bear with me for a few
+paragraphs. It eases off after that... sort of...
+
+A Python _attribute expression_ has the form _`obj.label`_ in which _`obj`_ names an object, the
+"owner" of the attribute, and _`label`_ is an identifier that names the attribute.  I am going
+to try to be consistent and to use "attribute" to mean "a key-value pair accessed using the
+expression `obj.label`.  I'll use both "key" and "name" to refer to the right-hand operand,
+`label`. I'll try not to confuse the attribute (a key-value pair associated with a class or
+instance) with the value of the attribute in a particular situation. Wish me luck.
+
+In all of the discussion to follow there is a class called _the delegator_, and an attribute of
+that class, called _the delegate_, whose value is an object some of whose attributes the
+delegator wishes to access as if they were the delegator's own.  In all of the functions defined
+below, the first argument, "`delegator`" has as its value the delegator class, and the second
+argument, "`delegate_name`" names the delegate attribute.  I'm working with the delegate's name,
+and not its value, because it is the delegator class I seek to modify directly, _not instances
+created from it,_ so there is no delegate object value for the `delegate_name` attribute to
+work with.
+
+> The delegator, for example, might be a wrapper around a collection called "`keys`" that, in
+one instance might be a `list`, while in another might be a `set`: which of these two it is
+depends on how the user needs to access the collection and on whether it is important to know
+whether each value in the collection appears there exactly once.  In any event, to the outside
+world, it is often the wrapper, and not its `keys` attribute, that folks think of as being the
+collection, so it is goodness to be able to loop over the collection by writing \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`for key in owner: ...` \
+rather than \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`for key in owner.keys: ...` \
+To make this happen is easy: the
+delegator need only define a method `__iter__()` that returns the value `owner.keys.__iter__()`.
+
+## Overview ##
+### The dimensions of the problem ###
+
+Let `C` be the class that plays the role of delegator, `c` an instance of `C`, `x` the field in
+`C` to which we are going to delegate, and `x.a` an attribute of `x` that we wish to make
+available to `C`'s instances.  There are really two distinct cases here based on what type of
+value is expected for `x.a`:
+
+1) If `a` names  a method, and if, just as an example, the method has parameters `self` and `p`,
+then at least in many cases, the assignment we need is almost always as simple as
+
+<blockquote><pre class=exampleCode>
+
+C.a = lambda self, p: self.x.a(p)
+
+</pre></blockquote>
+
+> I'll give some examples in a moment that illustrate why it is not always what we want, but the
+essential idea is that we need to define a function for `C.a`'s value, and that _is_ always the
+case: the function just might not be a simple `lambda` expression.  
+
+2)  When the value of the attribute `a` is not a method, but some other sort of (non-callable)
+object, one has to proceed differently in order for evaluating `c.a` to yield the object `c.x.a`.
+Python's solution to this problem is a sort of object called a "descriptor".  For a complete
+discussion of descriptors see <https://docs.python.org/3.6/howto/descriptor.html>.
+The value of `c.a` is a descriptor that gets and/or sets `c.x.a`.
+
+So far the discussion has been about the type of the value. There is another distinction, this
+having to do with timing: how early we know the attribute (or attributes) to delegate.  Is it
+compile-time or run-time?  The most common case is compile-time.  In other words, one knows when
+writing the source code for the delegator what one wants to appear as its delegated attributes. I'll
+call this _"static"_ or _"a priori"_ delegation: everything is known when the declaration of the
+delegator is initially compiled, and _before the program itself begins to run._  I'll tackle the
+code for this first, precisely because it is far and away the most common case. It also has run-time
+advantages, about which I'll have more to say [later](#the_cost).
+
+There are situations when we cannot know until run-time what the attributes of the delegate are
+that we wish to delegate to.  One can imagine two different sorts of situations where this
+might happen:
+
+1)  The role of the delegate is one for which there are a number of classes that implement the
+functionality, but these classes have distinct APIs--_e.g.__some use `size` where others use
+`count`: same idea, with synonyms for attributes.  It could happen that, in different
+situations, one or another of these classes is a much better fit, so you really need the
+delegate to be of whatever type makes sense in the situation it is being used.
+
+> If we know in advance all of the APIs we can expect for the delegate, it might be a clean
+design to first create a class that does nothing but provide the interface the delegator really
+wants.  This is an example of an ["adapter"](https://en.wikipedia.org/wiki/Adapter_pattern),
+which is a wrapper around a set of classes (or objects) that allows semantically similar objects
+with (modestly) distinct APIs, like our "`size`" versus "`count`", to work interchangeably by
+converting the APIs into a single one that distils the common semantics. The API to delegate
+then becomes static insofar as the delegator is concerned, at the cost of an extra lookup per
+call.  The delegator delegates to object that delegates to yet another object. It is hard (at
+least for me) to create tools to simplify coding this sort of factoring of the problem.
+
+> Need I add that, if you cannot arrive at a single, clean API for the delegator vis-a-vis the
+delegate, you very likely have a real design problem that is _not_ appropriate for applying the
+delegate pattern and should not be papered over by run-time trickery?
+
+2) The delegate may acquire new attributes while the program is running that the delegator may need
+to be aware of  and to access as if these new attributes were its own.  This possibility, rare
+though it may be, is an inevitable consequence of working with a dynamic language that relies on
+["duck typing"](https://en.wikipedia.org/wiki/Duck_typing).
+
+> In those situations where run-time discovery of the attributes is a necessity, one can simply
+delegate any attribute request the delegator does not recognize to the delegate, and then let the
+delegate worry about it.  Not the most robust solution in the world, but then there might be no
+better choice.  See [frozendict.py](frozendict.html) for an example. It was one of the first
+applications I made of this code.  You might want to take a look at it to get a sense of where I am
+trying to get to here.  It uses two "decorators" from this file, `@RO_Dict_Delegator` and
+`@Dynamic_Delegator`, in order to get just the right combination of efficient delegation and minimal
+constraints on the dictionary-like source that is to be frozen.  The commentary on why delegation is
+being used, and not extension, is instructive, as is the rationale for using dynamic delegation.
+
+### Some examples of static delegation ###
+
+[emulating_numerics]: https://docs.python.org/3.1/reference/datamodel.html#emulating-numeric-types
+
+I'd like to discuss some examples that show why delegating methods is not always a simple matter
+of assigning a `lambda` as the delegator's attribute value.  Let's start with an object `a` that
+is delegating some methods to its attribute `a.d`.  What do we need to do to delegate operators
+like "`==`" and "`+`" to `a.d`?
+
+Consider first delegating "`==`", which is implemented in Python by the method `__eq__`.  If `b` is
+an object of the same type as `a`, which comparison do you want `a==b` to mean: `a.d==b.d` or
+`a.d==b`?   What if the type of `b` is the same as that of `a.d`?  The whole question might seem
+silly, but consider the case in which `a.d` is a precomputed hash value that is expensive to
+compute.  Should `a.d` be responsible for  handling both cases (`b` like `a`, `b` like `a.d`)
+gracefully?  Or should the delegating function assigned to `a.__eq__` do the job?  Since the
+delegator is a class that we are writing, whereas the code for the delegate may not be something we
+can touch, there's a good argument for putting the responsibility on the function we assign to
+`a.__eq__`.
+
+Next let's look at "`+`", implemented in Python by the method `__add__`, in the case where that
+operator applies to delegates that are collections.  What should `a+b` do when `a` and `b` have the
+same type?  What about when `b` and `a.d` have the same type?  It may even make good sense for `a+b`
+to mean "add `b` to the collection `a.d` named by the delegate, _even if `a` and `b` are of the same
+type_.  For example, suppose `a` is an instance of the class `AlgaSpecie` and `a.mutations` is the
+collection of species of algae known to be mutated from `a`.  What should `a+b` do?  Add `b` to
+`a.d`, add `b.d` to `a.d`, or add both `b` and `b.d` to `a.d`?  One can imagine scenarios where any
+one of these is what you want.  Whose responsibility is it again? `a.__add__` or `b.__add__`?
+
+> _Bottom line:_ there can be more than one way to delegate an operation.  It is not always just a
+matter of replacing `obj.op(x,...)` with `obj.delegate.op(x,...)`.
+
+One last example!  Binary operators like "`+`" all have "in-place" versions, like the "`+=`" in
+"`x+=1`", which are implemented in Python by their own methods.  For  "`+=`", the attribute is
+"`__iadd__`".  The in-place versions present another sort of problem for delegation. As you
+would expect  `x.__add__(y)` returns the result `x+y`, whereas `x.__iadd__(y)` returns `x`.
+Here's the [Python reference's take on this subject:][emulating_numerics].
+
+> These methods are called to implement the augmented arithmetic assignments (`+=`, `-=`, `*=`,
+`/=`, `//=`, `%=`, `**=`, `<<=`, `=`, `&=`, `^=`, `|=`). These methods should attempt to do
+the operation in- place (modifying `self`) and return the result (which could be, but does
+not have to be, `self`) If a specific method is not defined, the augmented assignment falls
+back to the normal methods. For instance, to execute the statement `x += y`, where `x` is an
+instance of a class that has an `__iadd__()` method, `x.__iadd__(y)` is called. If `x` is an
+instance of a class that does not define a `__iadd__()` method, `x.__add__(y)` and
+`y.__radd__(x)` are considered, as with the evaluation of `x + y` [, and the result is
+assigned to `x`].
+
+If you can live with the semantics for `x+=y` being `temp=x+y; x=temp`, you really don't need an
+`__iadd__` method, but if you do choose to implement it, you had better let it return `self`.
+The problem here is that you cannot use a `lambda` for the delegating function, because
+assignment is not an expression in Python, and even if it were, the result of `a.d += b` is not
+what you want returned from `a+=b`. Here is a class `C` delegating addition to a field `x`:
+
+<pre class="exampleCode">
+
+      class C:
+         def __init__(self, x): self.x = x
+         def __add__(self, y):
+            return self.x + (y.x if isinstance(y, C) else y)
+         def __iadd__(self, y): 
+            self.x += (y.x if isinstance(y, C) else y)
+            return self 
+
+</pre>
+
+See [iaddtest.term.py](examples/iaddtest.term.py) for this code and some examples of what
+happens if you don't implement `__iadd__` to return `self`.
+
+## Delegating methods _a priori_ ##
+
+[types.new_class]: https://docs.python.org/3/library/types.html
+
+### The low level calls for unary and binary operators
+
+Delegating unary operators is taken care of by the method:
+
+#### <code>delegate_unop(delegator, delegate_name, op_name, &ast;, setter=None, deferred=None)</code>####
+
+This function delegates any method named "`op_name`" whose sole input is its caller, `self`. It
+has no return value.  It operates in one of two ways, depending on the values of the two keyword
+parameters.
+
+> `setter`:  If the value is not `None` it must be a function, call it "`set`", whose signature
+is `set(cls, fcn)`.  This function need only be a one-liner: for example, if the operator is the
+unary minus, which is implemented by the magic method "`__neg__`", one can use:
+
+>> <code>def set(cls, fcn): cls.&lowbar;&lowbar;neg&lowbar;&lowbar; = fcn</code>
+
+> This function will be called with `cls` equal to `delegator` and `fcn` equal to the method
+that `delegate_unop` has just  created that implements delegating unary minus.  The effect is to
+assign `fcn` to the attribute "`cls.__neg__`".  By the way, you cannot use a `lambda` here
+instead of the named function `set()`, because the body of a `lambda` is an expression to be
+returned and [assignments are not expressions in the sense that `lambda`
+demands](examples/lambda.term.py).
+
+> `deferred`:  If the value is not `None`, it must be a `dict`-like object, and in that case,
+the effect of the call to `delegate_unop` is just to add the key-value pair `{op_name: fcn}` to
+`deferred`, where, again, `fcn` is the method created by `delegate_unop` to delegate the
+operator. `deferred` accumulates input for later incorporation into `delegator` by a call to
+[`types.new_class`][types.new_class].
+
+If both `setter` and `deferred` are not `None`, I try first to call `setter`.  If it returns
+normally, that is the end of the story; if it raises an error, the pair `{op_name:fcn}` is added
+to `deferred`.  The idea is to try to avoid creating a new class, if possible.
+
+The story for binary ops is similar:
+
+#### <code>delegate_binop(delegator, delegate_name, op_name, setter=None, deferred=None, type_check=True)</code>####
+
+This is the basic method for delegating a single binary operator named "`op_name`"; _e.g._
+`__add__()`.  The keyword parameters `setter` and `deferred` have the same meaning here as they do
+for `delegate_unop`.  As for `type_check`, it is a boolean that affects the code created to 
+implement the delegation:
+
+> If `type_check` is `True`, the new function checks to see whether  the operator's right
+operand is of the same type as the delegator, and if so, uses the right operand's delegate as
+the right operand.  If `type_check` is `False`, the right operand is always fed to the operator
+just as it was passed in.  The default is `True`.  The example above of adding to a collection
+explains why I feel this parameter is needed.
+
+#### <code>delegate_inplace_binop(delegator, delegate_name, op_name, &ast;&ast;kwargs)</code>####
+
+Here I catch the `__i...__()` operators like "`+=`" and "`&=`".  There are three keyword parameters,
+and they are the same as those for `delegate_binop`: `type_check`, `setter`, and `deferred`.
+
+"""
+
+def _tidy_up_and_assign(delegator, name, the_method, setter=None, deferred=None):
+   # sets some attributes of the delegated operator to aid introspection and debugging, 
+   # and then assigns the operator to the appropriate attribute of the delegator.
+   if hasattr(delegator, name):
+      functools.update_wrapper(the_method, getattr(delegator, name))
+   else:
+      the_method.__name__ = name
+      the_method.__qualname = delegator.__qualname__+"."+name
+      if hasattr(delegator, "__module__"): 
+         the_method.__module__ = getattr(delegator, "__module__")
+      the_method.__doc__ = getattr(object, name, "")
+   if setter and deferred:
+      try:
+         setter(delegator, the_method)
+      except:
+         deferred[name] = fcn
+   if setter:
+      setter(delegator, the_method)
+   elif deferred:
+      deferred[name] = fcn
+   else:
+      raise ValueError("No setter or deferred list supplied!")
+
+def delegate_unop(delegator, delegate_name, op_name, *, setter=None, deferred=None):
+   def unop(self):
+      my_delegate = object.__getattribute__(self, delegate_name)
+      my_op = my_delegate.__getattribute__(op_name)
+      return my_op()
+   _tidy_up_and_assign(delegator, op_name, unop, setter=setter, deferred=deferred)
+
+def delegate_binop(
+   delegator, delegate_name, op_name, *, setter=None, deferred=None, type_check=True):
+   if type_check:
+      def binop(self, other):
+         if isinstance(other, delegator):
+            other = object.__getattribute__(other, delegate_name)
+         my_delegate = object.__getattribute__(self, delegate_name)
+         my_op = my_delegate.__getattribute__(op_name)
+         return my_op(other)
+   else:
+      def binop(self, other):
+         my_delegate = object.__getattribute__(self, delegate_name)
+         my_op = my_delegate.__getattribute__(op_name)
+         return my_op(other)
+   _tidy_up_and_assign(delegator, op_name, binop, setter=setter, deferred=deferred)
+
+def delegate_inplace_binop(
+   delegator, delegate_name, op_name, *, setter=None, deferred=None, type_check=True):
+   if type_check:
+      def ibinop(self, other):
+         if isinstance(other, delegator):
+            other = object.__getattribute__(other, delegate_name)
+         my_delegate = object.__getattribute__(self, delegate_name)
+         my_op = my_delegate.__getattribute__(op_name)
+         my_op(other)
+         return self
+   else:
+      def ibinop(self, other):
+         my_delegate = object.__getattribute__(self, delegate_name)
+         my_op = my_delegate.__getattribute__(op_name)
+         my_op(other)
+         return self
+   _tidy_up_and_assign(delegator, op_name, ibinop, setter=setter, deferred=deferred)
+
+""" <md>
+
+### Delegating magic methods
+
+A large portion of the operations one might wish to delegate are belong to what the Python world
+refers to as ["magic methods".](magicmethods.pdf)  These are methods
+that, among other things, the run-time uses as the implementations for unary and binary
+operators like `==` and `+`, as well as builtin functions like `len()`, which can be viewed as a
+unary operator, and which is implemented by the magic method `__len__()`.
+
+#### Why go to all this trouble?
+
+Unlike JavaScript, there is no "operator" that allows you to assign a value to an attribute when all
+you have is the owner of the attribute and a variable whose value is the attribute's label.  There
+is a magic method called "`__setattr__`" that does the trick.  Consider, though, the following
+[terminal session](examples/clsattr.term.py) that tries to add two attributes to `C` after the
+definition of `C` is complete:
+
+<pre class="exampleCode">
+
+>>> class C:
+...    pass
+... 
+>>> try:
+...    C.__setattr__(C, "bycall", "xxx") # same as C.bycall = "xxx"
+... except Exception as e:
+...    print("Whoops!", e)
+... 
+Whoops! can't apply this __setattr__ to type object
+>>> 
+>>> C.bydot = "yyy"
+>>> print("bydot is ", C.bydot)
+bydot is  yyy
+
+</pre>
+
+The moral here is that if `C` happened to be our delegator, we could not use `__setattr__` to
+add an attribute to it, which would have allowed us to use a variable's value as the attribute
+name. There is no choice other than to do the assignment or to extend `C` to get the result we
+want.  I would really, really, like to avoid repeatedly extending `C`.  Fortunately, there are a
+lot of common situations where one knows _a priori_ what is to be delegated, and can take
+advantage of the dot operation as shown in "`C.bydot = "yyy"`" to create the attribute and
+assign to it a  method that does the delegation.
+
+Many of the "magic methods" are reasonable candidates for delegation.  The agenda here is to
+assemble for those methods the functions that one needs for `delegate_...op`'s "`setter`"
+argument.  For instance, `_set__lt__(cls,fcn))` assigns the function `fcn` to `cls.__lt__`.  All
+of the functions below follow this pattern: the name is `_set` followed by the magic method's
+name, and the two arguments are the class to be updated and function to assign.
+
+As the leading `_` in the names suggests, these are intended for private use only.  Higher
+level constructs are available that are intended for public consumption.
+
+#### Comparison operators ####
+
+"""
+
+def _set__cmp__(cls, fcn): cls.__cmp__ = fcn
+def _set__lt__(cls, fcn): cls.__lt__ = fcn
+def _set__le__(cls, fcn): cls.__le__ = fcn
+def _set__eq__(cls, fcn): cls.__eq__ = fcn
+def _set__ne__(cls, fcn): cls.__ne__ = fcn
+def _set__gt__(cls, fcn): cls.__gt__ = fcn
+def _set__ge__(cls, fcn): cls.__ge__ = fcn
+
+""" <md>
+
+#### Numeric binary operators ####
+
+"""
+
+def _set__add__(cls, fcn): cls.__add__ = fcn
+def _set__and__(cls, fcn): cls.__and__ = fcn
+def _set__divmod__(cls, fcn): cls.__divmod__ = fcn
+def _set__floordiv__(cls, fcn): cls.__floordiv__ = fcn
+def _set__lshift__(cls, fcn): cls.__lshift__ = fcn
+def _set__mod__(cls, fcn): cls.__mod__ = fcn
+def _set__mul__(cls, fcn): cls.__mul__ = fcn
+def _set__or__(cls, fcn): cls.__or__ = fcn
+def _set__pow__(cls, fcn): cls.__pow__ = fcn
+def _set__radd__(cls, fcn): cls.__radd__ = fcn
+def _set__rand__(cls, fcn): cls.__rand__ = fcn
+def _set__rdivmod__(cls, fcn): cls.__rdivmod__ = fcn
+def _set__rfloordiv__(cls, fcn): cls.__rfloordiv__ = fcn
+def _set__rlshift__(cls, fcn): cls.__rlshift__ = fcn
+def _set__rmod__(cls, fcn): cls.__rmod__ = fcn
+def _set__rmul__(cls, fcn): cls.__rmul__ = fcn
+def _set__ror__(cls, fcn): cls.__ror__ = fcn
+def _set__rpow__(cls, fcn): cls.__rpow__ = fcn
+def _set__rrshift__(cls, fcn): cls.__rrshift__ = fcn
+def _set__rshift__(cls, fcn): cls.__rshift__ = fcn
+def _set__rsub__(cls, fcn): cls.__rsub__ = fcn
+def _set__rtruediv__(cls, fcn): cls.__rtruediv__ = fcn
+def _set__rxor__(cls, fcn): cls.__rxor__ = fcn
+def _set__sub__(cls, fcn): cls.__sub__ = fcn
+def _set__truediv__(cls, fcn): cls.__truediv__ = fcn
+def _set__xor__(cls, fcn): cls.__xor__ = fcn
+
+""" <md>
+
+#### Inplace numeric binary operators ####
+
+"""
+
+def _set__iadd__(cls, fcn): cls.__iadd__ = fcn
+def _set__iand__(cls, fcn): cls.__iand__ = fcn
+def _set__iconcat__(cls, fcn): cls.__iconcat__ = fcn
+def _set__ifloordiv__(cls, fcn): cls.__ifloordiv__ = fcn
+def _set__ilshift__(cls, fcn): cls.__ilshift__ = fcn
+def _set__imod__(cls, fcn): cls.__imod__ = fcn
+def _set__imul__(cls, fcn): cls.__imul__ = fcn
+def _set__ior__(cls, fcn): cls.__ior__ = fcn
+def _set__ipow__(cls, fcn): cls.__ipow__ = fcn
+def _set__irshift__(cls, fcn): cls.__irshift__ = fcn
+def _set__isub__(cls, fcn): cls.__isub__ = fcn
+def _set__itruediv__(cls, fcn): cls.__itruediv__ = fcn
+def _set__ixor__(cls, fcn): cls.__ixor__ = fcn
+
+""" <md>
+
+#### Numeric unary operators ####
+
+"""
+
+def _set__pos__(cls, fcn): cls.__pos__ = fcn
+def _set__neg__(cls, fcn): cls.__neg__ = fcn
+def _set__abs__(cls, fcn): cls.__abs__ = fcn
+def _set__invert__(cls, fcn): cls.__invert__ = fcn
+def _set__round__(cls, fcn): cls.__round__ = fcn
+def _set__floor__(cls, fcn): cls.__floor__ = fcn
+def _set__ceil__(cls, fcn): cls.__ceil__ = fcn
+def _set__trunc__(cls, fcn): cls.__trunc__ = fcn
+
+""" <md>
+
+#### Getting, setting and traversing indexed items ####
+
+"""
+
+def _set__getitem__(cls, fcn):  cls.__getitem__ = fcn
+def _set__setitem__(cls, fcn):  cls.__setitem__ = fcn
+def _set__delitem__(cls, fcn):  cls.__delitem__ = fcn
+def _set__contains__(cls, fcn): cls.__contains__ = fcn
+def _set__iter__(cls, fcn):     cls.__iter__ = fcn
+def _set__len__(cls, fcn):      cls.__len__ = fcn
+def _set__missing__(cls, fcn):  cls.__missing__ = fcn
+def _set__reversed__(cls, fcn): cls.__reversed__ = fcn
+
+""" <md>
+
+#### Modifying behavior ####
+
+"""
+
+def _set__call__(cls, fcn):  cls.__call__ = fcn
+def _set__enter__(cls, fcn): cls.__enter__ = fcn
+def _set__exit__(cls, fcn):  cls.__exit__ = fcn
+
+""" <md>
+
+#### Getting and setting attributes ####
+
+"""
+
+def _set__getattr__(cls, fcn): cls.__getattr__ = fcn
+def _set__setattr__(cls, fcn): cls.__setattr__ = fcn
+def _set__delattr__(cls, fcn): cls.__delattr__ = fcn
+def _set__getattribute__(cls, fcn): cls.__getattribute__ = fcn
+
+""" <md>
+
+#### String conversion attributes (i.e. string-valued unary operators) ####
+
+"""
+
+def _set__repr__(cls, fcn): cls.__repr__ = fcn
+def _set__str__(cls, fcn): cls.__str__ = fcn
+
+""" <md>
+
+#### And finally, administrative numeric-valued unary ops ####
+
+"""
+
+def _set__hash__(cls, fcn): cls.__hash__ = fcn
+def _set__sizeof__(cls, fcn): cls.__sizeof__ = fcn
+
+
+""" <md>
+
+#### Some useful collections of the <code>&lowbar;set&lowbar;&lowbar;...&lowbar;&lowbar;</code> functions ####
+
+"""
+
+COMPARISONS = DictAsSet({  # all except __cmp__, which, if available, overrides the others.
+    "__lt__": _set__lt__, "__le__": _set__le__, "__eq__": _set__eq__, "__ne__": _set__ne__,
+    "__gt__": _set__gt__, "__ge__": _set__ge__
+})
+
+MATH_BINOPS = DictAsSet({
+   "__add__": _set__add__, "__and__": _set__and__, "__divmod__": _set__divmod__, 
+   "__floordiv__": _set__floordiv__, "__lshift__": _set__lshift__, 
+   "__mod__": _set__mod__, "__mul__": _set__mul__, "__or__": _set__or__,
+   "__pow__": _set__pow__, "__radd__": _set__radd__, "__rand__": _set__rand__,
+   "__rdivmod__": _set__rdivmod__, "__rfloordiv__": _set__rfloordiv__,
+   "__rlshift__": _set__rlshift__, "__rmod__": _set__rmod__, "__rmul__": _set__rmul__,
+   "__ror__": _set__ror__, "__rpow__": _set__rpow__, "__rrshift__": _set__rrshift__,
+   "__rshift__": _set__rshift__, "__rsub__": _set__rsub__, 
+   "__rtruediv__": _set__rtruediv__, "__rxor__": _set__rxor__,
+   "__sub__": _set__sub__, "__truediv__": _set__truediv__, "__xor__": _set__xor__ 
+   })
+MATH_IBINOPS = DictAsSet({
+   "__iadd__": _set__iadd__, "__iand__": _set__iand__, "__iconcat__": _set__iconcat__,
+   "__ifloordiv__": _set__ifloordiv__, "__ilshift__": _set__ilshift__,
+   "__imod__": _set__imod__, "__imul__": _set__imul__,  "__ior__": _set__ior__,
+   "__ipow__": _set__ipow__, "__irshift__": _set__irshift__, "__isub__": _set__isub__,
+   "__itruediv__": _set__itruediv__, "__ixor__": _set__ixor__, 
+})
+MATH_UNOPS = DictAsSet({
+   "__pos__": _set__pos__, "__neg__": _set__neg__, "__abs__": _set__abs__,
+   "__invert__": _set__invert__, "__round__": _set__round__, "__floor__": _set__floor__,
+   "__ceil__": _set__ceil__, "__trunc__": _set__trunc__,
+})
+MATH_OPS = MATH_BINOPS + MATH_IBINOPS + MATH_UNOPS
+
+INDEXING_OPS = DictAsSet({
+   "__getitem__": _set__getitem__, 
+   "__setitem__": _set__setitem__, 
+   "__delitem__": _set__delitem__, 
+   "__contains__": _set__contains__, 
+   "__iter__": _set__iter__,
+   "__len__": _set__len__, 
+   "__missing__": _set__missing__, 
+   "__reversed__": _set__reversed__
+})
+
+NAMED_OPS = COMPARISONS + MATH_OPS + INDEXING_OPS
+
+""" <md>
+
+### Some functions that handle common cases ###
+
+The functions that follow use the `_set...` functions just defined to give a convenient way to
+delegate in a consistent way the whole sets of operators that are implemented by magic methods.
+
+#### <code>delegate_cmps(delegator, delegate_name, include=COMPARISONS)</code>####
+
+The final argument, `include` is an iterable that yields the names of the comparisons you want
+to delegate.  One common variation on this theme is just delegating the "same value or not"
+methods `"__eq__",` and `"__ne__"`.  The default is to delegate all of the operators _except
+`__cmp__()`._ The problem with `__cmp__()` is that it is looked for first and, if it is found,
+it is what is used. While that may be what you want in some situations, it most often is not.
+
+`COMPARISONS` is a dictionary whose keys are the 6 comparison operators' magic method names:
+`"__lt__"`, `"__le__"`, `"__eq__"`, `"__ne__"`, `"__gt__"` and `"__ge__"`.  `delegate_cmps` 
+delegates these operators by calling `delegate_binop()` with `type_check=True`.
+`COMPARISONS` maps the method names to the corresponding `_set...` functions.  The call to
+[`delegate_binop()`](#delegate_binopdelegator-delegate_name-op_name-kwargs) has the appropriate
+`_set...` function as its `setter` keyword argument, so the delegator is modified directly.
+
+#### <code>delegate_math(delegator, delegate_name, include=MATH_OPS)</code>####
+
+`MATH_OPS` is the set of all the magic methods for numeric and bitwise operators: binary,
+inplace binary, and unary.  By default, this function delegates all of these methods with
+`type_check`  equal to `True` for the binary operators.  For `include` you can use any iterable
+that yields the names in the subset of `MATH_OPS` that you need.  `MATH_OPS` itself maps the
+names to the corresponding `_set...` functions.
+
+"""
+
+def delegate_cmps(delegator, delegate_name, include=COMPARISONS):
+   for opname in include:
+      delegate_binop(delegator, delegate_name, opname, setter=COMPARISONS[opname], type_check=True)
+
+def delegate_math(delegator, delegate_name, include=MATH_OPS):
+   for opname in include:
+      setter = MATH_OPS[opname]
+      if opname in MATH_BINOPS:
+         delegate_binop(delegator, delegate_name, opname, setter=setter, type_check=True)
+      elif opname in MATH_IBINOPS:
+         delegate_inplace_binop(delegator, delegate_name, opname, setter=setter, type_check=True)
+      elif opname in MATH_UNOPS:
+         delegate_unop(delegator, delegate_name, opname, setter=setter)
+      else:
+         raise ValueError("'{}' is not a known numeric method name".format(setter))
+
+
+""" <md>
+
+Another common candidate for delegation is indexing and the `in` operator.  This type of
+delegation that requires a little special attention. One reason is that there are up to 8 magic
+methods involved, and I want one call here to do all of the work.  The method names are
+`__getitem__`, `__setitem__`, `__delitem__`, `__contains__`, `__iter__`, `__len__`,
+`__missing__` and `__reversed__`
+
+#### <code>delegate_indexing(delegator, delegate_name, &ast;, excluded=set())</code> ####
+
+The value of the `excluded` keyword argument is a `dict`-like or `set`-like object containing
+names of methods not to delegate.  There are several reasons for having it:
+
+> Should one delegate both read and write access to the indexed collection? The default is
+"yes". But, if either `__setitem__` or `__delitem__` appears in the `excluded` set, methods will
+be created that raise an appropriate exception rather than delegating either the "set" or "del"
+operation.
+
+> What should one do about the `__iter__()` method?  Normally you would probably just want to
+just use the delegate collection's own iterator, but I can imagine situations where this sort of
+straightforward delegation is not enough, and the delegator wants to modify the value returned
+by the delegate's iterator.  Put `"__iter__"` in `excluded` if you want to supply your own.
+
+> Some other methods are either not always there, like `missing`, and you may want to take 
+advantage of that so as not to clutter the delegator. Just throw it into the excluded set. 
+
+"""
+
+def delegate_indexing(delegator, delegate_name, *, excluded=set()):
+   if "__setitem__" in excluded:
+      def setter(self, key, value):
+         raise su.IllegalOpError(
+            "{0}[{1}] is readonly; cannot set entry for key {1}".format(delegator.__name__, su.quote_if_str(key))
+         )
+   else:
+      def setter(self, key, value):
+         my_delegate = object.__getattribute__(self, delegate_name)
+         return my_delegate.__setitem__(key, value)
+   if "__delitem__" in excluded:
+      def deleter(self, key):
+         raise su.IllegalOpError(
+            "{}[{}] is readonly and may not be removed".format(delegator.__name__, su.quote_if_str(key))
+         )
+   else:
+      def deleter(self, key):
+         my_delegate = object.__getattribute__(self, delegate_name)
+         return my_delegate.__delitem__(key)
+   _tidy_up_and_assign(delegator, "__setitem__", setter, _set__setitem__)
+   _tidy_up_and_assign(delegator, "__delitem__", deleter, _set__delitem__)
+   excluded = excluded.union(set(("__setitem__", "__delitem__")))
+   for name, setter in INDEXING_OPS.items():
+      if name not in excluded:
+         if name is "__iter__" or name is "__len__":
+            delegate_unop(delegator, delegate_name, name, setter=setter)
+         else:
+            delegate_binop(delegator, delegate_name, name, setter=setter, type_check=False)
+
+""" <md>
+
+### Handling generic attributes ###
+
+Up to this point, I have been concerned with attributes of the delegate whose values are methods
+from a fixed pool that are to be passed through to it from the delegator.  Now I want to look at
+delegating references to an arbitrary object value, which may or may not be callable and about
+whose provenance or semantics I know nothing.   The technique here is to create a
+[descriptor](https://docs.python.org/3/howto/descriptor.html) and then extend `delegator` so
+that the new class has that attribute.
+
+The end result is that the attribute name is added to the delegator, which passes through all
+operations on the attribute (get, set and delete) to the delegate.
+
+__*Programming Note*__: A private auxiliary function "`_prepare_a_field`" creates the descriptor.
+There is a little waltz I indulge in there once the descriptor is created to make instrumenting
+(debugging) this code a little easier.  The class I've just defined is extended to create a new
+class whose name reflects the field name being delegated.  If the delegator has class `C`, and the
+field name is `stuff`, then the new class is named `_C_stuff_delegator`.
+
+#### <code>delegate_fields(delegator, delegate_name, &ast;, rw_names=(), ro_names=())</code> ####
+
+This function gives you a one-liner for delegating a whole set of attributes in one call.  The two
+keyword parameters are iterables that yield the set of read-write and read-only attribute names you
+want delegated.  The return value is the `class` that extends `delegator` and implements the new
+attributes.
+
+"""
+
+def _prepare_a_field(delegator, delegate_name, deferred, field_name, readonly=False):
+   if not readonly:
+      class Field:
+         def __get__(self, obj, type=None):
+            dlgtobj = object.__getattribute__(obj, delegate_name)
+            return dlgtobj.__getattribute__(field_name)
+
+         def __set__(self, obj, value):
+            dlgtobj = object.__getattribute__(obj, delegate_name)
+            return dlgtobj.__setattr__(field_name)
+
+         def __delete__(self, obj):
+            dlgtobj = object.__getattribute__(obj, delegate_name)
+            return dlgtobj.__delattr__(field_name)
+   else:
+      class Field:
+         def _raise_error(field_name):
+            class_name = su.a_classname(delegator)
+            raise su.IllegalOpError(
+               "'{}' is a read-only attribute of {}".format(field_name, class_name))
+         def __get__(self, obj, type=None):
+            dlgtobj = object.__getattribute__(obj, delegate_name)
+            return dlgtobj.__getattribute__(field_name)
+
+         def __set__(self, obj, value):
+            _raise_error(field_name)
+
+         def __delete__(self, obj):
+            _raise_error(field_name)
+   cls = new_class("_{}_{}_delegator".format(delegator.__name__,field_name), (Field,))
+   deferred[field_name] = cls()
+   return deferred
+
+def delegate_fields(delegator, delegate_name, *, rw_names=(), ro_names=()):
+   deferred = {}
+   for name in rw_names:
+      _prepare_a_field(delegator, delegate_name, deferred, name, readonly=False)
+   for name in ro_names:
+      _prepare_a_field(delegator, delegate_name, deferred, name, readonly=True)
+   if len(deferred) is 0:
+      return delegator
+   else:
+      def populate(ns):
+         for name in deferred:
+            ns[name] = deferred[name]
+      newcls = new_class(delegator.__name__, (delegator,), exec_body=populate)
+      return newcls
+
+
+""" <md>
+
+### Putting it all together ###
+
+The following functions wrap the those above to package convenient sets of stuff to delegate. Do
+not forget that these are "compile-time" operation: attributes of the actual delegate that are
+created during the running of the program, but after any of these function is called, will not
+be delegated, whatever their name may be.
+
+#### <code>delegate_ops_from_source(delegator, delegate_name, source, excluded=set())</code> {#delopsfrmsrc}
+
+`source` is a class or instance some or all of whose magic operator methods are to be delegated
+by the `delegator`.  All of the methods whose names are in `NAMED_OPS` that appear as attributes
+of `source` are delegated, except those yielded by the iterable `excluded`.   The return value
+is the set of names delegated.
+
+#### <code>delegate_ops(delegator, delegate_name, &ast;, included=set(), excluded=set())</code> {#delops}
+
+All of the methods whose names in `included` are delegated that are in `NAMED_OPS` and not in
+`excluded`.   The return value is the set of names delegated.  Names in `included` not found in
+`NAMED_OPS` are ignored.
+
+#### <code>delegate_from_source(delegator, delegate_name, source, &ast;, included=set(), readonly=set(), excluded=set())</code> {#delfrmsrc}
+
+This is convenience hack for the (common, I think) situation where you know the "duck type" of
+the delegate, because you've been handed either an object or a class whose API is what you
+require. The idea is to delegate the attributes of the source that are not already attributes of
+the delegator and that come in one of three categories:
+
+> attributes whose names are `NAMED_OPS` and are not in `excluded`,\
+_public_ attributes of `source` that are, again, not in `excluded`, and\
+_private_ attributes that are in the `included` set and not in `excluded`.
+
+An attribute is "public" if its name does not begin with an underscore.  See [`pubdir` in
+`sysutils`.](sysutils.html#pubdirvalue)  Attributes, both public and private, that are not in
+`NAMED_OPS` are added to the delegator as readonly attributes if their names are in the `readonly`
+set; otherwise they are added as read-write attributes.
+
+By default, `excluded` is the set of "own attributes" of the delegator: normally you do not want
+to overwrite them.  If you provide a non-`None` value for `excluded` it is assumed that this is
+exactly the set you want excluded, so be careful to include `sysutils.owndir(delegator)` if that is
+your intention.
+
+#### <code>delegate(delegator, delegate_name, &ast;, readonly=set(), included=set(), excluded=set())</code> {#delegate}
+
+This is the general big-whopper call.  It subsumes all of the above!  The attributes affected are:
+
+> `included`: as you would guess, these are the names you want delegated, be they magic, public, or
+private.  They will be treated as read-write unless they occur in `NAMED_OPS` or in the set
+`readonly`.
+
+> `readonly`: these are names, again either public or private, that you want included, but treated
+as read-only attributes of the delegator.
+
+> `excluded`: attributes that you definitely do not want to be delegated.  This set may overlap the
+other two, and if it does, "exclude" wins every time! If a name is here, it does not get delegated.
+Period, full stop.
+
+"""
+
+def delegate_ops_from_source(delegator, delegate_name, source, excluded=set()):
+   if not isinstance(excluded, set): 
+      excluded = set(excluded)
+   included = set()
+   for name in NAMED_OPS:
+      if hasattr(source, name) and name not in excluded:
+         included.add(name)
+   return delegate_ops(delegator, delegate_name, included=included, excluded=excluded)
+
+def delegate_ops(delegator, delegate_name, *, included=set(), excluded=set()):
+   if not isinstance(excluded, set): 
+      excluded = set(excluded)
+   comparisons = set()
+   mathops = set()
+   indexing = set()
+   for name in included:
+      if name not in excluded:
+         if name in COMPARISONS: comparisons.add(name)
+         elif name in MATH_OPS: mathops.add(name)
+         elif name in INDEXING_OPS: indexing.add(name)
+   if len(comparisons) > 0:
+      delegate_cmps(delegator, delegate_name, include=comparisons)
+   if len(mathops) > 0:
+      delegate_math(delegator, delegate_name, include=mathops)
+   if len(indexing) > 0:
+      delegate_indexing(delegator, delegate_name, excluded=excluded)
+   return comparisons.union(mathops.union(indexing))
+
+def delegate_from_source(delegator, delegate_name, source, included= set(), readonly=set(), excluded=None):
+   if not isinstance(included, set): included = set(included)
+   if excluded is None:
+      excluded = set(su.owndir(delegator))
+   elif not isinstance(excluded, set): excluded = set(excluded)
+   done = delegate_ops_from_source(delegator, delegate_name, source, excluded=excluded)
+   excluded.update(done)
+   remaining = included.union(set(su.pubdir(source))) - excluded
+   return delegate_fields(delegator, delegate_name, rw_names=remaining-readonly, ro_names=readonly)
+
+def delegate(delegator, delegate_name, *, readonly=set(), included=set(), excluded=set()):
+   if not isinstance(readonly, set): readonly = set(readonly)
+   if not isinstance(included, set): included = set(included)
+   excluded = set(excluded)
+   excluded.update(delegate_ops(delegator, delegate_name, included=included, excluded=excluded))
+   readwrite = (included - excluded) - readonly
+   if len(readwrite)+len(readonly) > 0:
+      return delegate_fields(delegator, delegate_name, rw_names=readwrite, ro_names=readonly)
+   else:
+      return delegator
+
+""" <md>
+
+### Accessing the delegate itself ###
+
+If you don't mind the delegate being an attribute of the delegator that is both readable and
+writable, we are pretty well through with the "a priori" case.  There are times, though, when
+you really want to hide the delegate--I'll be gentler and call this "protecting" it.  I know of
+no way of doing this other than taking advantage of three more of Python's magic methods that
+get, set, or remove attributes.
+
+"""
+
+def _set__getattribute__(cls, fcn): cls.__getattribute__ = fcn
+def _set__setattr__(cls, fcn): cls.__setattr__ = fcn
+def _set__delattr__(cls, fcn): cls.__delattr__ = fcn
+
+""" <md>
+
+#### <code>protect_the_delegate(delegator, delegate_name, &ast;&ast;kwargs)</code> ####
+
+[IllegalOpError]: sysutils.html#class-illegaloperror
+
+Supplies the magic get, set, and remove methods so that access to the delegate attribute is limited
+as requested by the keyword arguments:
+
+> _`readable`:_ if `True`, allow read access to the delegate. `False` is the default.
+
+> _`writable`:_ if `True`, allow write access to the delegate. `False` is the default.
+
+> _`removeable`:_ if `True`, allow the delegate to be removed. `False` is the default.
+
+> _`onerror`:_ a function of two arguments: `f(msg,value=None)`.  It is called if an illegal
+attempt is made to access the delegate.  The default is to raise an
+[`IllegalOpError`][IllegalOpError] with `msg` as the message.  When it is a failed assignment
+that is being signalled, the second argument, "`value`", is the  right-hand side of that
+assignment.
+
+>> The format of `msg` is the same in all 3 cases.  It has a very specific syntax that shows the
+type of request which failed and the key involved:
+
+<div style="font-family: Monaco;font-size: 10pt;text-align: center;">
+[get|set|del] '_badkey_' failed: the attribute is private
+</div>
+
+>> The single quotes around the key shown above actually appear in the message, which simplifies
+parsing when the errant key is either the empty string or has leading and/or trailing invisible
+characters.
+
+
+"""
+
+def _onerror(msg, value=None):
+   raise su.IllegalOpError(msg)
+
+def protect_the_delegate(delegator, delegate_name, *, 
+   readable=False, writable=False, removeable=False, onerror=_onerror):
+   if not readable:
+      ur_get = object.__getattribute__(delegator, "__getattribute__")
+      @functools.wraps(ur_get)
+      def getter(self, key):
+         if delegate_name != key:
+            return object.__getattribute__(self, key) 
+         else:
+            onerror("get '{}' failed: the attribute is private".format(key))
+      _tidy_up_and_assign(delegator, "__getattribute__", getter, _set__getattribute__)
+   if not writable:
+      ur_set = object.__getattribute__(delegator, "__setattr__")  
+      @functools.wraps(ur_set)
+      def setter(self, key, value):
+         if delegate_name != key:
+            object.__setattr__(self, key, value)
+         else:
+            onerror("set '{}' failed: the attribute is private".format(key,value), value)
+      _tidy_up_and_assign(delegator, "__setattr__", setter, _set__setattr__)
+   if not removeable:
+      ur_del = object.__getattribute__(delegator, "__delattr__")  
+      @functools.wraps(ur_del)
+      def deleter(self, key):
+         if delegate_name != key:
+            object.__delattr__(self, key)
+         else:
+            onerror("del '{}' failed: the attribute is private".format(key))
+      _tidy_up_and_assign(delegator, "__delattr__", deleter, _set__delattr__)
+
+
+""" <md>
+
+## The base static decorator class, <code>Static_Delegator</code>##
+
+It should be clear by now that one could write an omnibus function or class with sufficiently rich
+parameters to do all of the jobs this collection of functions does and use it to decorate a class.
+One could also rewrite the functions here to act as individual decorators.  I am going to provide a
+class whose instances have the detail needed to carry out the vast majority of  static delegations.
+It can be used as a decorator, but the only advantage I see there, though, is atomicity.
+
+####<code>Static_Delegator(delegate_name, &ast;, source=None, included=set(), excluded=set(), readonly=set())</code> {#staticdelegator}
+
+Instances use `delegate_from_source` or `delegate` to create attributes in a delegator class that 
+delegate to the delegator's attribute named by `delegate_name`.  The remaining keyword parameters
+retain their meanings from the signatures of `delegate_from_source` and `delegate`.  If `source`
+is not `None`, `delegate_source` will be called; otherwise it is `delegate` that gets the nod.
+
+
+#### <code>Static_Delegator.apply(delegator, delegate_name = None) </code>
+
+You can use a `Static_Delegator` instance `sd` to modify a class `delegator` in place by calling
+its `apply` method directly.  If `delegate_name` is `None`, the default delegate attribute, 
+which is the attribute `sd.delegate_name` of `sd`, will be used.
+
+## Examples of specialized static decorator classes
+
+As examples of how one might adapt `Static_Delegator` to one's needs, I've provided extensions of
+`Static_Delegator` each of which does one humble job: delegate indexing, `list`, `tuple`, or `dict`
+management.  Each may be used as a decorator or by calling is `apply()` method.
+
+####<code>Indexing_Delegator(delegate_name="", &ast;, excluded=set())</code> ####
+
+####<code>List_Delegator(delegate_name="", &ast;, excluded=set())</code> ####
+
+####<code>Tuple_Delegator(delegate_name="", &ast;, excluded=set())</code> ####
+
+####<code>Dict_Delegator(delegate_name="", &ast;, excluded=set())</code> ####
+
+####<code>RO_Dict_Delegator(delegate_name="", &ast;, excluded=set())</code> ####
+
+
+These classes extend `Static_Delegator` to delegate indexing and various types of collections.
+Instances can be used either to decorate a delegating class, or, via `apply()`, to modify a
+delegating class.  In each case, the keyword argument `excluded` allows you specify what methods
+that would ordinarily be delegated should not be. The difference between `RO_Dict_Delegator` and
+`Dict_Delegator` is that the former only delegates read access to the dictionary.
+
+#### <code>Delegate_Protector(delegate_name, &ast;&ast;kwargs)</code>
+
+This is a class analogous to `Static_Delegator`, but is dedicated to the single job of constraining
+access to the delegator's delegate attribute.  The `apply()` method here wraps the function
+[`protect_the_delegate()`](#accessing-the-delegate-itself), and the arguments for the constructor
+are the same as those for `protect_the_delegate()`.  
+
+#### <code>RO_Delegate_Protector(delegate_name="", &ast;, onerror=None)</code> ####
+
+This class (trivially) extends `Delegate_Protector` to provide a decorator that handles the common
+case in which read-only access is allowed to the delegate attribute.
+
+""" 
+
+class Static_Delegator:
+   def __init__(self, delegate_name="", *, source=None, included=set(), excluded=set(), readonly=set()):
+      self.delegate_name = delegate_name
+      self.included = set(included)
+      self.readonly = set(readonly)
+      self.excluded = set(excluded)
+      self.source = source
+
+   def apply(self, delegator, delegate_name=None):
+      if not delegate_name:
+         if self.delegate_name:
+            delegate_name = self.delegate_name
+         else:
+            raise ValueError("No value was supplied for the delegate attribute's name.")
+      if self.source:
+         return delegate_from_source(delegator, delegate_name,
+            self.source, included=self.included, readonly=self.readonly, excluded=self.excluded)
+      else:
+         return delegate(delegator, delegate_name,
+            included=self.included, readonly=self.readonly, excluded=self.excluded)
+
+   def __call__(self, delegator):
+      return self.apply(delegator)
+
+class Indexing_Delegator(Static_Delegator):
+   def __init__(self, delegate_name="", *, excluded=set()):
+      Static_Delegator.__init__(self, delegate_name, included=INDEXING_OPS, excluded=excluded)
+
+class List_Delegator(Static_Delegator):
+   def __init__(self, delegate_name="", *, excluded=set()):
+      Static_Delegator.__init__(self, delegate_name, source=list, excluded=excluded)
+
+class Tuple_Delegator(Static_Delegator):
+   def __init__(self, delegate_name="", *, excluded=set(("__setitem__", "__delitem__"))):
+      Static_Delegator.__init__(self, delegate_name, source=tuple, excluded=excluded)
+
+class Dict_Delegator(Static_Delegator):
+   def __init__(self, delegate_name="", *, excluded=set()):
+      Static_Delegator.__init__(self, delegate_name, source=dict, excluded=excluded)
+
+class RO_Dict_Delegator(Static_Delegator):
+   def __init__(self, delegate_name="", *, excluded=set(
+         ("__delitem__", "__setitem__", "clear", "copy", "pop", "popitem", "setdefault", "update")
+      )):
+      Static_Delegator.__init__(self, delegate_name, source=dict, excluded=excluded)
+
+class Delegate_Protector:
+   def __init__(self, delegate_name="", *,
+         readable=False, writable=False, removeable=False, onerror=None):
+      self.delegate_name = delegate_name
+      self.readable = readable
+      self.writable = writable and readable
+      self.removeable = removeable
+      self.onerror = onerror if onerror is not None else _onerror
+   
+   def apply(self, delegator, delegate_name=None):
+      if not delegate_name:
+         if self.delegate_name:
+            delegate_name = self.delegate_name
+         else:
+            raise ValueError("No value was supplied for the delegate attribute's name.")
+      protect_the_delegate(delegator, delegate_name, 
+         readable = self.readable, writable = self.writable, 
+         removeable = self.removeable, onerror = self.onerror)
+      return delegator
+
+   def __call__(self, delegator):
+      return self.apply(delegator)
+
+
+class RO_Delegate_Protector(Delegate_Protector):
+   def __init__(self, delegate_name="", *, onerror=None):
+      Delegate_Protector.__init__(self, delegate_name,
+         readable=True, writable=False, removeable=False, onerror=onerror)
+
+
+""" <md>
+
+## Run-time delegation ##
+
+### The methods
+
+Until now I have been looking at "a priori" delegation, in which the delegator, a class, has
+attributes added (or modified) that parallel the delegate's attributes.  Another approach, which is
+dynamic, is to provide the delegator with its own `__getattribute__()`, `__setattr__()`, and
+`__delattr__()`  methods.  These are the methods that the runtime uses to implement attribute lookup
+and assignment. In a certain sense, then, this is the most robust way of delegating: whenever the
+delegate has attributes added or deleted, the delegator sees what has happened automatically.
+
+You should assume that any attribute that _can_ be added statically should be--and will be.  One of
+the keyword parameters in the calls here (`runtime`) specifies a set of runtime attribute names:
+names that might be statically added, but that for whatever reason, should not be added statically.
+One good thing to keep in mind is that some magic methods lose their magic interpretion if they
+are not part of the `class`.  Dynamic delegation should be viewed not as distinct from static
+delegation, but as an modest extension of it.
+
+The analogues of `delegate_from_source` and `delegate` are:
+
+####<code>delegate&lowbar;&lowbar;attr&lowbar;&lowbar;from_source(delegator, delegate_name, source, &ast;&ast;kwdargs)</code> 
+####<code>delegate&lowbar;&lowbar;attr&lowbar;&lowbar;(delegator, delegate_name, &ast;&ast;kwdargs)</code>
+
+The keyword parameters are:
+
+> __`protect`__: determines how attempts to modify the delegate attribute are to be treated.  This
+is analogous to the `onerror` argument for `protect_the_delegate`, but the values are a little
+different here.  Because the whole point of dynamic delegation is to create a modified set of magic
+access methods, the treatment of protecting the delegate cannot be separated from how other
+attributes are to be handled, in contrast to the static case where there is no reason not to keep it
+separate. The upshot is that protecting the delegate is treated a little differently here.  The
+values for `protect` are: 
+
+>> If `protect`'s value is `False`, _i.e._ "don't protect the delegate", the delegate will
+be treated like any attribute of the delegator: it can be read, assigned to directly, or deleted.
+
+>> If `protect`'s  value is `True`, an attempt to access the delegate attribute in the delegator by
+the dot operator will raise an [`IllegalOpError`](sysutils.html#class-illegaloperror).  The delegate
+is effectively invisible.
+
+>> If `protect`'s  value is an `Exception` class, that exception will be raised with an error
+message as its argument.  The error message the same syntax as that for
+[`protect_the_delegate`](#accessing- the-delegate-itself).  While it is true that you can do some
+processing in the exception class's initializer, `__init__()`, before you lose control, the main
+reason for separating out this case is to allow you to simplify any "`except`" clauses that need to
+handle the problem by providing a recognizable type for the exception, not just the rather
+overworked `IllegalOpError`.
+
+>> The final alternative is to pass in a function that takes two arguments.  It will be called with
+the error message as its first argument, and if the request was a "set" request, the value to be
+assigned as it second argument. For get and delete requests, `None` is passed as the second
+argument.  This is the route to take if the value is needed to handle to a failed assignment.  The
+function can either raise an exception itself or return a value.
+
+> __`included`__: is an iterable, preferably a `set`, that yields the names of attributes that
+should be looked up directly in the delegate, whether or not they appear in the delegator.  In
+practice, the names here are apt to be those for which  generic implementations may be provided in
+the base types that the delegator extends, and the point of delegating is exactly to provide
+localized semantics, whether the name is inherited or not.  High on the list of such attributes are
+the [magic methods](magicmethods.pdf).
+
+> __`excluded`__: is the mirror image in the delegate of `included` for the delegator.  It is an
+iterable, again preferably a set, that yields names of attributes of the delegate that should be
+looked up only in the delegator, _never in the delegate._
+
+> __`readonly`__: for attributes in the `included` set, those for which only read access is allowed.
+
+> __`runtime`__: for attributes that _must_ be looked up at runtime.  This is a set of attributes
+that might be statically added to the delegator but that, for whatever reason, you want always to
+fetch through the modified `__getattribute__` and `__setattr__`.  A (somewhat artificial) example:
+magic methods that you want only as method names, not for their magic interpretation.
+
+To summarize: if you apply this method to a delegator class `C`, an attribute `C.stuff` will be
+looked up as follows:
+
+>> If `stuff` is in the `included` set, it will only be looked for in the delegate, either by
+having been statically delegated or at run-time by the altered "get" magic.
+
+>> Otherwise, the first attempt to find `stuff` is in the delegator itself.
+
+>> If that fails, and if `stuff` is not the `excluded` set, it will be looked for in the delegate. 
+
+Of course, if both `included` and `excluded` are empty, and if you don't care about protecting the
+delegate, the code can be made infinitely simpler, and the only downside is the open-endedness of
+the lookup: you may find an attribute that just happened to wind up in the delegate, when in fact,
+it is a minor misspelling of an attribute that _is_ in the delegator for some, but not all, paths
+and even then only in certain (rare?) contexts.
+
+#### <code>basic&lowbar;delegate&lowbar;attr(delegator, delegate&lowbar;name, &ast;, protect=True)</code> ####
+
+This is the same as `delegate__attr__`, but with no override sets of any kind.  Check whether the
+attribute is found in the delegator, if so, use it; otherwise check the delegate.  The only
+question is whether to protect the delegate.  The final parameter takes care of that, just as it
+does for `delegate__attr__`.  The modified magic methods contain no protection code unless you ask
+for it, either.  
+
+This is really the minimal thing.  Use it carefully...  Perhaps this is the place to repeat: magic
+methods may lose their extra-terrestrial powers if they are not direct class attribute values.
+Check out carefully the test code, [`delegate_test.py`](examples/delegate_test.py).
+
+### The cost of dynamic versus static delegation {#the_cost}
+
+One has to assume that attribute lookup is a high traffic path in almost any application.  That
+is why, even though there is something to be said for allowing regular expressions for the
+entries in the included and excluded lists--_e.g._ include all names matching `'get\w*'`--in the
+`delegate__attr...` methods,  I've held back: it involves yet another performance hit in what is
+likely to be a high traffic path.
+
+Speaking of high traffic paths, I said I'd have more to say about efficiency of static versus
+dynamic delegation.  The key is in the logic one needs to insert into the  magic lookup.  Here
+is the outline of `__getattribute__` in the worst case for the `delegate__attr...` methods,
+where you need all of their parameters:
+
+<pre class="exampleCode">
+
+      if key in included: 
+         # only look in the delegate, not in the delegator. so fetch the delegate 
+         #    and try there
+      elif delegate_name == key and there is an error handler:
+         # lookup failed--call the error handler implied by the "protect" parameter
+      elif key in excluded:
+         # the key is excluded, excluded keys are NEVER delegated, so check self! 
+      else:
+         try:
+            # try delegator first
+         except:
+            # but if that fails, fetch the delegate and try there 
+
+</pre>
+
+Compare this with what happens when an attribute is statically delegated.  If the attribute
+value is a method that is now called directly by an attribute of the delegator, the cost is no
+more than the extra call.  If the attribute was realized as a descriptor in the delegator, the
+cost is the overhead of the single function call that does the actual fetch.
+
+"""
+
+def delegate__attr__from_source(delegator, delegate_name, source, *,
+   protect=True, runtime=set(), included=set(), readonly=set(), excluded=set()):
+   excluded = set(excluded)
+   original = set(dir(delegator))
+   delegator = delegate_from_source(delegator,delegate_name,
+      source=source, included=included, excluded=runtime.union(excluded), readonly=readonly)
+   added = set(dir(delegator)) - original
+   excluded = excluded.union(added)
+   for name in added:
+      if name in included:
+         included.remove(name)
+   return _delegate__attr__common(delegator, delegate_name,
+      protect=protect, included=included, excluded=excluded, readonly=readonly)
+
+def delegate__attr__(delegator, delegate_name, *, 
+   protect=True, runtime=set(), included=set(), readonly=set(), excluded=set()):
+   excluded = set(excluded)
+   original = set(dir(delegator))
+   delegator = delegate(delegator,delegate_name,
+      included=included, excluded=runtime.union(excluded), readonly=readonly)
+   added = set(dir(delegator)) - original
+   excluded = excluded.union(added)
+   for name in added:
+      if name in included:
+         included.remove(name)
+   return _delegate__attr__common(delegator, delegate_name,
+      protect=protect, included=included, excluded=excluded, readonly=readonly)
+
+def _choose_protector(protect):
+   if protect is True: 
+      # n.b. really, really True, not Trueish. 
+      def nosuch(msg, value=None): 
+         raise su.IllegalOpError(msg)            
+   elif type(protect)==type(Exception) and issubclass(protect, Exception): 
+      # you may wish to some work before surrendering to the "raise"
+      def nosuch(msg, value=None):
+         raise protect(msg) 
+   elif protect:
+      # you are on your own here
+      def nosuch(msg, value=None):
+         return protect(msg, value)
+   else:
+      nosuch = False
+   return nosuch
+
+def _delegate__attr__common(delegator, delegate_name, *, protect=True, included=set(), readonly=set(), excluded=set()):
+   if not isinstance(included, set):
+      included = set(included)
+   nosuch = _choose_protector(protect)
+   ur_get = object.__getattribute__(delegator, "__getattribute__")
+   @functools.wraps(ur_get )
+   def getter(self, key):
+      if key in included: 
+         # only look in the delegate, not in the delegator
+         return object.__getattribute__(self, delegate_name).__getattribute__(key)
+      elif delegate_name == key and nosuch is not False:
+         msg = "get '{}' failed: attribute is private".format(key)
+         return nosuch(msg)
+      elif key in excluded:
+         # the key is excluded and excluded keys are NEVER delegated! 
+         return object.__getattribute__(self, key)
+      else:
+         # try delegator first, but if that fails, try the delegate 
+         try:
+            return object.__getattribute__(self, key) 
+         except:
+            return object.__getattribute__(self, delegate_name).__getattribute__(key) 
+   ur_set = object.__getattribute__(delegator, "__setattr__")  
+   @functools.wraps(ur_set)
+   def setter(self, key, value):
+      if key in included and key not in readonly:
+         object.__getattribute__(self, delegate_name).__setattr__(key, value)
+      elif delegate_name == key and nosuch is not False:
+         msg = "set '{}' failed: attribute is private".format(key)
+         nosuch(msg,value)
+      elif key not in excluded:
+         try:
+            object.__setattr__(self, key, value)
+         except:
+            object.__getattribute__(self, delegate_name).__setattr__(key, value)
+      else:
+         return object.__setattr__(self, key, value)
+
+   ur_del = object.__getattribute__(delegator, "__delattr__")  
+   @functools.wraps(ur_del)
+   def deleter(self, key):
+      if key in included:
+         object.__getattribute__(self, delegate_name).__delattr__(key)
+      elif delegate_name == key and nosuch is not False:
+         msg = "del '{}' failed: attribute is private".format(key)
+         nosuch(msg)
+      elif key not in excluded:
+         try:
+            object.__delattr__(self, key)
+         except:
+            object.__getattribute__(self, delegate_name).__delattr__(key)
+      else:
+         object.__delattr__(self, key)
+   _tidy_up_and_assign(delegator, "__getattribute__", getter, _set__getattribute__)
+   _tidy_up_and_assign(delegator, "__setattr__", setter, _set__setattr__)
+   _tidy_up_and_assign(delegator, "__delattr__", deleter, _set__delattr__)
+   return delegator
+
+def basic_delegate_attr(delegator, delegate_name, *, protect=True):
+   nosuch = _choose_protector(protect)
+   ur_get = object.__getattribute__(delegator, "__getattribute__")
+   ur_set = object.__getattribute__(delegator, "__setattr__")  
+   ur_del = object.__getattribute__(delegator, "__delattr__")  
+   if nosuch:
+      @functools.wraps(ur_get )
+      def getter(self, key):
+         if delegate_name == key:
+            msg = "get '{}' failed: attribute is private".format(key)
+            return nosuch(msg)
+         else:
+            try:
+               return object.__getattribute__(self, key) 
+            except:
+               return object.__getattribute__(self, delegate_name).__getattribute__(key)
+      @functools.wraps(ur_set)
+      def setter(self, key, value):
+         if delegate_name == key:
+            msg = "set '{}' failed: attribute is private".format(key)
+            nosuch(msg, value)
+         else:
+            try:
+               object.__setattr__(self, key, value)
+            except:
+               object.__getattribute__(self, delegate_name).__setattr__(key, value)
+      @functools.wraps(ur_del)
+      def deleter(self, key):
+         if delegate_name == key and nosuch is not False:
+            msg = "del '{}' failed: attribute is private".format(key)
+            nosuch(msg)
+         else:
+            try:
+               object.__delattr__(self, key)
+            except:
+               object.__getattribute__(self, delegate_name).__delattr__(key)
+   else: 
+      @functools.wraps(ur_get )
+      def getter(self, key):
+         try:
+            return object.__getattribute__(self, key) 
+         except:
+            return object.__getattribute__(self, delegate_name).__getattribute__(key) 
+      @functools.wraps(ur_set)
+      def setter(self, key, value):
+         try:
+            object.__setattr__(self, key, value)
+         except:
+            object.__getattribute__(self, delegate_name).__setattr__(key, value)
+      @functools.wraps(ur_del)
+      def deleter(self, key):
+         try:
+            object.__delattr__(self, key)
+         except:
+            object.__getattribute__(self, delegate_name).__delattr__(key)
+   _tidy_up_and_assign(delegator, "__getattribute__", getter, _set__getattribute__)
+   _tidy_up_and_assign(delegator, "__setattr__", setter, _set__setattr__)
+   _tidy_up_and_assign(delegator, "__delattr__", deleter, _set__delattr__)
+   return delegator
+
+
+""" <md>
+
+
+## A dynamic decorator class
+
+This class delegates `__getattribute__`, `__setattr__`, `__delattr__`, and nothing else.
+Instances can be used either to decorate a delegating class, or, via `apply()`, to modify a
+delegating class.
+
+#### <code>Dynamic_Delegator(delegate_name="", &ast;, protect=True, include=set(),\
+ readonly=set(), exclude=set())</code> {#dynamicdelegator}
+
+The parameters all have the same meaning as in the methods above.
+
+""" 
+
+class Dynamic_Delegator():
+   def __init__(self, delegate_name="", *, protect=True, included=set(), readonly= set(), excluded=set()):
+      self.delegate_name = delegate_name
+      self.included = set(included)
+      self.readonly = set(readonly)
+      self.excluded = set(excluded)
+      self.protect = protect
+
+   def apply(self, delegator, delegate_name=None):
+      if not delegate_name:
+         if self.delegate_name:
+            delegate_name = self.delegate_name
+         else:
+            raise ValueError("No value was supplied for the delegate attribute's name.")
+      return delegate__attr__(delegator, delegate_name, 
+         protect=self.protect, included=self.included, readonly=self.readonly, excluded=self.excluded
+      )
+
+   def __call__(self, delegator):
+      return self.apply(delegator)

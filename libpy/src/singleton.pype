@@ -1,0 +1,293 @@
+""" <head> 
+
+Title: The Singleton Pattern
+Author: Jonathan Brezin
+Date: May, 2017
+Show source: True
+
+"""
+import sysutils as su
+
+""" <md>
+[oflo-discussion]: https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons?
+
+[data-model]: https://docs.python.org/3/reference/datamodel.html#metaclasses
+
+[hettinger]: https://rhettinger.wordpress.com/2011/05/26/super-considered-super/
+
+## General considerations
+
+This discussion was inspired by a [stackoverflow discussion][oflo-discussion], which I 
+recommend to your attention.  What follows is almost all just a minor variation on it.  Please
+check out the web page for the authors who suggested the snippets here.
+
+The obvious ploy for creating a "singleton" is just to use the class and
+[`@classmethod`s](https://docs.python.org/3/library/functions.html#classmethod) rather than creating
+any "instances" at all.  This was the approach that I used for the Ruby version of a debugging
+manager, but when I came to writing the analogous Python module, I found that the class approach, at
+least for Python, has its minuses as well as its pluses.
+
+> _Big plus:_ simplicity.\
+> _Tiny minus:_ [`@classmethod`s](https://docs.python.org/3/library/functions.html#classmethod), which
+treat the class as the implied first argument "`self`", are kind of an "add on" to Python, somehow not
+really "Pythonic".\
+> _Modest minus:_ security--one has to prevent the class from being copied or deep-copied.
+
+For the debugging manager, more secure versions seemed unnecessary, and working in Ruby, static
+methods are perfectly natural, but for Python, I just didn't feel comfortable with the
+`@classmethod` "hack".  By the way, one can prevent copying the class in the obvious way.  We want
+the following snippet to fail:
+
+<pre class="exampleCode">
+
+    class CopyOfMe(Me):
+      pass
+</pre>
+
+[sflo_final]: https://stackoverflow.com/questions/16056574/how-does-python-prevent-a-class-from-being-subclassed)
+
+One way to make this happen (and keep the singleton a singleton) was recommended in a
+[_stackoverflow_article][sflo_final] 
+
+<pre class="exampleCode">
+
+class Final(type):
+    def __new__(cls, name, bases, classdict):
+        for b in bases:
+            if isinstance(b, Final):
+                raise TypeError("type '{0}' is not an acceptable base type".format(b.__name__))
+        return type.__new__(cls, name, bases, dict(classdict))
+
+class Foo(metaclass = Final):
+   pass
+
+</pre>
+
+If you try executing
+
+<pre class="exampleCode">
+
+class Bar(Foo):
+    pass
+
+</pre>
+
+you should get the message `"TypeError: type 'Foo' is not an acceptable base type"`
+
+## Forcing an instance to be unique
+
+There are basically three ways to create a class that has a unique instance:
+
+1) use a "constant" member of a module for the unique instance,
+2) create a [metaclass][data-model] for overriding `type.__new__`, or
+3) create a decorator class.
+
+I'll look at all three here. 
+
+### Using a global variable
+
+The module/global approach is about as simple using the class.
+
+<pre class="exampleCode">
+
+_the_one_and_only = None
+def TheOneAndOnly():
+   global _the_one_and_only
+   class NothingSpecial:
+      pass
+   if not _the_one_and_only:
+      _the_one_and_only = NothingSpecial()
+   return _the_one_and_only
+
+</pre>
+
+If there is no issue with instantiating when the module is first imported, things are even
+simpler:
+
+<pre class="exampleCode">
+
+class _NothingSpecial:
+    pass
+THE_ONE_AND_ONLY = _NothingSpecial()
+
+</pre>
+
+Using "`_NothingSpecial`" rather than "`NothingSpecial`" underscores (no pun intended) that
+the class is not meant for use outside the module in which it appears.  If you are careful to
+make direct copying of the one instance impossible (see "`_inhibit_copy()`" immediately below),
+then the only vulnerability here is that, even though it is a violation of the module's contract,
+rogue code _can_ still use the private class `_NothingSpecial` to create other instances.  
+
+The constructor here is nullary: that is, has no arguments.  This is a matter of good taste,
+because if it is possible to call a singleton's constructor with different sets of arguments,
+one has a nasty dilemma.  Is the second call with different arguments an error (in the context
+it is made)? Should one at least warn the caller?  Or can one simply ignore the call and return
+the unique instance?
+
+### Using a <code>metaclass</code>
+
+The metaclass based approach is also not so bad.  Here's a factory approach, that makes sense
+if the singleton constructor is not being called in a high frequency path.  We start with some
+code to prevent cloning the instance:
+
+""" # </md>
+
+def _copy(self): 
+   msg = "'{}' is a singleton class: no copy allowed!"
+   raise AssertionError(msg.format(self.__class__.__name__))
+
+def _deepcopy(self, memo):
+      msg = "'{}' is a singleton class: no deep copy allowed!"
+      raise AssertionError(msg.format(self.__class__.__name__))
+
+def _inhibit_copy(cls):
+   # If cls implements __copy__ or __deepcopy__, well so be it! I will leave it alone.
+   # If not, I will provide an implementation that raises an appropriate exception.
+   try:
+      cls.__copy__
+   except AttributeError:
+      cls.__copy__ = _copy
+   try:
+      cls.__deepcopy__
+   except AttributeError:
+      cls.__deepcopy__ = _deepcopy
+
+class OnlyOne(type):
+   instances = dict()
+   def __call__(cls, *args, **kwargs):
+      if cls.__name__ not in OnlyOne.instances:
+         OnlyOne.instances[cls.__name__] = type.__call__(cls, *args, **kwargs)
+         _inhibit_copy(cls)
+      return OnlyOne.instances[cls.__name__]
+
+""" <md>
+
+You use `OnlyOne` as follows:
+
+<pre class="exampleCode">
+
+class NothingSpecial(metaclass=OnlyOne):
+   pass
+</pre>
+
+### Using a decorator
+
+At last we come to the decorator approach.  Here's one way:
+
+""" # </md>
+
+class OneAndOnly(object):
+   def __init__(self, cls):
+      self.__dict__['cls'] = cls # make cls's dict available
+      _inhibit_copy(cls)
+   instances = {}
+   def __call__(self):
+      if self.cls not in self.instances:
+         self.instances[self.cls] = self.cls()
+         _inhibit_copy(self.cls)
+      return self.instances[self.cls]
+   def __getattr__(self, attr):
+      return getattr(self.__dict__['cls'], attr)
+   def __setattr__(self, attr, value):
+      return setattr(self.__dict__['cls'], attr, value)
+
+""" <md>
+
+`OneAndOnly` is used to decorate your class:
+
+<pre class="exampleCode">
+
+@OneAndOnly
+class NothingSpecial():
+   pass
+
+</pre>
+
+You can also go a slightly different route, a decorator that creates a class method "`get()`"
+for retrieving the unique instance:
+
+""" # </md>
+
+class OneOnly(object):
+   def __init__(self, cls):
+      self._cls = cls
+      self._instance = cls()
+      _inhibit_copy(cls)
+   def get(self):
+      return self._instance 
+   def __call__(self): # make sure the constructor for the singleton class fails
+      raise AssertionError("'{}' is a singleton class".format(self._cls.__name__))
+
+""" <md>
+
+<pre class="exampleCode">
+
+@OneOnly
+class NothingSpecial():
+   pass
+
+n = NothingSpecial.get()
+
+</pre>
+
+If you execute "`n = NothingSpecial()`", you will see an exception raised with the message
+"`'NothingSpecial'` `is a singleton class`".
+
+As a matter of taste, I guess I prefer the "get" version, as it underlines that the class
+itself is not being asked to construct something: you are just retrieving something.
+
+## Subclassing and singletons
+
+Because metaclassing and decorating muck about with the class being constrained, making
+subclassing work is probably best done by creating a vanilla class for the parent and then
+making a copy of that class the singleton.  Here "`AImpl`" is the real implementation of the
+class, and "`A`" is the singleton version:
+
+<pre class="exampleCode">
+
+from singleton import OneOnly
+class AImpl:
+   def __init__(self):
+      self.a = "A"
+
+@OneOnly
+class A(AImpl):
+   pass
+
+a = A.get()
+print("a.a is {}".format(a.a))
+
+</pre>
+
+To get a subclass "`B`" of "`A`", you play the same game: create a "`BImpl`" class that contains
+the real code, and then create singleton from the copy:
+
+<pre class="exampleCode">
+
+class BImpl(AImpl):
+   def __init__(self):
+      super().__init__()
+      self.b = "B"
+
+@OneOnly
+class B(BImpl):
+   pass
+
+b = B.get()
+print("b.a is {}".format(b.a)) 
+print("b.b is {}".format(b.b)) 
+
+</pre>
+
+Would I rather have two classes here, rather than 4?  I think that the answer is: often, but not
+always.  The issue here is whether the unconstrained classes, here `AImpl` and `BImpl`, are ever
+going to used as such--in other words, used in non-singleton mode.  It does not take too much
+imagination to conjure up examples where it is the context that requires the unique instance,
+but where there may be several such contexts.
+
+It's not exactly on the same topic, but since I'm worrying about subclasssing, I thought I'd
+recommend Raymond Hettinger's <https://rhettinger.wordpress.com/2011/05/26/super-considered-super/>.
+It is a great reference for `super()` calls, which are quite different for Python from what they are
+in other languages.
+
+""" # </md>

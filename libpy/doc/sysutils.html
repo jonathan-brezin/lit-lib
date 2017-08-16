@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Jonathan Brezin">
+  <title>Some system utilities – low level attribute and property access</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link href="data:text/css,%0A%40media%20print%20%7B%20%0A%20%20%20body%20%7B%20font%2Dsize%3A%2011pt%3B%20%7D%0A%20%20%20pre%20%7B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%0A%20%20%20%20%20%20background%2Dcolor%3A%20blanchedalmond%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Monaco%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%0A%20%20%20%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20%0A%20%20%20%20%20%20background%2Dcolor%3A%20lightgray%20%21important%3B%0A%20%20%20%20%20%20%2Dwebkit%2Dprint%2Dcolor%2Dadjust%3A%20exact%3B%20%0A%20%20%20%20%20%20font%2Dfamily%3A%20Courier%3B%20%0A%20%20%20%20%20%20font%2Dsize%3A%209pt%3B%20%5D%0A%20%20%20%20%7D%0A%7D%0A%2Eauthor%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2012pt%3B%20font%2Dweight%3A%20bold%3B%20%7D%0A%2Edate%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Acode%20%7B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%20smaller%3B%20%7D%0Apre%20%7B%0A%20%20%20%20%2Dmoz%2Dtab%2Dsize%3A%20%20%20%203%3B%0A%20%20%20%20%2Do%2Dtab%2Dsize%3A%20%20%20%20%20%203%3B%0A%20%20%20%20%2Dwebkit%2Dtab%2Dsize%3A%203%3B%0A%20%20%20%20%2Dms%2Dtab%2Dsize%3A%20%20%20%20%203%3B%0A%20%20%20%20tab%2Dsize%3A%20%20%20%20%20%20%20%20%203%3B%0A%20%20%20%20line%2Dheight%3A%201%2E125em%0A%7D%0A%40media%20screen%20%7B%0A%20%20%20h4%20%7B%20text%2Ddecoration%3A%20underline%3B%20%7D%0A%20%20%20%2EexampleCode%20%7B%20background%2Dcolor%3A%20blanchedalmond%3B%20font%2Dfamily%3A%20Monaco%3B%20font%2Dsize%3A%209pt%3B%20%7D%0A%20%20%20%2EsourceCode%20%20%7B%20background%2Dcolor%3A%20lightgray%3B%20font%2Dfamily%3A%20Courier%3B%20font%2Dsize%3A%2011pt%3B%20%20%7D%0A%7D%0A%2Eh1Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2020pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh2Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2018pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A%2Eh3Code%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2014pt%3B%20%7D%0A%2Etitle%20%20%20%20%20%7B%20text%2Dalign%3A%20center%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20bold%3B%7D%0A%2EtitleCode%20%7B%20font%2Dfamily%3ACourier%3B%20font%2Dsize%3A%2017pt%3B%20font%2Dweight%3A%20normal%3B%20%7D%0A" rel="stylesheet">
+</head>
+<body>
+<header>
+<h1 class="title">Some system utilities – low level attribute and property access</h1>
+<h2 class="author">Jonathan Brezin</h2>
+<h3 class="date">November, 2015</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#data-model">Data model</a><ul>
+<li><a href="#objects-types-and-values">Objects, types and values</a></li>
+<li><a href="#immutability">Immutability</a></li>
+<li><a href="#attributes-and-containers">Attributes and containers</a></li>
+<li><a href="#the-dot-operators-implementation">The dot operator’s implementation</a></li>
+<li><a href="#containers-and-the-operator">Containers and the “<code>[]</code>” operator</a></li>
+</ul></li>
+<li><a href="#a-couple-of-types-numbers-and-hashes">A couple of types: numbers and hashes</a><ul>
+<li><a href="#numeric-types">Numeric Types</a></li>
+<li><a href="#hashes">Hashes</a></li>
+</ul></li>
+<li><a href="#attribute-and-item-management-code">Attribute and Item Management Code</a><ul>
+<li><a href="#hierarchyforobjortype"><code>hierarchyFor(objOrType)</code></a></li>
+<li><a href="#owndirvalue"><code>owndir(value)</code></a></li>
+<li><a href="#pubdirvalue"><code>pubdir(value)</code></a></li>
+<li><a href="#mergepairstgt-src-clonefalse"><code>mergepairs(tgt, src, clone=False)</code></a></li>
+<li><a href="#getattributeowner-string-defaultvaluenone"><code>getattribute(owner, string, defaultValue=None)</code></a></li>
+<li><a href="#getitemowner-key-defaultvaluenone"><code>getitem(owner, key, defaultValue=None)</code></a></li>
+<li><a href="#getvalueowner-string-defaultvaluenone"><code>getvalue(owner, string, defaultValue=None)</code></a></li>
+<li><a href="#isindexableanobject-anindexnone"><code>isindexable(anObject, anIndex=None)</code></a></li>
+<li><a href="#isiterableanobject"><code>isiterable(anObject)</code></a></li>
+<li><a href="#reverse_lookupmapping"><code>reverse_lookup(mapping)</code></a></li>
+<li><a href="#hardenanobject-publiconlytrue-noncallabletrue-cleanupfalse"><code>harden(anObject, publicOnly=True, nonCallable=True, cleanup=False)</code></a></li>
+</ul></li>
+<li><a href="#filling-in-some-gaps-in-the-built-ins">Filling in some gaps in the built-ins</a><ul>
+<li><a href="#float-support"><code>float</code> support</a><ul>
+<li><a href="#float_componentsanumber"><code>float_components(aNumber)</code></a></li>
+</ul></li>
+<li><a href="#complex_numbers">Working with complex numbers</a><ul>
+<li><a href="#cabsz"><code>cabs(z)</code></a></li>
+</ul></li>
+<li><a href="#int-and-time-to-str-conversions"><code>int</code> and <code>time</code> to <code>str</code> conversions</a><ul>
+<li><a href="#str2intraw"><code>str2int(raw)</code></a></li>
+<li><a href="#int2strn-base10"><code>int2str(n, base=10)</code></a></li>
+<li><a href="#time2intliteraltime-base10-placestosave0"><code>time2IntLiteral(time, base=10, placesToSave=0)</code></a></li>
+<li><a href="#time_unitsplacestosave"><code>time_units(placesToSave)</code></a></li>
+<li><a href="#now2intliteralbase10-placestosave0"><code>now2IntLiteral(base=10, placesToSave=0)</code></a></li>
+<li><a href="#now4filenamedayonlyfalse"><code>now4FileName(dayOnly=False)</code></a></li>
+</ul></li>
+<li><a href="#some-string-functions">Some String Functions</a><ul>
+<li><a href="#aoranstring"><code>aOrAn(string)</code></a></li>
+<li><a href="#a_classnameobjectorclass"><code>a_classname(objectOrClass)</code></a></li>
+<li><a href="#a_classnameobjectorclass-1"><code>A_classname(objectOrClass)</code></a></li>
+<li><a href="#uncompileregexparegexp"><code>uncompileRegExp(aRegExp)</code></a></li>
+<li><a href="#quote_if_strvalue"><code>quote_if_str(value)</code></a></li>
+</ul></li>
+<li><a href="#slices-versus-ranges">Slices versus Ranges</a><ul>
+<li><a href="#slice2ranges-min0-maxnone"><code>slice2range(s, min=0, max=None)</code></a></li>
+<li><a href="#firstmlastnalist-m-n"><code>firstMlastN(alist, m, n)</code></a></li>
+</ul></li>
+<li><a href="#truth-or-consequences-boolean-literals">Truth or Consequences: Boolean “Literals”</a><ul>
+<li><a href="#asbooleanvalue"><code>asboolean(value)</code></a></li>
+<li><a href="#addbooleantermstrueorfalse-termsvalue"><code>addBooleanTerms(trueOrFalse, *terms)(value)</code></a></li>
+<li><a href="#delbooleantermsterms"><code>delBooleanTerms(*terms)</code></a></li>
+<li><a href="#samebooleanthis-that"><code>sameboolean(this, that)</code></a></li>
+<li><a href="#flatten"><code>flatten(a_list, *, depth=1, types=None)</code></a></li>
+</ul></li>
+<li><a href="#raising-some-common-errors">Raising some common errors</a><ul>
+<li><a href="#does_not_implement_assignmentobj"><code>DOES_NOT_IMPLEMENT_ASSIGNMENT(obj)</code></a></li>
+<li><a href="#does_not_implement_deletionsobj"><code>DOES_NOT_IMPLEMENT_DELETIONS(obj)</code></a></li>
+<li><a href="#subclass_must_implementoffendingclassorobject-methodname"><code>SUBCLASS_MUST_IMPLEMENT(offendingClassOrObject, methodName)</code></a></li>
+<li><a href="#IllegalOpError"><code>class IllegalOpError</code></a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> collections <span class="ch">import</span> namedtuple
+<span class="ch">from</span> inspect <span class="ch">import</span> getmro
+<span class="ch">import</span> re
+<span class="ch">import</span> sys
+<span class="ch">import</span> time
+</code></pre>
+<h2 id="introduction">Introduction</h2>
+<p>This module implements some <em>very</em> basic system utilities, mostly one-liners, that wrap a few Python fundamentals. If you want to get right to that code, skip to <a href="#attribute-and-item-management-code">the attribute and item accessing code</a>.</p>
+<p>I do not pretend to have a deep understanding of the ideas behind Python’s type system. I am going to make an attempt here to sugar-coat what is really a more complex set of ideas than I have any real desire to master in their entirety. My source for Python semantics is <a href="https://docs.python.org/3/reference/datamodel.html">Section 3 of the Python Language Reference</a>.</p>
+<h2 id="data-model">Data model</h2>
+<h3 id="objects-types-and-values">Objects, types and values</h3>
+<p>Objects are Python’s abstraction for all data, including code. Every object has an identity, a type and a value. An object’s identity never changes once it has been set and may be viewed as “the object’s address in memory”.</p>
+<blockquote>
+<p>The <code>is</code> operator compares the identities of a pair of objects. The global <code>id()</code> function returns an integer representing its identity.</p>
+</blockquote>
+<p>The object’s <em>type</em> is set as part of the object’s creation and is immutable thereafter. A type is usually specified by using a <code>class</code> statement. A <code>class</code> statement compiles into a callable object. Instances of the type are created by calling it. Two special keywords, <code>def</code> and <code>lambda</code>, are reserved for creating instances of the class <code>function</code>, but this special syntax aside, Python functions are simply objects like Python values of any other type. They just happen, like compiled <code>class</code> definitions, to be callable. Indeed, any object can be made callable. See Rafe Kettler’s <a href="magicmethods.pdf"><em>A Guide to Python’s Magic Methods</em></a> for how to do so and clear descriptions of Python’s other so-called “<em>magic methods.</em>”</p>
+<p>An object’s class determines both a set of possible values for the object and a set of operations that each of those values will support <em>at the time of the object’s instantiation.</em> That last phrase is crucial. An object’s attributes are kept in a dictionary-like object that normally is read-write, so you can add and delete attributes whenever it is convenient to do so.</p>
+<blockquote>
+<p>The builtin <code>type()</code> function returns an object’s type. Like all data in a Python program, this returned value is itself an object. Its class is <code>type</code>.</p>
+</blockquote>
+<p>The <em>value</em> of an object is somewhat more subtle to describe than either its id or its type. I know of no reference that attempts to articulate this idea. Instead, as is done in the <a href="https://docs.python.org/3/reference/datamodel.html">Python reference manual</a>, examples are given that cover what comes standard as part of the language. I don’t have much to add, except a few words later about numerical values and hashes.</p>
+<p>While it is true that one should not confuse an <em>identifier</em> <code>x</code> with the <em>identity</em> of the object <code>x</code> names, life is too short not to use the shorthand “<code>x</code>’s id” for “the id of the object to which <code>x</code> now refers.” Along the same lines, the integer “literal” <code>4</code> names an object and is not to be confused with its value, the number <em>4</em>, which is just one aspect of its objecthood. The following terminal session illustrates the point:</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; 4 . __class__ # 4 really is an object, so you can evaluate its &quot;__class__&quot; attribute
+   &lt;class 'int'&gt;
+   &gt;&gt;&gt; id(4)         # and has its own id 
+   4297515008
+   &gt;&gt;&gt; x = 4
+   &gt;&gt;&gt; id(x)         # x names the same object as 4
+   4297515008
+   &gt;&gt;&gt; y = 4
+   &gt;&gt;&gt; x is y        # True, because both name the same object, 4
+   True
+   &gt;&gt;&gt; x = 5         # x gets a new id: that of 5
+   &gt;&gt;&gt; id(x)
+   4297515040
+   &gt;&gt;&gt; id(5)         # no surprise: same value as id(x)
+   4297515040
+   &gt;&gt;&gt; id(y)         # y's id is unchanged
+   4297515008
+
+</pre>
+
+<p>By the way, the <code>id</code> of <code>4</code>, as you can see, is not <code>4</code>, but some very large integer that looks like an address in the far reaches of memory, but could be just another pretty hash code.</p>
+<p>Not all assignments in which an identifier appears on the left-hand side change an identifier’s id. The obvious example is updating a list:</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; x = [4]  # x is a list containing one entry, 4.
+   &gt;&gt;&gt; id(x)
+   4324344264
+   &gt;&gt;&gt; x[0] = 5 # x still has only one entry, but now it is 5
+   &gt;&gt;&gt; x        #    ... as evaluating x shows
+   [5]
+   &gt;&gt;&gt; id(x)    # x has the same id and type as before, but a different &quot;value&quot;
+   4324344264
+
+</pre>
+
+<h3 id="immutability">Immutability</h3>
+<p>The two examples above, numbers and lists, illustrate the two sides of the notion of “mutability”. A numeric object is immutable. Two different numeric values will have different ids when realized as Python objects. Collection containers like lists can have their contents altered without changing identity.</p>
+<p>The string class, “<code>str</code>”, is an example of a collection container that is immutable. You can look at individual members in a string, <em>e.g.</em> <code>&quot;abc&quot;[1]</code> is <code>&quot;b&quot;</code>, but you cannot reassign them: <code>&quot;abc&quot;[1]</code> <code>=</code> <code>d</code> will raise a <code>TypeError</code> whose message is “<code>'str'</code> <code>object</code> <code>does</code> <code>not</code> <code>support</code> <code>item</code> <code>assignment</code>”. Different string values always have distinct ids: you cannot modify the value of a string-valued identifier without assigning the identifier a new id.</p>
+<p>A final example of an immutability is a code object, which is the operative part of function value, whether the function defined as a <code>lambda</code> or via <code>def</code>. If <code>f</code> is a function, its compiled code object is <code>f.__code__</code> and <code>f.__call__</code> appears to be an thin interface to the runtime that assembles the argument list and executes the compiled code.</p>
+<blockquote>
+<p>This is a good example of a gap in my knowledge. What I said above seems to make sense from such documentation as is easily available. But: is it correct? Who knows?</p>
+</blockquote>
+<p>The object ids referred to by an immutable object’s own attributes cannot be changed. The values associated with these objects may or may not be mutable–<em>e.g.</em> if <code>obj</code> is immutable and <code>obj.attr</code> is a <code>list</code>, that <code>list</code>, and no other, will always be what <code>obj.attr</code> refers to, but that <code>list</code>’s membership may change at any time during execution.</p>
+<p>I’ll come back to how you declare objects with immutable attributes in the discussion on the “dot operator” that follows.</p>
+<h3 id="attributes-and-containers">Attributes and containers</h3>
+<p>What’s at stake here are two binary operators, the “dot” and the “square-brackets” operators. Python makes a strict distinction between the two. (By way of contrast, JavaScript makes none.)</p>
+<blockquote>
+<p><strong>The dot operator, “<code>.</code>”</strong>: <em><code>obj.attr</code></em> has two operands. The first is an object reference <code>obj</code>, and the other is a valid Python identifier <code>attr</code>, and the expression evaluates to the value of the “attribute” named <em><code>attr</code></em> of <em><code>obj</code></em>. The attribute labels of an object, like <em><code>attr</code></em> in this example, are normally defined either in (1) the object’s class declaration, (2) the class declaration for any classes that <code>obj</code>’s class extends, or (3) the initialization method, “<code>__init__()</code>” of one of those classes. The attributes associated in this way can be viewed as defining the type of the object, but more properly they constitute its initial <a href="https://en.wikipedia.org/wiki/Duck_typing">duck type</a>.</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>There is a subtle <em>gotcha</em> here. Nothing stops you from adding or removing attributes at runtime, which alters the duck type, <em>but not the value of</em> <code>type(obj)</code>. The <code>type()</code> builtin returns the “type” with which an object was created. So: while attributes may be added or deleted at runtime, doing so after <code>__init__</code> returns should be much more the exception than the rule. There is an example of this behavior of <code>type()</code> in <a href="examples/readonly_attributes.term.py"><code>readonly_attributes.term.py</code></a></p>
+</blockquote>
+</blockquote>
+<blockquote>
+<p><strong>The square-brackets operator, “<code>[]</code>”</strong>: <em><code>obj[key]</code></em>, is a different thing altogether from <em>obj.key</em>. It yields a value from an object <em><code>obj</code></em> and a value <em><code>key</code></em>, but there the similarity ends. “<code>[]</code>” is intended for objects <code>obj</code> whose types are “containers” (Python lingo) or “collections” (everyone else). The right operand, <code>key</code>, is a value. <em>It need not be a literal, as is the case for the “<code>.</code>” operator.</em> The collection of currently valid key/value pairs determines the current <em>state</em> of the collection at runtime, but has nothing to do with the type of the collection. Thus, even in the case of read-only collections like <code>tuple</code>s, the particular set of valid keys at any given moment is just runtime state: <code>(1,2)</code> and <code>(&quot;a&quot;,&quot;b&quot;,&quot;c&quot;)</code> are distinct collections that have the same type, namely <code>tuple</code>, but not the same valid keys.</p>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>The implementation of the <code>[]</code> operator for a given type may well constrain the set of values that may be used as keys, as well as whether a given key’s value may be overwritten after having been set the first time. The only global constraint is that keys should be hashable–a topic I’ll ponder <a href="#hashes">a little below</a>.</p>
+</blockquote>
+</blockquote>
+<p>An object <code>obj</code> builds its value out of references to other objects that are the values of its attributes. Roughly speaking, attributes values fall into one of two categories: data that is the “current state” of the object, and functions that are the object’s “methods”. The Python built-in function <code>dir</code> returns a <code>list</code> of all of an object’s attribute names. The function <a href="#pubdirvalue"><code>pubdir</code></a> defined below does the same job, but only returns the attribute names intended for public use.</p>
+<p>Attributes, as noted before, are normally introduced either as part of the <code>class</code> statement, or as a result of executing a function call, such as the method <code>__init__()</code> which is automatically called as part of an object’s creation. Even functions not defined in an object’s class hierarchy can add attributes to that object, although it is probably very, very bad taste to do so in any way other than some discipline like <a href="https://docs.python.org/3/reference/compound_stmts.html#function">decorators</a>.</p>
+<p>Attributes that are defined for the first time in an assigment to an instance, rather than as part of the class definition, are local to that instance. Importantly, <em>this includes attributes assigned in the initializer <code>__init__()</code></em>. Attributes that are inherited from the class definition are “copy on write”, as the following code illustrates:</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; class A:
+   ...    a = 0       # integer attribute
+   ... 
+   &gt;&gt;&gt; anA = A()      # create an instance, &quot;anA&quot;
+   &gt;&gt;&gt; anA.a = 3      # assign a new value to anA's attribute &quot;a&quot;; A.a is unaffected
+   &gt;&gt;&gt; A.a
+   0
+   &gt;&gt;&gt; anotherA = A() # whenever you create another instance, its &quot;a&quot; is A.a,
+   &gt;&gt;&gt; anotherA.a     #   so it still is 0
+   0
+   &gt;&gt;&gt; A.a = 5        # if you assign a new value to A.a itself,
+   &gt;&gt;&gt; anotherA.a     #   instances whose 'a' was not reset will see the new value
+   5
+   &gt;&gt;&gt; anA.a          # anA.a still has the value 3, because anA has its own copy
+   3
+
+</pre>
+
+<p>So: assigning to an attribute inherited by an instance from its class creates a copy local to the instance to hold the new value–that’s the copy on write. One way to think of this is that an object’s attributes are kept in a list of dictionaries, one for each class in the object’s inheritance hierarchy, and <em>one for the object itself</em>. Assigning a new value to an attribute creates an entry for the attribute in the objects’s own dictionary. Looking up an attribute’s value amounts to checking the objects’s dictionary, and then working back through the dictionaries for the classes from which it inherits, until the attribute appears. For an implementation of this idea, see <a href="inheritancedict.html">InheritanceDict</a>. See also the method <a href="##hierarchyforobjortype">hierarchyFor</a> below.</p>
+<p>Here is a terminal session that illustrates the difference between adding an attribute at the class level and at the method level:</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; class Foo:
+   ...   a = 0                        # attribute 'a' defined in the class
+   ...   def __init__(self, value):
+   ...     self.b = value             # attribute 'b' defined in the initializer
+   ... 
+   &gt;&gt;&gt; class Bar(Foo):                # Bar is a class that extends Foo
+   ...   def __init__(self):
+   ...     Foo.__init__(self, &quot;bar&quot;)  # Bar's initializer calls its parent Foo's
+   ... 
+   &gt;&gt;&gt; bar = Bar()
+   &gt;&gt;&gt; bar.a                          # bar inherits 'a' from Foo,
+   0
+   &gt;&gt;&gt; bar.b                          # and it gets 'b' because Bar's init calls Foo's
+   'bar'
+   &gt;&gt;&gt; 
+   &gt;&gt;&gt; class Baz(Foo):                # Baz is another extension of Foo
+   ...   def __init__(self):          # It's initializer does not call Foo's, though!
+   ...     pass
+   ... 
+   &gt;&gt;&gt; baz = Baz()
+   &gt;&gt;&gt; baz.a                          # as we expect, 'a' is inherited by baz,
+   0
+   &gt;&gt;&gt; baz.b                          # but 'b' is not
+   Traceback (most recent call last):
+     File &quot;<stdin>&quot;, line 1, in <module>
+   AttributeError: 'Baz' object has no attribute 'b'
+
+</pre>
+
+<h3 id="the-dot-operators-implementation">The dot operator’s implementation</h3>
+<p>All objects have three methods, <code>__getattribute__(key)</code>, <code>__setattr__(key,</code> <code>value)</code> and <code>__delattr__(key)</code> that implement the behavior of the dot operator. Normally, these methods are inherited from the class “<code>object</code>”, which sits at the top of the class hierarchy for types defined by <code>class</code> statements. The author of a <code>class</code> statement is free to override these methods as need be. In particular, one can use these methods to create private attributes and immutable attributes. Another way to create at least the “read-only” attributes is to create a <em>descriptor</em> for the attribute you want to protect. A descriptor is a class with one or all of the method attributes <code>__get__(key)</code>, <code>__set__(key,</code> <code>value)</code>, and <code>__del__(key)</code>. If a class declaration assigns an instance of a descriptor as the value of an attribute, these methods will be called to get, set, or remove the attribute.</p>
+<p>As a simple first example of how one might create a read-only attribute, consider an attribute whose value should be computed on demand, but is never saved and hence cannot be set directly. The area of a rectangle fits this bill. Here is the descriptor approach to creating an “area” attribute:</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; class _area(object):                  # define a virtual attribute descriptor
+   ...    def __get__(self, obj, objtype):   # this will do the fetch of obj.area
+   ...       return obj.x*obj.y              # x and y are the rectangle's dimensions
+   ...    def __set__(self, obj, val):       # this handles assignment: obj.area = val
+   ...       raise AttributeError(&quot;Silly you... nothing here to set!&quot;)
+   ... 
+   &gt;&gt;&gt; class Rectangle(object):
+   ...    area = _area()                     # access to value is via the descriptor
+   ...    def __init__(self, x=1, y=1):
+   ...       self.x = x
+   ...       self.y = y
+   ... 
+   &gt;&gt;&gt; r = Rectangle(3,4)
+   &gt;&gt;&gt; r.area # should display 12
+   12
+   &gt;&gt;&gt; try:
+   ...    r.area = 15
+   ... except AttributeError as ae:
+   ...    print(&quot;set r.area = 15: {0}&quot;.format(ae))
+   ... 
+   set r.area = 15: Silly you... nothing here to set!
+
+</pre>
+
+<p>For this example’s input, see <a href="examples/derivedattribute.py">derivedattribute.py</a>. Notice that you can change <code>r.x</code> and <code>r.y</code>, so the area will change, but you cannot set the area itself directly: it is read-only. The leading underscore in the descriptor class’s name effectively makes it private when the <code>Rectangle</code> code is part of a module that is being imported.</p>
+<p>Another approach is to modify the class’s <code>__getattribute__</code> and <code>__setattr__</code> methods:</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; class Rectangle2(object):
+   ...    def __init__(self, x=1, y=1):
+   ...       self.x = x
+   ...       self.y = y
+   ...    def __getattribute__(self, key):
+   ...       if key == &quot;area&quot;:
+   ...          return self.x * self.y
+   ...       else:
+   ...          return object.__getattribute__(self, key)
+   ...    def __setattr__(self, key, value):
+   ...       if key == &quot;area&quot;:
+   ...          raise AttributeError(&quot;Silly you... nothing here to set!&quot;)
+   ...       else:
+   ...          return object.__setattr__(self, key, value)
+
+</pre>
+
+<p>There is an obvious trade-off here: the second approach implies that every access to an attribute value, be it <code>x</code>, <code>y</code>, or <code>area</code>, incurs the cost of the test on the key, whereas the descriptor only pays some overhead to get at the area itself. There’s another, more subtle difference that the code in <a href="examples/derivedattribute.py">derivedattribute.py</a> brings out. If <code>r</code> is a <code>Rectangle</code> in the first sense (descriptor for area), you cannot blast it away by calling a superclass’s <code>__setattr__</code>:</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; try:
+   ...    object.__setattr__(r, &quot;area&quot;, &quot;area&quot;)
+   ... except AttributeError as ae:
+   ...    print(&quot;Even object cannot change the area&quot;)
+   ... 
+   Even object cannot change the area
+   &gt;&gt;&gt; print(&quot;r.area is now {}&quot;.format(object.__getattribute__(r, &quot;area&quot;)))
+   r.area is now 12
+
+</pre>
+
+<p>The point is that <em><code>r</code> is already using <code>object.__setattr__</code></em>, so a direct call to <code>object.__setattr__</code> is no different from what is already happening internally for <code>r</code> when you evaluate <code>r.area = &quot;area&quot;</code>. Now look at the same thing for an instance <code>r2</code> of <code>Rectangle2</code>, which has its own <code>__setattr__</code>. Things are different for it:</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; r2 = Rectangle2(5,6)
+   &gt;&gt;&gt; print(&quot;r2.area should be 30: it is {0}&quot;.format(r2.area))
+   r2.area should be 30: it is 30
+   &gt;&gt;&gt; try:
+   ...    r2.area = 25  # use Rectangle2.__setattr__, which should raise the exception
+   ... except AttributeError as ae:
+   ...    print(&quot;I tried to set r2.area = 25: {0}&quot;.format(ae))
+   ... 
+   I tried to set r2.area = 25: Silly you... nothing here to set!
+   &gt;&gt;&gt; object.__setattr__(r2, &quot;area&quot;, &quot;area&quot;) # now use the superclass
+   &gt;&gt;&gt; print(&quot;r2.area is {}&quot;.format(r2.area)) # this is still r2's __getattribute__
+   r2.area is now 30
+   &gt;&gt;&gt; new_area = object.__getattribute__(r2, &quot;area&quot;)
+   &gt;&gt;&gt; print(&quot;r2.area via object: {}&quot;.format(repr(new_area))
+   r2.area via object: 'area'
+
+</pre>
+
+<p>Oops! When you have two implementations of <code>__getattribute__</code> and <code>__setattr__</code> around, funny things can happen. <code>object.__setattr__</code> creates a local attribute for <code>r2</code> named <code>'area'</code>–this is “copy on write”, again–and <code>object.__getattribute__</code> will find it. On the other hand, <em>the operator expression <code>r2.area</code> calls the class’s own <code>__getattribute__</code>, which treats <code>'area'</code> specially</em>. The bottom line is that <code>Rectangle2</code> really is less robust than <code>Rectangle</code>: more readable, perhaps, but less robust.</p>
+<p>There are times when you really do want to save a value you know will not be tampered with, but it may be impossible or impractical to recompute the value on demand. The code that follows shows one approach that uses two classes: a read-write class and a read-only extension of it. In that code, “<code>object</code>” refers to the Python built-in type that, as I mentioned above, is the ultimate base type. Calling <code>object</code>’s <code>__setattr__</code> in <code>__init__</code> allows one to bypass the local version of <code>__setattr__</code>, which enforces the read-only discipline.</p>
+<pre class="exampleCode">
+
+&gt;&gt;&gt; class Rect: 
+...    def __init__(self, x, y):
+...       self.x = x
+...       self.y = y      
+...    def area(self): return self.x * self.y
+...    def perimeter(self): return 2*(self.x + self.y)
+... 
+&gt;&gt;&gt; r = Rect(4,5)
+&gt;&gt;&gt; [r.x, r.y, r.area(), r.perimeter()] # should print [4, 5, 20, 18]
+[4, 5, 20, 18]
+&gt;&gt;&gt; 
+&gt;&gt;&gt; class RORect(Rect):           # delegates to a Rect that is otherwise hidden
+...    def __init__(self, x, y):  # use the usual __setattr__ to initialize self._r
+...       object.__setattr__(self, &quot;x&quot;, x)
+...       object.__setattr__(self, &quot;y&quot;, y)
+...    def __setattr__(self, name, value): # assigns to an RORect attribute
+...       if name in set((&quot;area&quot;, &quot;perimeter&quot;, &quot;x&quot;, &quot;y&quot;)):
+...          raise AttributeError(&quot;RORect.{0} is read-only&quot;.format(name))
+...       else: # all other cases are attributes added at runtime
+...          object.__setattr__(self, name, value)
+... 
+&gt;&gt;&gt; ro = RORect(7,8)
+&gt;&gt;&gt; [ro.x, ro.y, ro.area(), ro.perimeter()] # [7, 8, 56, 30]
+[7, 8, 56, 30]
+&gt;&gt;&gt; try:
+...    ro.x = 21  # this had better throw an AttributeError!
+... except AttributeError as ae:
+...    print(&quot;I told you so: {}&quot;.format(ae))
+... 
+I told you so: RORect.x is read-only
+&gt;&gt;&gt; ro.z = 3   # I have done nothing to stop you from adding read-write attributes
+&gt;&gt;&gt; ro.z       #  ... the value should be 3
+3
+&gt;&gt;&gt; 
+&gt;&gt;&gt; rp = RORect(9,10)                 # here is a pure, untouched RORect
+&gt;&gt;&gt; sametype = (type(ro) is type(rp)) # True, even though rp has no 'z' attribute
+&gt;&gt;&gt; print(&quot;ro and rp have the same type? {}&quot;.format(sametype))
+ro and rp have the same type? True
+&gt;&gt;&gt; 
+&gt;&gt;&gt; # __getattribute__ was not overwritten for RORect, so object.__setattr__ can hurt you!
+... object.__setattr__(ro, &quot;area&quot;, &quot;Yes!&quot;)          
+&gt;&gt;&gt; print(&quot;ro.area got zapped: {}&quot;.format(ro.area))
+ro.area got zapped: Yes!
+
+</pre>
+
+<p>See <a href="examples/readonly_attributes.term.py"><code>readonly_attributes.term.py</code></a> for this example’s code.</p>
+<p>No one can stop you from clobbering <code>ro</code> if you really want to, but you have to do some pretty fancy footwork to do so, as what I had to do to set <code>ro.area</code> to <code>&quot;Yes!&quot;</code> shows. It’s a useful exercise to implement <code>RORect</code> directly, without using <code>Rect</code>. How do you get the area and perimeter methods to be read-only? The bottom line here is that, in Python, read-only attributes are not for the faint of heart. I’ll have a lot more to say about it in the code for <a href="delegator.html">delegation</a>.</p>
+<h3 id="containers-and-the-operator">Containers and the “<code>[]</code>” operator</h3>
+<p>The square-brackets operator provides access to the members of collections like lists and dictionaries. These two are representative of the two sorts of collections: ordered and associative – called <em>sequence types</em> and <em>mapping types</em> in the Python argot. <code>list</code> and <code>tuple</code> are sequence types. Values are accessed by an integer index. <code>dict</code> is an example of a mapping type. Values are usually accessed by integer or string keys, but more generally any <a href="#hashes">hashable type</a> type may be used for the keys.</p>
+<p>As with dot operator for attributes, the expression <code>obj[x]</code> is just a shorthand for a method call. In this case, the methods are <code>__getitem__()</code> and <code>__setitem__()</code>. The upshot is that any class can define its own square-bracket operator. Here is a simple “delegate” pattern:</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; class Foo:
+   ...   def __init__(self, name, value):
+   ...     self._a = {}                 # _xxx conventionally names a private field.
+   ...     self._a[name] = value        # the class instance initializer can use it, of course.
+   ...   def __getitem__(self, name):   # called to fetch _a[name]
+   ...     return self._a[name]   
+   ...   def __setitem__(self, name, value): # called to implement _a[name] = value
+   ...     self._a[name] = value
+   ... 
+   &gt;&gt;&gt; f = Foo(&quot;x&quot;, &quot;y&quot;)   
+   &gt;&gt;&gt; f['d'] = 34        # if all goes as it should, f._a['d'] should be 34
+   &gt;&gt;&gt; f._a               # so let's look at f._a...
+   {'d': 34, 'x': 'y'}    #    and sure enough, there's 'd'
+   &gt;&gt;&gt; f['d']             # fetching from _a via [] works as it should
+   34
+
+</pre>
+
+<p>In practice, this sort of delegation gets used to vet data on the way into, and to recast it on the way out of, the real repository–which is <code>self._a</code> here. Even in this simple case, there are some complications. See the discussion of indexing in <a href="delegator.html#delegate_indexingdelegator-delegate_name-excludedset">the delegator module</a></p>
+<h2 id="a-couple-of-types-numbers-and-hashes">A couple of types: numbers and hashes</h2>
+<p>A complete discussion of the built-in types for Python may be found in <a href="https://docs.python.org/3/library/stdtypes.html">https://docs.python.org/3/library/stdtypes.html</a>. This is the URL for Python 3.x. There will undoubtedly be a Python 4.x, in which case, change the <code>3</code> in the URL to a <code>4</code>. I’ll restrict my remarks here to a few things that I thought might not leap off those pages.</p>
+<h3 id="numeric-types">Numeric Types</h3>
+<p>All numeric types are immutable objects. This is not a vacuous assertion. Numbers are objects like any other in Python. The attribute <code>__add__</code> of any object is used by the runtime to implement addition, and there is nothing special about the numeric types like <code>int</code>. So, <code>5</code> is a perfectly good object. You have to be a little careful though with literal numbers:</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; 5.__add__(1)
+   File &quot;<stdin>&quot;, line 1
+      5.__add__(1)
+               ^
+   SyntaxError: invalid syntax
+
+</pre>
+
+<p><code>5.__add__</code> blows up because Python tokenization binds the dot in “<code>5.</code>” to the <code>5</code>, so it reads <code>5.__add__</code> as “a number followed by an id”, which is an error. But putting a space before the dot undoes the damage. “<code>5 .</code>” is treated as three tokens: a number, whitespace, then a dot. Since numbers are just objects, the expression ‘<code>5 .__add__</code>’ looks like a binary dot operator whose left hand side is <code>5</code> and right hand side is <code>__add__</code>, and the result is to look up the attribute named by the right hand side.</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; 5 .__add__(1)
+   6
+
+</pre>
+
+<p>Python is consistent this way. If you try to evaluate “<code>5 .3</code>”, the tokenizer will see “a number, whitespace and another number”. The whitespace is discarded, and we are left with two adjacent numbers, which is not legal syntax.</p>
+<pre class="exampleCode">
+
+   &gt;&gt;&gt; 5. 3
+      File &quot;<stdin>&quot;, line 1
+         5 .3
+            ^
+      SyntaxError: invalid syntax
+
+</pre>
+
+It is worth taking a moment to run a Python terminal session and execute
+<pre class="exampleCode">
+
+      print(&quot;\n&quot;.join(dir(1)))
+
+</pre>
+<p>to see the wealth of methods used by Python to implement both prefix and infix operators.</p>
+<h3 id="hashes">Hashes</h3>
+<p>There are two ways you can compare two variables <code>a</code> and <code>b</code> for equality: by object identity (<code>a is b</code>) or by value (<code>a == b</code>):</p>
+<pre class="exampleCode">
+
+      &gt;&gt;&gt; c = (1,2);  d = (1,2) # () creates a new tuple each time
+      &gt;&gt;&gt; c is d                # different ids, so this should be False
+      False
+      &gt;&gt;&gt; c == d                # same entries, so this should be True
+      True
+
+</pre>
+
+<p>The “<code>==</code>” operator is implemented by a method call: <code>a==b</code> is just a shorthand for <code>a.__eq__(b)</code>. Hashing gives yet another way of grouping objects you wish to treat as “the same” in some sense.</p>
+<p>Python’s builtin function <code>hash()</code> has a default implementation for all objects that are instances of classes, namely, it returns the object’s id. As the tuple example above shows, even for constants, this is not always what you might want. You override the default by providing the class with a value for the attribute <code>__hash__()</code>, which must be a method whose only argument is the instance. (You really have to make this an attribute of the class: assigning it to instances will not do what you want.)</p>
+<p>In Python, an object <code>obj</code> is called “<em>hashable</em>” if</p>
+<blockquote>
+<p><code>hash(obj)</code> never changes during <code>obj</code>’s lifetime,<br /><code>obj</code>’s class has an <code>__eq__()</code> method, and<br />if <code>obj2</code> is another object of the same class, <code>obj==obj2</code> implies <code>hash(obj2)==hash(obj)</code></p>
+</blockquote>
+<p>Hashability for a class makes its object usable as an index into all of Python’s builtin containers. All of Python’s immutable built-in objects are hashable, while no mutable containers (such as lists or dictionaries) are. Objects which are instances of user-defined classes are hashable by default, because they all compare unequal (except with themselves), and their hash value is derived from their id.</p>
+<p>Call an object <em>constant</em> if its state cannot be modified once its constructor returns. <em>It is not sufficient for the object to be immutable for it to be constant,</em> because immutable objects may have attributes whose values are containers, and hence mutable, or objects with read-write attributes. Why care? Because restricting oneself to constant object types for keys in maps or members of sets means that one is guaranteed that any function of the state, <em>and the state alone</em>, will satisfy the conditions for a hash.</p>
+<p>A modest modification of the read-only rectangle class, adding a <code>__hash__()</code> method, allows you to create a hashable notion of rectangle. Here is the extended <a href="examples/hashable_rectangle.term.py"><code>RORect</code></a>:</p>
+<pre class="exampleCode">
+
+      &gt;&gt;&gt; class RORect(Rect):
+      ...    def __init__(self, x, y):
+      ...       object.__setattr__(self, &quot;_r&quot;, Rect(x,y))
+      ...    def __setattr__(self, name, value):
+      ...       if name in (&quot;x&quot;, &quot;y&quot;):
+      ...          raise AttributeError(&quot;RORect.{0} is read-only&quot;.format(name))
+      ...       else:  
+      ...          object.__getattribute__(self, &quot;_r&quot;).__setattr__(name, value)
+      ...    def __getattribute__(self, name):
+      ...       return object.__getattribute__(self, &quot;_r&quot;).__getattribute__(name)
+      ...    def __hash__(self):
+      ...       return hash((self.x, self.y))
+      ...
+      &gt;&gt;&gt; ro = RORect(7,8)
+      &gt;&gt;&gt; [ro.x, ro.y, hash(ro)] 
+      [7, 8, 8000031]
+      &gt;&gt;&gt; 
+      &gt;&gt;&gt; ro2 = RORect(7,8)
+      &gt;&gt;&gt; [ro2.x, ro2.y, hash(ro2)] 
+      [7, 8, 8000031]
+      &gt;&gt;&gt; 
+      &gt;&gt;&gt; ro2 == ro
+      True
+      &gt;&gt;&gt; ro2 is ro
+      False
+      &gt;&gt;&gt; # Now that we have hashable rectangles, we can use them as keys:
+      &gt;&gt;&gt; stuff = {}
+      &gt;&gt;&gt; stuff[ro] = &quot;rot&quot; # assignment allowed, because ro is hashable
+      &gt;&gt;&gt; stuff[ro]         # ... and the result is what we expect
+      'rot'
+
+</pre>
+
+<h2 id="attribute-and-item-management-code">Attribute and Item Management Code</h2>
+<p>Python supports multiple inheritance. In Python’s argot, a class may extend a number of base classes (or simply, “bases”). Each of the bases has its own attribute dictionary. If you want to know the order in which these dictionaries are searched for a particular object <code>obj</code>, the starting point is <a href="https://docs.python.org/3.5/library/inspect.html"><code>getmro</code></a> in the Python standard library’s <code>inspect</code> module. (“getmro” is short for “get method resolution order”, namely the set of bases listed in the order they will be searched to resolve attribute names.) Here is a variation on that theme:</p>
+<h4 id="hierarchyforobjortype"><code>hierarchyFor(objOrType)</code></h4>
+<p>is a very thin wrapper around <code>inspect.getmro</code>. If the argument is a class, the return value is the tuple of that type’s base classes, including itself, in <a href="https://en.wikipedia.org/wiki/C3_linearization">“method resolution order”</a>. No class appears more than once in this tuple. In all but the rarest of cases, the argument itself will be the first element of the tuple. If the argument is an object that is not itself a class, the return value is the tuple in method resolution order for the classes from which the argument’s class inherits.</p>
+<h4 id="owndirvalue"><code>owndir(value)</code></h4>
+<p>returns an array of the non-primitive attributes of its first argument. Those are the attributes whose name does not both begin and end with a pair of underscores. The primitive attributes are reserved by Python for its own use.</p>
+<p>The “own” in <code>owndir</code> is meant to be up front about these being the object’s own attributes, as opposed to the freebies inherited from the Python language definition.</p>
+<h4 id="pubdirvalue"><code>pubdir(value)</code></h4>
+<p>returns only the values “public” attributes, those attributes whose names do not begin with an underscore. By convention, any attribute whose name has a leading underscore is “private” in the sense that while it is visible, it is not generally meant to be used directly or reset, except under special circumstances. <code>pubdir</code> returns a subset of the attribute names returned by <code>owndir</code>.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> hierarchyFor(objOrType):
+   <span class="kw">if</span> <span class="dt">isinstance</span>(objOrType, <span class="dt">type</span>):
+      <span class="kw">return</span> getmro(objOrType)
+   <span class="kw">else</span>:
+      <span class="kw">return</span> getmro(<span class="dt">type</span>(objOrType))
+
+<span class="kw">def</span> owndir(aValue):
+   <span class="kw">return</span> [s <span class="kw">for</span> s in <span class="dt">dir</span>(aValue) <span class="kw">if</span> not re.match(<span class="st">&quot;^__.*__$&quot;</span>, s)]
+
+<span class="kw">def</span> pubdir(aValue):
+   <span class="kw">return</span> [s <span class="kw">for</span> s in <span class="dt">dir</span>(aValue) <span class="kw">if</span> not re.match(<span class="st">&quot;^_.*&quot;</span>, s)]
+</code></pre>
+<h4 id="mergepairstgt-src-clonefalse"><code>mergepairs(tgt, src, clone=False)</code></h4>
+<p>Copy into <code>tgt</code> the key-value pairs in <code>src</code> <em>whose keys are</em> not <em>already in</em> <code>tgt</code>. If <code>clone</code> is <code>True</code>, and <code>tgt</code> has a <code>copy</code> method, it is used to create a new object into which to do the merge. Otherwise, if <code>clone</code> is <code>True</code>, it is assumed that <code>type(tgt)</code> has a zero- argument constructor call that can be used to create an empty object into which to copy both <code>tgt</code> and <code>src</code>.</p>
+<p><code>list</code> and <code>dict</code> are examples of classes that have <code>copy</code> methods. This seems to be telling one that it is good manners for a Python designer to include a <code>copy</code> method as the way to clone an existing object that is an aggregator.</p>
+<p><em>WARNING:</em> <code>copy</code> here means “shallow copy”.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> copy <span class="ch">import</span> copy
+<span class="kw">def</span> mergepairs(tgt, src, clone=<span class="ot">False</span>):
+   <span class="kw">if</span> not clone:
+      actualTgt = tgt
+   <span class="kw">else</span>:
+      <span class="kw">try</span>:
+         actualTgt = copy(tgt)
+      <span class="kw">except</span>:
+         actualTgt = <span class="dt">type</span>(tgt)()
+         <span class="kw">for</span> key in tgt: actualTgt[key] = tgt[key]
+   <span class="kw">for</span> key in src:
+      <span class="kw">if</span> key not in actualTgt: actualTgt[key] = src[key]
+   <span class="kw">return</span> actualTgt
+</code></pre>
+<h4 id="getattributeowner-string-defaultvaluenone"><code>getattribute(owner, string, defaultValue=None)</code></h4>
+<p>returns the value of the attribute named by <code>string</code> for the object <code>owner</code>, if there is such; otherwise return <code>defaultValue</code>. This is just a wrapper for the built-in <code>getattr</code> that eliminates the need for supplying a default value when <code>None</code> will do. The built-in <code>hasattr</code> is there to check whether the owner has such an attribute.</p>
+<h4 id="getitemowner-key-defaultvaluenone"><code>getitem(owner, key, defaultValue=None)</code></h4>
+<p>is the analogue for the square-bracket operator of <code>getattribute</code>. It returns the value of the <code>key</code> for the object <code>owner</code>, if there is such; otherwise it returns <code>defaultValue</code>. The idea here is to have a method analogous to <code>getattribute</code> that provides a default in the absence of an assigned value.</p>
+<h4 id="getvalueowner-string-defaultvaluenone"><code>getvalue(owner, string, defaultValue=None)</code></h4>
+<p>returns the value of an attribute <em>or key</em> named by <code>string</code> for the object <code>owner</code>, if there is such. Otherwise, it returns <code>defaultValue</code>. Beware of objects that have an attribute name in common with a key (why not?): the attribute wins! Long live the attributes! The point here is that, in rare circumstances, you have run-time lookup where the owning object may be one of many types, and one object’s attribute may be another collection-like object’s key.</p>
+<h4 id="isindexableanobject-anindexnone"><code>isindexable(anObject, anIndex=None)</code></h4>
+<p>checks whether <code>anObject[anIndex]</code> raises a <code>TypeError</code>. By default, no attempt is made to check any index to see what happens–remember that indexability has to do with whether the object implements the appropriate magic methods. If you want a simple type check for the kind of index accepted, supply a (reasonable) index of the appropriate type for the second argument.</p>
+<h4 id="isiterableanobject"><code>isiterable(anObject)</code></h4>
+<p>checks whether the built-in function <code>iter()</code> can be successfully called with <code>anObject</code> as its argument. As with <code>isindexable</code>, the purpose is make it easy to write a clean piece of code for enforcing an API in which an object must implement the <code>in</code> operator.</p>
+<h4 id="reverse_lookupmapping"><code>reverse_lookup(mapping)</code></h4>
+<p>returns a <code>dict</code> whose keys are the values of <code>mapping</code>, and whose values are the corresponding keys. Duplicate values will raise a <code>ValueError</code>. Thus the requirement for <code>mapping</code> is that mapping implement <code>[]</code> and that <code>key-&gt;mapping[key]</code> be a one-to-one mapping of keys to values.</p>
+<h4 id="hardenanobject-publiconlytrue-noncallabletrue-cleanupfalse"><code>harden(anObject, publicOnly=True, nonCallable=True, cleanup=False)</code></h4>
+<p><code>anObject</code> is an instance of some <code>class</code>. The function returns a read-only tuple whose attributes are the public or own attributes of <code>anObject</code>. The actual type of the return value is <a href="docs.python.org/3/library/collections.html#collections.namedtuple"><code>namedtuple</code></a>. The idea is to freeze the values that make up the current state of the object. The default is to keep only the public attributes that are not callable. If <code>publicOnly</code> is <code>False</code>, then the own attributes are all included. If <code>nonCallable</code> is <code>False</code>, all of the attributes are kept, callable or not. It can happen that <code>anObject</code> has attribute names that are not valid Python identifiers. If <code>cleanup</code> is <code>False</code>, a <code>ValueError</code> will be raised that shows the offending attributes. If it is <code>True</code>, the offending attributes are simply stripped from the list.</p>
+<p>The intention here is to turn a mutable object like a <a href="https://docs.python.org/3.5/library/types.html"><code>SimpleNamespace</code></a> into a read-only equivalent.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> getattribute(owner, string, defaultValue=<span class="ot">None</span>):
+   <span class="kw">return</span> <span class="dt">getattr</span>(owner, string, defaultValue)
+
+<span class="kw">def</span> getitem(owner, key, defaultValue=<span class="ot">None</span>):
+   <span class="kw">return</span> owner[key] <span class="kw">if</span> key in owner <span class="kw">else</span> defaultValue
+
+<span class="kw">def</span> getvalue(owner, string, defaultValue=<span class="ot">None</span>):
+   <span class="kw">try</span>: 
+      <span class="kw">return</span> owner.<span class="ot">__getattribute__</span>(string) 
+   <span class="kw">except</span> <span class="ot">AttributeError</span>: 
+      <span class="kw">try</span>:
+         <span class="kw">return</span> owner.<span class="ot">__getitem__</span>(string)
+      <span class="kw">except</span>:
+         <span class="kw">return</span> defaultValue
+
+<span class="kw">def</span> isindexable(anObject, anIndex=<span class="ot">None</span>):
+   <span class="kw">try</span>:
+      anObject.__class__.<span class="ot">__getattribute__</span>(<span class="st">&quot;__getitem__&quot;</span>)
+   <span class="kw">except</span> <span class="ot">AttributeError</span>:
+      <span class="kw">return</span> <span class="ot">False</span>
+   <span class="kw">if</span> anIndex is <span class="ot">None</span>:
+      <span class="kw">return</span> <span class="ot">True</span>
+   <span class="kw">try</span>: <span class="co"># check that the index type is acceptable</span>
+      dummy = anObject[anIndex]
+      <span class="kw">return</span> <span class="ot">True</span>
+   <span class="kw">except</span> <span class="ot">TypeError</span>:
+      <span class="kw">return</span> <span class="ot">False</span>
+   <span class="kw">except</span>:
+      <span class="kw">return</span> <span class="ot">True</span>
+
+<span class="kw">def</span> isiterable(anObject):
+   <span class="kw">try</span>:
+      dummy = <span class="dt">iter</span>(anObject)
+      <span class="kw">return</span> <span class="ot">True</span>
+   <span class="kw">except</span> <span class="ot">TypeError</span>:
+      <span class="kw">try</span>:
+         dummy = <span class="dt">iter</span>(anObject, <span class="ot">None</span>)
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">except</span> <span class="ot">TypeError</span>:
+         <span class="kw">return</span> <span class="ot">False</span>
+   <span class="kw">except</span>:
+      <span class="kw">return</span> <span class="ot">False</span>
+
+<span class="kw">def</span> reverse_lookup(mapping):
+   reverse = {}
+   <span class="kw">for</span> key in mapping:
+      reverse[mapping[key]] = key 
+   <span class="kw">return</span> reverse
+
+<span class="kw">def</span> harden(anObject, publicOnly=<span class="ot">True</span>, nonCallable=<span class="ot">True</span>, cleanup=<span class="ot">False</span>):
+   rawAttrList = pubdir(anObject) <span class="kw">if</span> publicOnly <span class="kw">else</span> owndir(anObject)
+   <span class="kw">if</span> nonCallable:
+      rawAttrList = <span class="dt">list</span>(<span class="dt">filter</span>(<span class="kw">lambda</span> name: not <span class="dt">callable</span>(anObject.__dict__[name]), rawAttrList))
+   badList = <span class="dt">list</span>(<span class="dt">filter</span>(<span class="kw">lambda</span> x: not x.isidentifier(), rawAttrList))
+   <span class="kw">if</span> <span class="dt">len</span>(badList) == <span class="dv">0</span>:
+      attrList = rawAttrList
+   <span class="kw">elif</span> cleanup:
+      attrList = <span class="dt">list</span>(<span class="dt">filter</span>(<span class="kw">lambda</span> x: x.isidentifier(), rawAttrList))
+   <span class="kw">else</span>:
+      <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;Attribute names found that are not identifiers:</span><span class="ch">\n</span><span class="st">  {}&quot;</span>.<span class="dt">format</span>(badList))
+   attrNames = <span class="st">&quot;,&quot;</span>.join(attrList)
+   attrValues = [anObject.__dict__[name] <span class="kw">for</span> name in attrList]
+   classname = anObject.__class__.<span class="ot">__name__</span>
+   typeName = classname+<span class="st">&quot;_obj&quot;</span>
+   tupleType = namedtuple(typeName, attrNames)
+   <span class="kw">return</span> tupleType(*attrValues)
+</code></pre>
+<h2 id="filling-in-some-gaps-in-the-built-ins">Filling in some gaps in the built-ins</h2>
+<h3 id="float-support"><code>float</code> support</h3>
+<h4 id="float_componentsanumber"><code>float_components(aNumber)</code></h4>
+<p>returns a pair <code>(mantissa, exponent)</code> which yields the factorization <code>aNumber ==</code> <code>mantissa * 10**exponent</code>. The mantissa is a number <code>r</code> in the range <code>1 &lt;= r &lt; 10</code>, and the exponent is an integer. The return value for 0 is (0, 0).</p>
+<p>If Python were a truly consistent dynamic language, this would (of course) be a method for <code>float</code>, but you cannot seem to add attributes to that class.</p>
+<h3 id="complex_numbers">Working with complex numbers</h3>
+<h4 id="cabsz"><code>cabs(z)</code></h4>
+<p>returns the absolute value of the integer, float, or complex value <code>z</code>.</p>
+<h3 id="int-and-time-to-str-conversions"><code>int</code> and <code>time</code> to <code>str</code> conversions</h3>
+<h4 id="str2intraw"><code>str2int(raw)</code></h4>
+<p>Converts a raw string to an integer using the appropriate radix. The raw string is lower-cased, a leading minus, if present, stripped off, and then the radix is determined: a leading 0x, 0b, or just 0 yield hex, binary, and octal conversions. If the string ends with r_nn_, where <em>nn</em> is the decimal representation of an integer in the range from 2 to 36, <em>nn</em> is used as the radix.</p>
+<h4 id="int2strn-base10"><code>int2str(n, base=10)</code></h4>
+<p>converts an integer <code>n</code> to a string written in the given base, <code>2 &lt;= base &lt;= 36</code>. The default base is 10. If you never need anything but base 10, just call the global function <strong><code>str()</code></strong>.</p>
+<h4 id="time2intliteraltime-base10-placestosave0"><code>time2IntLiteral(time, base=10, placesToSave=0)</code></h4>
+<p>returns a string written in the given base (default 10). “<code>placesToSave</code>” determines the units to use:</p>
+<p>For OS X (and I assume other “..nix” systems), the <code>time_</code> value is a float, in seconds that have elapsed since the “epoch”, with a fractional part that gives the time accurate to microseconds. I personally wouldn’t want to trust that last place. To take advantage of the added precision, the argument <code>placesToSave</code> is the number of places after the decimal point to save. The default is 0: you get the time in seconds. Use 3 to get the time in milliseconds and 6 for microseconds. Any integer in the range from 0 to 6, inclusive, will do. The base can be any integer from 2 to 36 (again, inclusive).</p>
+<h4 id="time_unitsplacestosave"><code>time_units(placesToSave)</code></h4>
+<p>returns a string giving the units in which time is expressed: <code>&quot;secs&quot;</code>, <code>&quot;msecs&quot;</code>, and <code>&quot;mcrsecs&quot;</code> for the common cases. The argument is an integer in the range from 0 to 6, inclusive. Where no common name for the unit exists, as for example, in the case of hundredths of a second, the string returned describes how the value was converted from seconds–<em>e.g.</em> for hundredths of a second, <code>&quot;secs*100&quot;</code> is returned.</p>
+<h4 id="now2intliteralbase10-placestosave0"><code>now2IntLiteral(base=10, placesToSave=0)</code></h4>
+<p>returns the time now as a string, using the conventions for <code>time2IntLiteral</code>. This is most useful, I think, for creating unique names–file names in particular. To keep the file names short, use base 36.</p>
+For example, as this is being written,
+<pre class="exampleCode">
+
+      &gt;&gt;&gt; now2IntLiteral()
+      '1458347270'             # base 10--not terribly useful, probably
+      &gt;&gt;&gt; now2IntLiteral(36)
+      'o49e93'                 # legal as a file name in just about anyone's file system
+      &gt;&gt;&gt; now2IntLiteral(20)
+      '12fed2g1'               # still okay, even for MS-DOS 8.3 file names
+      &gt;&gt;&gt; now2IntLiteral(36,3)
+      'ilyd4kbp'               # time now in milliseconds since the epoch
+      &gt;&gt;&gt; now2IntLiteral(36,6)
+      'ecxulx7cpl'             # time now in microseconds since the epoch
+
+</pre>
+
+<p>Sometimes you want a little more readable time that sorts reasonably. One approach:</p>
+<h4 id="now4filenamedayonlyfalse"><code>now4FileName(dayOnly=False)</code></h4>
+<p>returns Greenwich mean day (and optionally, time) in the format <em><code>yyyymmdd.hhmmss</code></em>. By default, both date and time are included. If you want just the date, pass <code>True</code> as the argument.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> math <span class="ch">import</span> floor
+
+<span class="kw">def</span> float_components(aNumber):
+   <span class="kw">if</span> aNumber == <span class="dv">0</span>: <span class="kw">return</span> (<span class="dv">1</span>,<span class="dv">0</span>,<span class="dv">0</span>)
+   <span class="kw">if</span> aNumber &lt; <span class="dv">0</span>:
+      sign = -<span class="dv">1</span>; aNumber = -aNumber
+   <span class="kw">else</span>:
+      sign = <span class="dv">1</span>
+   rest = aNumber
+   order = <span class="dv">0</span>
+   <span class="kw">while</span> rest &gt;= <span class="fl">10.0</span>:
+      order += <span class="dv">1</span>
+      rest /= <span class="fl">10.0</span>
+   <span class="kw">while</span> rest &lt; <span class="dv">1</span>:
+      order -= <span class="dv">1</span>
+      rest *= <span class="fl">10.0</span>
+   <span class="kw">return</span>(sign*rest, order)
+
+_BASE36_DIGITS = <span class="st">'0123456789abcdefghijklmnopqrstuvwxyz'</span>
+<span class="kw">def</span> str2int(raw, radix=<span class="ot">None</span>):
+   lowered = raw.lower()
+   <span class="kw">if</span> lowered[<span class="dv">0</span>] == <span class="st">&quot;-&quot;</span>:
+      positive = <span class="ot">False</span>
+      lowered = lowered[<span class="dv">1</span>:]
+   <span class="kw">else</span>:
+      positive = <span class="ot">True</span>
+   <span class="kw">if</span> lowered[<span class="dv">0</span>] == <span class="st">'0'</span>:
+      <span class="kw">if</span> lowered[<span class="dv">1</span>] == <span class="st">'x'</span>:
+         answer = <span class="dt">int</span>(lowered[<span class="dv">2</span>:], <span class="dv">16</span>)
+      <span class="kw">elif</span> lowered[<span class="dv">1</span>] == <span class="st">'b'</span>:
+         answer = <span class="dt">int</span>(lowered[<span class="dv">2</span>:], <span class="dv">2</span>)
+      <span class="kw">else</span>:
+         answer = <span class="dt">int</span>(lowered[<span class="dv">1</span>:], <span class="dv">8</span>)
+   <span class="kw">elif</span> <span class="st">'r'</span> in lowered and radix==<span class="ot">None</span>: <span class="co"># eg &quot;xyzr36&quot;</span>
+      finalr = lowered.rfind(<span class="st">&quot;r&quot;</span>)
+      value = lowered[<span class="dv">0</span>:finalr]
+      radix  = <span class="dt">int</span>(lowered[finalr<span class="dv">+1</span>:])
+      answer = <span class="dt">int</span>(value, radix)
+   <span class="kw">else</span>:
+      answer = <span class="dt">int</span>(lowered, <span class="dv">10</span> <span class="kw">if</span> radix==<span class="ot">None</span> <span class="kw">else</span> radix)
+   <span class="kw">return</span> answer <span class="kw">if</span> positive <span class="kw">else</span> -answer
+
+<span class="kw">def</span> int2str(n, base=<span class="dv">10</span>):
+   <span class="kw">if</span> base is <span class="dv">10</span>:
+      <span class="kw">return</span> <span class="dt">str</span>(n)
+   <span class="kw">elif</span> <span class="dt">type</span>(base) is not <span class="dt">int</span> or base &lt; <span class="dv">2</span> or base &gt; <span class="dv">36</span>:
+      <span class="kw">raise</span> <span class="ot">Exception</span>(<span class="st">&quot;Illegal base, &quot;</span>+<span class="dt">str</span>(base)+<span class="st">&quot;. Only 2 &lt;= base &lt;= 36 is implemented.&quot;</span>)
+   <span class="kw">elif</span> <span class="dt">type</span>(n) is not <span class="dt">int</span>:
+      <span class="kw">if</span> <span class="dt">type</span>(n) is not <span class="dt">float</span>:
+         <span class="kw">raise</span> <span class="ot">Exception</span>(<span class="st">&quot;int2str expects n to be an integer, but got </span><span class="ot">{0}</span><span class="st">&quot;</span>.<span class="dt">format</span>(<span class="dt">type</span>(n)))
+      <span class="kw">elif</span> n == floor(n): n = <span class="dt">int</span>(n)
+      <span class="kw">else</span>: <span class="kw">raise</span> <span class="ot">Exception</span>(<span class="st">&quot;int2str expects n to be an integer, but got &quot;</span>+<span class="dt">str</span>(n)) 
+   sign = (n &lt; <span class="dv">0</span>)
+   answer = []
+   <span class="kw">while</span> n &gt; <span class="dv">0</span>:           
+      <span class="co"># floor, called in the loop below, returns a float. To play safe, convert to int explicitly:</span>
+      answer.append(_BASE36_DIGITS[<span class="dt">int</span>(n) % base])
+      n = floor(n / base)
+   <span class="kw">if</span> sign: answer.append(<span class="st">'-'</span>)
+   answer.reverse()       <span class="co"># does not return answer... because the reversal is done in place. </span>
+   <span class="co"># Python asks the separator string to create the join so that the argument can be any kind of</span>
+   <span class="co"># iterator that yields str values.  </span>
+   <span class="kw">return</span> <span class="st">''</span>.join(answer) 
+
+<span class="kw">def</span> time2IntLiteral(time_, base=<span class="dv">10</span>, placesToSave=<span class="dv">0</span>):
+   scaleFactor = [<span class="fl">1.0</span>,<span class="fl">10.0</span>,<span class="fl">100.0</span>,<span class="fl">1000.0</span>,<span class="fl">10000.0</span>,<span class="fl">100000.0</span>,<span class="fl">1000000.0</span>][placesToSave]
+   scaledTime = <span class="dt">int</span>(floor(time_ * scaleFactor))
+   <span class="kw">return</span> int2str(scaledTime, base)
+
+<span class="kw">def</span> time_units(placesToSave):
+   <span class="kw">return</span> [
+      <span class="st">&quot;secs&quot;</span>, <span class="st">&quot;secs/10&quot;</span>, <span class="st">&quot;secs*100&quot;</span>, <span class="st">&quot;msecs&quot;</span>, <span class="st">&quot;secs*10000&quot;</span>, <span class="st">&quot;secs*100000&quot;</span>, <span class="st">&quot;mcrsecs&quot;</span>
+   ][placesToSave]
+
+<span class="kw">def</span> now2IntLiteral(base=<span class="dv">10</span>, placesToSave=<span class="dv">0</span>):
+   <span class="kw">return</span> time2IntLiteral(time.time(), base=base, placesToSave=placesToSave)
+
+<span class="kw">def</span> now4FileName(dayOnly=<span class="ot">False</span>):
+   gmt = time.gmtime()
+   pad = <span class="kw">lambda</span> x: <span class="dt">str</span>(x) <span class="kw">if</span> x &gt; <span class="dv">9</span> <span class="kw">else</span> <span class="st">&quot;0&quot;</span>+<span class="dt">str</span>(x)
+   gmtdate = <span class="dt">str</span>(gmt.tm_year) + pad(gmt.tm_mon) + pad(gmt.tm_mday)
+   <span class="kw">if</span> dayOnly:
+      <span class="kw">return</span> gmtdate
+   <span class="kw">else</span>:
+      gmttime = pad(gmt.tm_hour)+pad(gmt.tm_min)+pad(gmt.tm_sec)
+      <span class="kw">return</span> gmtdate + <span class="st">&quot;.&quot;</span> + gmttime
+</code></pre>
+<h3 id="some-string-functions">Some String Functions</h3>
+<p>The first three methods are mostly useful for handling errors. The main use case is when one has a class <code>c</code> whose name is not known at compile time and want to say something like <code>&quot;A &quot;+</code><em><code>c's name</code></em><code>&quot;+ is not trammable.&quot;</code>. That’s okay, unless <code>c</code>’s name begins with a consonant, but if it begins with a vowel, you are in trouble.</p>
+<h4 id="aoranstring"><code>aOrAn(string)</code></h4>
+<p>Handle the choice of ‘a’ or ‘an’ to preceed an arbitrary string. It is very naive. It does not attempt to be aware of words beginning with a silent ‘H’, let alone knowing whether it is ‘a homage’ or ‘an homage’, the latter being pronounced “an oooh mahj”. Also, think “uniformed” versus “uninformed”.</p>
+<h4 id="a_classnameobjectorclass"><code>a_classname(objectOrClass)</code></h4>
+<h4 id="a_classnameobjectorclass-1"><code>A_classname(objectOrClass)</code></h4>
+Use the <code>aOrAn</code> to prefix a class name, or the class name of an object, with “a” or “an”, as apropriate. They add a lower case or upper case prefix, respectively, as you might guess from the method names:
+<pre class="exampleCode">
+
+      &gt;&gt;&gt; from sysutils import *
+      &gt;&gt;&gt; d = dict()
+      &gt;&gt;&gt; a_classname(d)     # get class name of an instance, then add the prefix
+      'a dict'
+      &gt;&gt;&gt; A_classname(dict)  # if what is passed is a class, just add the prefix
+      'A dict'
+
+</pre>
+<h4 id="uncompileregexparegexp"><code>uncompileRegExp(aRegExp)</code></h4>
+Try to tease out from the usual string representation of a compiled regular expression the text of the regular expression that was compiled. Example:
+<pre class="exampleCode">
+
+      &gt;&gt;&gt; theRegExp = re.compile('a.b?')
+      &gt;&gt;&gt; uncompileRegExp(theRegExp)
+      'a.b?'
+ 
+</pre>
+<p>This relies on the current (3.5.1) implementation of <code>re.__str__()</code>.</p>
+<h4 id="quote_if_strvalue"><code>quote_if_str(value)</code></h4>
+<p>Once again, this is a mainly a tool for generating error and debugging messages in which you wish to reproduce an expression like <code>array[&quot;value&quot;]</code> with the quotation marks visible if <code>value</code> is a string, but not otherwise. The return value here is <code>value</code> itself unless <code>value</code> is a string, in which case <code>repr(value)</code> is returned. The point here is not to worry about integer indexed lists versus string indexed dictionaries in situations where either can occur.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> aOrAn(string, capitalize=<span class="ot">False</span>):
+   <span class="kw">if</span> <span class="dt">len</span>(string) == <span class="dv">0</span>: 
+      <span class="kw">return</span> <span class="st">&quot;&quot;</span>
+   <span class="kw">else</span>:
+      first = string[<span class="dv">0</span>].lower()
+      <span class="kw">if</span> <span class="dt">len</span>(string) == <span class="dv">1</span>:
+         firstImpliesAn = first in <span class="dt">set</span>([<span class="st">'a'</span>, <span class="st">'e'</span>, <span class="st">'f'</span>, <span class="st">'h'</span>, <span class="st">'i'</span>, <span class="st">'m'</span>, <span class="st">'n'</span>, <span class="st">'o'</span>, <span class="st">'r'</span>, <span class="st">'s'</span>, <span class="st">'x'</span>])
+      <span class="kw">elif</span> first in <span class="st">&quot;aiou&quot;</span>:
+         firstImpliesAn = <span class="ot">True</span> 
+      <span class="kw">elif</span> first == <span class="st">'e'</span>:
+         firstImpliesAn = string[<span class="dv">1</span>].lower() != <span class="st">'u'</span>
+      <span class="kw">else</span>: firstImpliesAn = <span class="ot">False</span>
+   <span class="kw">return</span> [[<span class="st">'a '</span>,<span class="st">'an '</span>],[<span class="st">'A '</span>,<span class="st">'An '</span>]][capitalize][firstImpliesAn] + string
+
+<span class="kw">def</span> a_classname(aClassOrInstance):
+   theClass = aClassOrInstance <span class="kw">if</span> <span class="dt">type</span>(aClassOrInstance) is <span class="dt">type</span> <span class="kw">else</span> aClassOrInstance.__class__
+   <span class="kw">return</span> aOrAn(theClass.<span class="ot">__name__</span>, <span class="ot">False</span>)
+
+<span class="kw">def</span> A_classname(aClassOrInstance): 
+   theClass = aClassOrInstance <span class="kw">if</span> <span class="dt">type</span>(aClassOrInstance) is <span class="dt">type</span> <span class="kw">else</span> aClassOrInstance.__class__
+   <span class="kw">return</span> aOrAn(theClass.<span class="ot">__name__</span>, <span class="ot">True</span>)
+
+<span class="kw">def</span> quote_if_str(value):
+   <span class="kw">if</span> not <span class="dt">isinstance</span>(value, <span class="dt">str</span>):
+      <span class="kw">return</span> value
+   <span class="kw">else</span>:
+      <span class="kw">return</span> <span class="dt">repr</span>(value)
+
+REG_EXP_STR_AS_RE = re.<span class="dt">compile</span>(<span class="st">&quot;^re.compile\(.(.*).\)$&quot;</span>)
+<span class="kw">def</span> uncompileRegExp(aRegExp):
+   <span class="kw">return</span> REG_EXP_STR_AS_RE.match(<span class="dt">str</span>(aRegExp)).group(<span class="dv">1</span>)
+</code></pre>
+<h3 id="slices-versus-ranges">Slices versus Ranges</h3>
+<h4 id="slice2ranges-min0-maxnone"><code>slice2range(s, min=0, max=None)</code></h4>
+<p>converts a <a href="https://docs.python.org/3/library/functions.html#slice">slice</a> of a 0-based indexed Python object into range. Negative start and stop values are assumed to be offsets from 1 beyond the last index, which is the interpretation given <code>max</code> here. <code>min</code> is the first valid index, normally 0, but specifiable should you need to.</p>
+<h4 id="firstmlastnalist-m-n"><code>firstMlastN(alist, m, n)</code></h4>
+<p>converts the first <code>m</code> and last <code>n</code> elements of a collection <code>alist</code> to strings and returns a string representation of the truncated collection showing the first <code>m</code> entries, an ellipsis (<code>&quot;...&quot;</code>), and then the last <code>n</code> entries. If <code>m+n</code> is greater than or equal to the list size, <code>repr(alist)</code> is returned. The leading an trailing parts in the general case are also computed by calling <code>repr</code> on the appropriate slice of the collection.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> slice2range(s, <span class="dt">min</span>=<span class="dv">0</span>, <span class="dt">max</span>=<span class="ot">None</span>):
+   <span class="kw">if</span> <span class="dt">int</span> is <span class="dt">type</span>(s.start):
+      start =  s.start <span class="kw">if</span> s.start &gt;= <span class="dv">0</span> <span class="kw">else</span> <span class="dt">max</span> + s.start
+   <span class="kw">else</span>:
+      start = <span class="dt">min</span>
+   <span class="kw">if</span> <span class="dt">int</span> is <span class="dt">type</span>(s.stop):
+      stop  = s.stop <span class="kw">if</span> s.stop &gt;= <span class="dv">0</span> <span class="kw">else</span> <span class="dt">max</span> + s.stop
+   <span class="kw">else</span>:
+      stop = <span class="dt">max</span>
+   step  = s.step <span class="kw">if</span> <span class="dt">int</span> is <span class="dt">type</span>(s.step) <span class="kw">else</span> <span class="dv">1</span>
+   <span class="co"># print(&quot;range is {0} and max was {1}&quot;.format(range(start, stop, step), max))</span>
+   <span class="kw">return</span> <span class="dt">range</span>(start, stop, step)
+
+<span class="kw">def</span> firstMlastN(alist, m, n):
+   <span class="dt">all</span> = m + n
+   <span class="kw">if</span> <span class="dt">len</span>(alist) &lt;= m + n:
+      <span class="kw">return</span> <span class="dt">repr</span>(alist)
+   left = <span class="dt">repr</span>(alist[<span class="dv">0</span>:m])[:-<span class="dv">1</span>]
+   right = <span class="dt">repr</span>(alist[-n:])[<span class="dv">1</span>:]
+   <span class="kw">return</span> left+<span class="st">&quot;, ..., &quot;</span>+right
+
+</code></pre>
+<h3 id="truth-or-consequences-boolean-literals">Truth or Consequences: Boolean “Literals”</h3>
+<h4 id="asbooleanvalue"><code>asboolean(value)</code></h4>
+<h4 id="addbooleantermstrueorfalse-termsvalue"><code>addBooleanTerms(trueOrFalse, *terms)(value)</code></h4>
+<h4 id="delbooleantermsterms"><code>delBooleanTerms(*terms)</code></h4>
+<p><code>asboolean</code> transforms <code>value</code> into either <code>True</code> or <code>False</code>. The idea here is to make natural language input for Boolean values easy to use interchangeably with the actual boolean literals <code>True</code> and <code>False</code>: eg. “yes” means <code>True</code>, “off” means <code>False</code>, etc. This is intended for use in processing options like command-line options and config files, where <code>&quot;on&quot;</code> and <code>&quot;off&quot;</code> are sometimes more natural values than <code>&quot;true&quot;</code> and <code>&quot;false&quot;</code>. I didn’t shoot for universality, but I did add some other common Western European synonyms: <code>&quot;oui&quot;</code> and <code>&quot;falsch&quot;</code> from French and German, for example. Try your favorite and see what happens. No Eastern European or Asian …sorry, I just didn’t want to worry about Unicode. You can add them yourself, though.</p>
+<p><em>Just being a “True-ish” sort of value is</em> not <em>the test.</em> There are two sets of literals, one for <code>True</code> and one for <code>False</code>. The test is for membership in one of these lists. String values are converted to lower case before being looked up. The values <code>True</code> and <code>False</code> themselves are, of course, accepted and returned untouched. The only numeric values that are recognized are 0 and 1.</p>
+<p>Values not found in either list cause <code>asboolean</code> to raise a <code>ValueError</code>.</p>
+<p>The lists are mutable. You may add or remove values from them using the methods <code>addBooleanTerms</code> and <code>delBooleanTerms</code>. The former’s first argument is a <code>bool</code> that determines which of the two lists to add to, and its remaining arguments are the values to add. Those values that are strings are lower-cased before adding. Non-string values are added “as is”. <code>delBooleanTerms</code> has the terms to be removed as its arguments, and once again, strings are lower-cased before being deleted. For example, to replace “falso” with “fatso” in the false list,</p>
+<pre class="exampleCode">
+
+      &gt;&gt;&gt; addBooleanTerms(False, &quot;fatso&quot;)
+      &gt;&gt;&gt; asboolean(&quot;FatSo&quot;)
+      False
+      &gt;&gt;&gt; asboolean(&quot;falso&quot;)
+      False
+      &gt;&gt;&gt; delBooleanTerms(&quot;FALSO&quot;)
+      &gt;&gt;&gt; asboolean(&quot;falso&quot;)
+      Traceback (most recent call last):
+        File &quot;<stdin>&quot;, line 1, in <module>
+        File &quot;<stdin>&quot;, line 14, in asboolean
+      ValueError: 'falso' is not a recognized Boolean literal
+
+</pre>
+
+<h4 id="samebooleanthis-that"><code>sameboolean(this, that)</code></h4>
+<p>Return <code>True</code> if both <code>this</code> and <code>that</code> are acceptable as input to <code>asboolean</code>, and when converted to booleans by <code>asboolean</code>, have the same value: <em>e.g.</em> <code>sameboolean(True,</code> <code>&quot;yes&quot;)</code> returns <code>True</code>. If either is <em>not</em> acceptable to <code>asboolean</code>, <code>False</code> is returned.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+_TRUE_ = <span class="dt">set</span>(
+   (<span class="st">&quot;yes&quot;</span>, <span class="st">&quot;si&quot;</span>, <span class="st">&quot;oui&quot;</span>, <span class="st">&quot;ja&quot;</span>, <span class="st">&quot;true&quot;</span>, <span class="st">&quot;vrai&quot;</span>, <span class="st">&quot;wahr&quot;</span>, <span class="st">&quot;cierto&quot;</span>, <span class="st">&quot;vero&quot;</span>, <span class="st">&quot;ok&quot;</span>, <span class="st">&quot;on&quot;</span>, <span class="st">&quot;1&quot;</span>, <span class="dv">1</span>, <span class="ot">True</span>)
+)
+_FALSE_ = <span class="dt">set</span>(
+   (<span class="st">&quot;no&quot;</span>, <span class="st">&quot;non&quot;</span>, <span class="st">&quot;nein&quot;</span>, <span class="st">&quot;false&quot;</span>, <span class="st">&quot;faux&quot;</span>, <span class="st">&quot;falsch&quot;</span>, <span class="st">&quot;falso&quot;</span>, <span class="st">&quot;off&quot;</span>, <span class="st">&quot;0&quot;</span>, <span class="dv">0</span>, <span class="ot">None</span>, <span class="ot">False</span>)
+)
+
+<span class="kw">def</span> asboolean(value):
+   <span class="kw">global</span> _TRUE_, _FALSE_
+   <span class="kw">if</span> value in _TRUE_:
+      <span class="kw">return</span> <span class="ot">True</span>
+   <span class="kw">elif</span> value in _FALSE_:
+      <span class="kw">return</span> <span class="ot">False</span>
+   <span class="kw">elif</span> <span class="dt">type</span>(value) == <span class="dt">str</span>:
+      lowered = value.lower()
+      <span class="kw">if</span> lowered in _TRUE_:
+         <span class="kw">return</span> <span class="ot">True</span>
+      <span class="kw">elif</span> lowered in _FALSE_:
+         <span class="kw">return</span> <span class="ot">False</span>
+      <span class="kw">else</span>:
+         <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;'</span><span class="ot">{0}</span><span class="st">' is not a recognized Boolean literal&quot;</span>.<span class="dt">format</span>(value))
+   <span class="kw">else</span>:
+      msg = <span class="st">&quot;argument type, '</span><span class="ot">{0}</span><span class="st">', is not legal : use str or bool, or values None, 0, or 1&quot;</span>
+      <span class="kw">raise</span> <span class="ot">ValueError</span>(msg.<span class="dt">format</span>(valuetype))
+
+<span class="kw">def</span> sameboolean(this, that):
+   <span class="kw">try</span>:
+      left = asboolean(this)
+      right = asboolean(that)
+      <span class="kw">return</span> left is right
+   <span class="kw">except</span> <span class="ot">ValueError</span>:
+      <span class="kw">return</span> <span class="ot">False</span>
+         
+<span class="kw">def</span> addBooleanTerms(trueOrFalse, *terms):
+   <span class="kw">global</span> _TRUE_, _FALSE_
+   lowered = <span class="dt">set</span>([((<span class="dt">isinstance</span>(x,<span class="dt">str</span>) and x.lower()) or x) <span class="kw">for</span> x in terms])
+   <span class="kw">if</span> trueOrFalse:
+      _TRUE_ |= lowered
+   <span class="kw">else</span>:
+      _FALSE_ |= lowered
+
+<span class="kw">def</span> delBooleanTerms(*terms):
+   <span class="kw">global</span> _TRUE_, _FALSE_
+   lowered = <span class="dt">set</span>([((<span class="dt">isinstance</span>(x,<span class="dt">str</span>) and x.lower()) or x) <span class="kw">for</span> x in terms])
+   _TRUE_ -= lowered
+   _FALSE_ -= lowered
+</code></pre>
+<h4 id="flatten"><code>flatten(a_list, *, depth=1, types=None)</code></h4>
+<p>loops over the items in <code>a_list</code> at most <code>depth</code> times. If <code>depth</code> is <code>None</code>, there is no limit on the number of traversals. Nota bene: <code>None</code> and not <code>0</code> for “no limit”! <code>0</code> depth means just that: a <code>0</code> depth recursion, which in plain English means “do nothing.”</p>
+<p><code>types</code> is a collection of types. On each traversal, any entry that is an instance of one of the entries in <code>types</code> is expanded and replaced with the items in it. Travesals stop when one reveals no items to expand.</p>
+<p>If <code>types</code> is <code>None</code> on entry, the default value is the type of <code>a_list</code> itself, together with the built-ins <code>(list, set, tuple)</code> and all of the types in the <code>blist</code> module.</p>
+<p>Why have the <code>types</code> collection as an argument, then? Suppose that <code>valid</code> is a <code>blist</code> of integers or integer ranges. The call</p>
+<pre class="exampleCode">
+
+      flatten(valid, types=[range])
+
+</pre>
+
+<p>replaces the ranges with the integers in them. If you specify a collection for <code>type</code>, that collection is what you get, and in particular, there is no special treatment for the the type of <code>a_list</code>, whatever it may be.</p>
+<p>The argument <code>a_list</code> can be any collection, such as a <code>blist</code>, that is indexed by integers, and that has an <code>insert</code> method like that for <code>list</code>. The limitation to indexed collections is due to wanting to do the flattening in place. The loop works from the end of the list back, growing the list by replacing the entry at <code>n</code> with 0 or more items, beginning at <code>n</code>, so that the earlier segment of the collection is unaffected.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="ch">from</span> blist <span class="ch">import</span> *
+_collection_types = <span class="dt">set</span>((blist, btuple, <span class="dt">list</span>, <span class="dt">set</span>, sortedlist, sortedset, <span class="dt">tuple</span>))
+
+<span class="kw">def</span> flatten(a_list, *, depth=<span class="dv">1</span>, types=<span class="ot">None</span>):
+   <span class="kw">global</span> _collection_types
+   <span class="kw">if</span> types is <span class="ot">None</span>:
+      types = _collection_types
+      arg_type = <span class="dt">type</span>(a_list)
+      <span class="kw">if</span> not (arg_type in types):
+         types.add(arg_type)
+   do_not_stop = <span class="ot">True</span> <span class="co"># true ==&gt; we may still have some lists to expand</span>
+   <span class="kw">if</span> depth is <span class="ot">None</span>: depth = sys.maxsize
+   <span class="kw">while</span> depth &gt; <span class="dv">0</span> and do_not_stop:
+      do_not_stop = <span class="ot">False</span>
+      n = <span class="dt">len</span>(a_list) - <span class="dv">1</span>
+      <span class="kw">while</span> n &gt;= <span class="dv">0</span>:
+         item = a_list[n]
+         <span class="kw">if</span> <span class="dt">type</span>(item) in types:
+            <span class="kw">del</span> a_list[n]
+            m = n
+            <span class="kw">for</span> stuff in item:
+               a_list.insert(m, stuff)
+               m += <span class="dv">1</span>
+            do_not_stop = <span class="ot">True</span>
+         n -= <span class="dv">1</span>
+      depth -= <span class="dv">1</span>
+</code></pre>
+<h3 id="raising-some-common-errors">Raising some common errors</h3>
+<p>Some common situations where a class should implement something, but does not. The Python convention is to raise a <a href="https://docs.python.org/3/library/exceptions.html#concrete-exceptions"><code>NotImplementedError</code>.</a></p>
+<h4 id="does_not_implement_assignmentobj"><code>DOES_NOT_IMPLEMENT_ASSIGNMENT(obj)</code></h4>
+<p>Raise a <code>NotImplementedError</code> when an illegal attempt has been made to alter the state of the object by assigning a value to an attribute or property.</p>
+<h4 id="does_not_implement_deletionsobj"><code>DOES_NOT_IMPLEMENT_DELETIONS(obj)</code></h4>
+<p>Raise <code>NotImplementedError</code> when an illegal attempt has been made to alter the state of the object by removing an attribute or property.</p>
+<h4 id="subclass_must_implementoffendingclassorobject-methodname"><code>SUBCLASS_MUST_IMPLEMENT(offendingClassOrObject, methodName)</code></h4>
+<p>Raise a <code>NotImplementedError</code> telling the world that this class failed to implement a method required by an interface it claims to support.</p>
+<h4 id="IllegalOpError"><code>class IllegalOpError</code></h4>
+<p>This is a minimal wrapper around <code>Exception</code> in order to have our very own recognizable error type for attempts to write into read-only storage and other proscribed operations. Here the question is not whether the data type supports the operation, but whether the operation, which might well be supported in other contexts, is forbidden in this one.</p>
+<pre class="sourceCode python"><code class="sourceCode python">
+<span class="kw">def</span> DOES_NOT_IMPLEMENT_ASSIGNMENT(obj):
+   msg = A_classname(obj) + <span class="st">&quot; is read-only. It does not implement any form of assignment&quot;</span>
+   <span class="kw">raise</span> <span class="ot">NotImplementedError</span>(msg)
+
+<span class="kw">def</span> DOES_NOT_IMPLEMENT_DELETIONS(obj):
+   msg = A_classname(obj) + <span class="st">&quot; is read-only.  It does not implement any form of deletion&quot;</span>
+   <span class="kw">raise</span> <span class="ot">NotImplementedError</span>(msg)
+
+<span class="kw">def</span> SUBCLASS_MUST_IMPLEMENT(offendingClassOrObject, methodName):
+   raisersName = A_classname(offendingClassOrObject)
+   <span class="kw">raise</span> <span class="ot">NotImplementedError</span>(<span class="st">&quot;</span><span class="ot">{0}</span><span class="st"> must implement </span><span class="ot">{1}</span><span class="st">()&quot;</span>.<span class="dt">format</span>(raisersName, methodName))
+
+<span class="kw">class</span> IllegalOpError(<span class="ot">Exception</span>):
+   <span class="kw">pass</span>
+</code></pre>
+</body>
+</html>

@@ -1,0 +1,153 @@
+""" <head> 
+Title: <span class="titleCode">FrozenDict</span>: a read-only <span class="titleCode">dict</span>
+Author: Jonathan Brezin
+Date: November, 2015
+Show source: yes
+Show source: Yes
+Tab Size: 3
+""" # </head>
+""" <md>
+
+## The class <code>FrozenDict</code> ##
+
+[Dynamic_Delegator]: delegator.html#a-dynamic-decorator-class
+[hashability]: https://docs.python.org/3/reference/datamodel.html#object.__hash__
+[magic_methods]: magicmethods.pdf
+[types.new_class]: https://docs.python.org/3/library/types.html
+
+This class provides a very simple example of how to decorate a `dict`-like object as an instance
+of a class that implements the [`ReadonlyDictAPI`](readonlydict.html).
+
+### The constructor: <code>FrozenDict(mapping)</code> ###
+
+The argument, `mapping`, needs to implement the "read" part of the `dict` API:
+
+<code>
+&lowbar;&lowbar;getitem&lowbar;&lowbar;, &lowbar;&lowbar;contains&lowbar;&lowbar;,
+&lowbar;&lowbar;iter&lowbar;&lowbar;, &lowbar;&lowbar;le&lowbar;&lowbar;,
+&lowbar;&lowbar;len&lowbar;&lowbar;, copy, get, items, keys, values
+</code>
+
+For an example of a frozen dictionary's creation and use, see the delegation test code,
+["`delegate_test.py`"](examples/delegate_test.py).
+
+### Some thoughts about the design
+
+
+The constructor has to make a copy of `mapping` for two reasons. First, this is the only way to
+prevent others with access to `mapping` from updating what the new frozen dictionary sees.
+Second, `mapping` may have attributes other than the set of name/value pairs that one wants to
+access as if they were native to the `FrozenDict`, so in the most general case, the new
+`FrozenDict` really needs _all_ of `mapping` available to it.  Since `mapping` is guaranteed
+to have a `copy` method, the constructor relies on it to make the copy it needs.
+
+> You might ask if, in the interest of saving both time and space, one could avoid copying
+`mapping` if one knows that it is already read-only.  Again, there are two considerations.
+First, it is not easy to determine whether `mapping` is read-only, because mutability, unlike
+[hashability][hashability], is not a functionally defined attribute of a Python object.
+Second, even if it were easy, it would not be a good idea, as we want the new `FrozenDict` to
+be the only reference to its copy of `mapping`'s data.
+
+> In other words, I am trying to make "frozen" really mean what it says: if you want to modify a
+frozen dictionary, that dictionary itself has to request the thaw.  Otherwise, it stays frozen
+forever.  No other piece of code can do it for you.  That said, one still has to be a little
+careful.
+
+#### Aliases can be a problem
+
+It probably should go without saying, but here goes anyway: do not confuse the frozen dictionary
+with an identifier whose current value it is.  In particular, there is there nothing stopping
+you from assigning a frozen dictionary to more than one identifier.  That can be a bad idea:
+
+> Suppose `a` and `b` both have the same frozen dictionary as their value.  The underlying
+mapping is visible to both variables as the private field `_map`.  While both `a._map` and
+`b._map` will yield `None`, there is nothing to stop `b` from calling
+`object.__getattribute__("_map")` to rip the underlying mapping out of its protective shell.  `b`'s
+owner can then modify that mapping, and `a` will see those modifications.
+
+> There is a big difference between the owner of `a` freezing and thawing a dictionary while
+being fully confident no one else can, versus creating a situation where any of several players
+might or might not violate the freeze.
+
+A variation on this situation occurs when one has a variable `x` that has a frozen dictionary as
+an attribute, `x.fd`.  It is dangerous to pass around references to `x.fd`.  In fact, it is
+probably even a good idea to make consumers ask `x` for data from the mapping, rather than
+allowing them to ask `x.fd` directly.
+
+#### Care about extending the class
+
+Classes that extend `FrozenDict` should be careful if they override its `copy()` method.  As it
+is implemented in this class, `copy()` calls the constructor for the class of instance of
+`FrozenDict` that invoked it.
+
+#### Why delegation and not extension?
+
+Why delegate to a field rather than simply extending the mapping's class and overriding, in the
+extension, any unwanted "write" methods?  That has to be more efficient at run-time, no? Yes, a
+bit, and one can do it without overriding `__getattribute__`.  Similar techniques, using
+[`types.new_class`][types.new_class], to those implemented by the [`delegator`
+module](delegator.html) allow one to replace the "write" API of a `dict`-like class with methods
+that raise an appropriate exception.
+
+Extension has one minor hiccup, though.  If `C` is the class that extends the `dict`-like class
+`D`, you can still use `super` calls to exercise `D`'s "write" API.  I personally think that
+this makes it too easy to defeat the freeze, because `super` is a perfectly valid public method.
+On the other hand, when you delegate to some attribute `c._d` that you have hidden by providing
+`c` with its own version of `__getattribute__`, things are not nearly so simple.  In fact, you
+need to do the analogue of a `super` call, which is to use `object.__get_attribute__`, the
+method that delegating has deliberately overridden, to pry loose `c._d` before you access that
+object directly. If you call `object`'s `__getattribute__`, you are making a statement that
+
+1) you understand what you are doing (the method is not part of the class whose instance you are
+working with), and
+
+2) the method is not intended for normal usage (it is both private and magical).
+    
+So again, why delegate rather than extend?  Mainly because I wanted the delegation code for
+other purposes where extension was not a clean solution.  Having written the delegation code, I
+got lazy and just used it here.  That it has some advantages is nice, and that it also has some
+disadvantages is just the way life is.
+
+### ... and about the implementation
+
+Using `RO_Dict_Delegator` to decorate `FrozedDict` assures that its "write" API raises errors,
+rather than performing any operation on the delegate, `_map`.  
+
+All I ask of the object to be assigned as `_map`'s value is that it support `dict`'s "read" API.
+It may have other methods and attributes of its own that the caller may still want to access as
+if they were the caller's own.   `Dynamic_Delegator` replaces `FrozenDict`'s `__setattr__` and
+`__getattribute__` methods so that `self._map` itself becomes invisible, but `self.x` will refer
+to `self._map.x` whenever `x` is an attribute of `self._map` that is not also an attribute of
+`self`.
+
+Overriding `__setattr__` affects the constructor, because it makes `self._map` impossible to
+initialize by a simple assignment.  Instead, the constructor must call `object.__setattr__`.
+Overriding `__getattribute__` affects  `copy` and `__str__` analogously: `self._map` is only
+visible via `object.__getattribute__`.
+
+"[delegator.html](delegator.html)" has a careful discussion of the "delegate" pattern as well as
+the two decorators used in this implementation.
+
+""" # </md>
+
+from delegator import *
+from copy import copy
+
+@RO_Dict_Delegator("_map")
+@Dynamic_Delegator("_map", excluded=set( # the "write" API and copy() are NOT delegated!
+      ("__delitem__","__setitem__","clear","copy","pop","popitem","setdefault","update")
+   )
+)
+class FrozenDict():
+   def __init__(self, mapping):
+      object.__setattr__(self, "_map", mapping.copy())
+
+   def copy(self): # not a straightforward delegation: need self's class's constructor
+      return self.__class__(object.__getattribute__(self, "_map"))
+
+   def __str__(self):  # for our purposes, a frozen dict is just its mapping made read-only
+      return object.__getattribute__(self, "_map").__str__()
+
+   def __repr__(self): # but from Python's perspective it is constructed by FrozenDict()
+      return "{0}({1})".format(self.__class__.__name__, self.__str__())
+

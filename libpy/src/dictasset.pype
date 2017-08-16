@@ -1,0 +1,471 @@
+""" <head> 
+Title: A Dictionary With Keys As A Set
+Author: Jonathan Brezin
+Date: July 2016
+Show source: yes
+""" # </head>
+
+import sysutils as su
+
+""" <md>
+
+## The <code>DictAsSet</code> class
+
+This class extends `dict` in order to provide set-like operations such as forming the union of a
+set of dictionaries.  The only subtle point here is how to handle "conflicts" where a given key
+has different values in the two or more dictionaries participating in a union or intersection.
+The obvious solution is to provide a conflict handler as an attribute of the dictionary, which
+is what I've done.
+
+> One has to be careful about what one means by "different" values, because there are two
+natural  candidates "`a` `!=` `b`" or "`not(a` `is` `b)`".    I did _not_ provide a way of
+specifying which comparison to use.  I decided to stay with the weaker one, "`!=`", because the
+less rigorous comparison would cause fewer surprises.  For example, when you say the value for a
+key is `[1,2]`, do you insist that only _that_ array instance be the value, or will any
+identical array do?  My sense is that in the overwhelming majority of cases, any old copy of the
+array will do.
+
+#### The constructor <code>DictAsSet(initialdata=[], &ast;, onconflicts="die", &ast;&ast;kwargs)</code>
+
+[dict-ref]: https://docs.python.org/3/library/stdtypes.html#mapping-types-dict
+
+The first argument, `initialdata`, and the final set of keyword arguments, `kwargs`, are passed
+directly to [`dict`'s constructor][dict-ref].  The initial keyword argument, "`onconflicts`",
+determines how conflicts are handled when forming unions and intersections.  The legal values
+for it are:
+
+> `"die"`: a [`DictConflictError`](#dictconflicterror) is raised if any conflicts are
+found.  This is the default because I feel that this is the safest choice.
+
+> `"first"`: the first value seen for the key is assigned.  The classic example for which this
+is a reasonable policy is configuring an app at run-time.  One often has three ingredients: a
+command line, an optional config file and the app's own set of defaults.  If one begins by
+reading the command line, then reading a config file should add only those keys not overridden
+in the command line, and finally the app's own generic default values should only be used to
+fill in any gaps that remain. Clearly "first wins" is what you want.
+
+> `"last"`: the last value seen for the key is assigned.  Again, configuring an app is a
+reasonable example.  After all, why look at the command line first? Why not start from the app's
+defaults, override using the config file, and finally override using the command line?
+
+> _a function_ `f(msg,result,conflicts,others)` _of four arguments_:  Let's call this "roll
+your own." The function `f` is called and, if it returns, its return value is returned as the
+value of the union or intersection. Normally, it should raise an exception.  See [the discussion
+below](#handle_conflicts) of `handle_conflicts` for a description of the arguments.
+
+When I talk about "first" and "last", I mean in the order in which the source dictionaries
+appear in the union or intersection request.
+
+### Operations on the <code>DictAsSet</code> itself
+
+#### <code>copy()</code> ####
+
+Create a clone of the caller, `self`.
+
+#### <code>discard(key)</code> 
+
+####<code>remove(key)</code> 
+
+if the given key appears, delete it from the `DictAsSet`.  Missing keys are simply ignored.
+The two methods differ only in that `discard` does not return anything, but `remove` returns
+the value for the key, if it the key is present, `None` otherwise.  Unless you need the value,
+use "`discard`".
+
+""" # </md>
+
+class DictAsSet(dict):
+
+   def __init__(self, initialdata=[], onconflicts="die", **kwargs):
+      dict.__init__(self, initialdata, **kwargs)
+      self.onconflicts = onconflicts
+
+   def __copy__(self):
+      clone = DictAsSet(self)
+      clone.onconflicts = self.onconflicts
+      return clone
+
+   def copy(self):
+      return self.__copy__()
+
+   def discard(self, key):
+      if key in self: del self[key]
+
+   def remove(self, key):
+      if key not in self:
+         return None
+      else:
+         self_key = self[key]
+         del self[key]
+         return self_key
+
+""" <md>
+
+### Comparison operations: 
+
+#### <code>isdisjointfrom(other)</code>
+
+This method returns `True` if this `DictAsSet` has no keys in common with `other`, and `False`
+otherwise. `other` may be any iterable that yields a sequence of keys.  This is not about values,
+but only about keys.
+
+#### The operators <code>&lt;, &lt;=, &gt;=,</code> and <code>&gt;</code>
+
+The four binary operators "`<`", "`<=`", "`>=`", and "`>`" are implemented here and deal with
+whether the left-hand operand can be view as a (proper) subset or superset of the right-hand
+operand.  The right-hand operand need not be a `DictAsSet`: any class extending `dict` will do.
+
+In contrast with `isdisjointfrom`, containment is as much about values as it is keys.  If there
+is a key that occurs in both operands, but does not have the same value in both, all four of
+these comparisons will fail.  In other words, _conflicting values for a key imply that neither
+dictionary is a subset or superset of the other._
+
+""" # </md>
+
+   def isdisjointfrom(self, other):
+      if not isinstance(other, dict):
+         raise ValueError("Argument is {}, but a dict is expected".format(su.a_classname(other)))
+      if len(other) < len(self):
+         for key in other:
+            if key in self: return False
+         return True
+      else:
+         for key in self:
+            if key in other: return False
+         return True
+
+   def __le__(self, other):
+      if not isinstance(other, dict):
+         raise ValueError("Cannot compare a DictAsSet with {}".format(su.a_classname(other)))
+      for key in self:
+         if key not in other or self[key] != other[key]:
+            return False
+      return True
+
+   def __lt__(self, other):
+      return self.__le__(other) and len(self) < len(other)
+
+   def __ge__(self, other):
+      if not isinstance(other, dict):
+         raise ValueError("Cannot compare a DictAsSet with {}".format(su.a_classname(other)))
+      for key in other:
+         if key not in self or self[key] != other[key]:
+            return False
+      return True
+
+   def __gt__(self, other):
+      return self.__ge__(other) and len(self) < len(other)
+
+""" <md>
+
+### Conflicts ###
+
+#### General remarks
+
+Once again: a conflict occurs when two `DictAsSet`s share a key, but the values in the two
+for that key are not the same.  One needs to be precise about how conflicts are handled  for
+each of the four set operations: union, intersection, difference and symmetric difference.
+
+> _Unions and intersections:_  For the union `a+b` and the intersection `a&b`, the keys that
+appear in both also appear in the result.  My default is to bail out by raising an exception if
+there are any conflicts, but that is far from always the best policy: just the safest, absent
+other knowledge.  The other two I provide "out of the box" here are "first wins" and "last
+wins".  To be precise: by "first wins" and "last wins", I mean that keys are considered to have
+been entered first into `a`, and then into `b`, so "first" means "`a`" and "last" means "`b`".
+
+> _Differences:_  The final `DictAsSet` for a difference `a-b` contains those key-value pairs
+that appear in `a`, but not in `b`.  Suppose that `a[key]` is not the same as `b[key]`.  What
+should happen?  I can imagine three reasonable solutions: (1) you keep `a[key]`, since it is not
+in both; (2) you ditch the key altogether and treat the difference as a function only of the key
+sets; and (3) "crash an burn": raise an exception.  My choice is (1), treat the difference as
+the difference between the two sets of key-value pairs.  I am not at all comfortable with (2),
+because a dictionary really is a set of _pairs_, not _keys_.  (3) is unnecessarily harsh.
+
+> _Symmetric differences (aka "xors"):_  If `a` and `b` are sets, their symmetric difference is
+the set of things in `a` or in `b`, but not in both.  The key thing here is the symmetry, and
+that makes conflicts difficult to handle here:
+
+>> If a key `k` is in both and `a[k]!=b[k]`, `k` will appear as a key in both `a-b` and `b-a`,
+so when we form the `DictAsSet` `a^b`, which is the union of those two differences, we have a
+problem: two values for `k`.  Unlike the other three operations, there's no "natural" 
+interpretation, in terms of practical applications, of "`a` wins" or "`b` wins".
+
+> As with differences, one could ignore the values and just look at the keys, keeping those that
+occur in one, but not both.  The objection is the same as it was for differences.  The only safe
+bet here is to crash and burn, so that's what I do.
+
+#### <code>handle_conflicts(msg, result, conflicts, sources)</code> {#handle_conflicts}
+
+is called if conflicts are discovered in computing either a union or intersection.  The first
+argument is an error message that will be used if we are bailing out by raising a
+`DictConflictError`.  The syntax of the error message is "_`op name`_ `failed`", where `op_name`
+is a short description of the call that failed.  The second argument is the result  for the
+failed operation.  The third argument is a set consisting of those keys for which conflicts were
+found.  The final argument is the array of other dictionaries that were participating in the
+union or intersection, other than the caller `self` itself.
+
+ What happens is a function of the value of `self.onconflicts`:
+
+> If it is "`die`", then the message and the set of keys having conflicts are passed through to
+the `DictConflictError` constructor, and the resulting exception is raised.
+
+> Otherwise, it must be a function `f(msg,result,conflicts,sources)` that will be called and,
+if it returns (ie. does not raise an exception), its return value will be returned as the result
+for `handle_conflicts`.  `self` is prepended to the `sources` list passed in to
+`handle_conflicts`, and the other arguments are precisely those passed into `handle_conflicts`.
+This should provide enough context for just about any recovery procedure.
+
+One final design issue is: if the policy is to fail on conflicts, should we fail at the first
+conflict, or wait until we've seen them all?  I decided to wait, because in the case where you
+are rolling your own conflict handler, you can see the whole situation at once.  
+
+""" # </md>
+      
+   def handle_conflicts(self, msg, result, conflicts, others):
+      all_sources = [result]+list(others)
+      if self.onconflicts == "die":
+         raise DictConflictError(msg, result, conflicts, all_sources)
+      elif callable(self.onconflicts):
+         return self.onconflicts(msg, result, conflicts, all_sources)
+      else: # this should never happen
+         err = "Unexpected value, '{}', for self.onconflicts."
+         raise ValueError(err.format(self.onconflicts))
+
+""" <md>
+
+### Binary operators <code>+, +=, -, -=, &amp;, &amp;=, ^, ^=</code> for set operations
+
+I implement the binary operators "`+`" for union,  "`-`" for difference, "`&`" for intersection,
+and "`^`" for symmetric difference.  In each case, the right-hand operand need only be an
+instance of `dict`, not necessarily of `DictAsSet`.  No type checking is done on the keys or the
+values.  The result is a new `DictAsSet` that contains all the relevant key-value pairs. 
+
+""" # </md>
+
+   def _validate_other(other, op):
+      if not isinstance(other, dict):
+         msg = "{} right operand is a {}, not a dict."
+         raise ValueError(msg.format(op), su.a_classname(other))
+
+   def __add__(self, other):
+      answer = self.copy()
+      answer.__iadd__(other)
+      return answer
+
+   def __iadd__(self, other):
+      DictAsSet._validate_other(other, "+")
+      conflicts = set()
+      if self.onconflicts == "first":
+         for key in other:
+            if key not in self: 
+               self[key] = other[key]
+      elif self.onconflicts == "last":
+         for key in other: 
+            self[key] = other[key]
+      else:
+         for key in other:
+            if key in self:
+               if self[key] != other[key]:
+                  conflicts.add(key)
+            else:
+               self[key] = other[key]
+      if len(conflicts) > 0:
+         msg = "add in place failed"
+         return self.handle_conflicts(msg, answer, conflicts, [other])
+      else:
+         return self
+
+   def __and__(self, other):
+      answer = self.copy()
+      answer.__iand__(other)
+      return answer
+
+   def __iand__(self, other):
+      # we have to be careful NOT to delete from self while iterating over self
+      # so we iterate over the dead bodies.
+      DictAsSet._validate_other(other, "&")
+      dead = set(self.keys()) - set(other.keys()) 
+      for key in dead:
+         del self[key]
+      if self.onconflicts == "first":
+         return self
+      elif self.onconflicts == "last":
+         for key in self:
+            self[key] = other[key]
+         return self
+      else:
+         conflicts = set()
+         for key in  self:
+            if self[key] != other[key]:
+               conflicts.add(key)
+               print("iand conflict: '{}'".format(key))
+         if len(conflicts) == 0:
+            return self
+         else:
+            for key in conflicts:
+               self.discard(key)
+            msg = "'and 'in place failed"
+            return self.handle_conflicts(msg, self, conflicts, [other])
+
+   def __sub__(self, other):
+      answer = self.copy()
+      answer -= other
+      return answer
+
+   def __isub__(self, other):
+      DictAsSet._validate_other(other, "-")
+      common_keys = set(self.keys()).intersection(set(other.keys()))
+      for key in common_keys:
+         if self[key] == other[key]:
+            del self[key]
+      return self
+
+   def __xor__(self, other):
+      DictAsSet._validate_other(other, "^")
+      answer = DictAsSet(self-other, onconflicts="die")
+      answer += (other - self) # will crash and burn on duplicate keys
+      answer.onconflicts = self.onconflicts
+      return answer
+
+   def __ixor__(self, other):
+      DictAsSet._validate_other(other, "^")
+      saved = self.onconflicts
+      self.onconflicts = "die"
+      try:
+         self -= other
+         self += (other - self) # will crash and burn on duplicate keys
+      except:
+         self.onconflicts = saved
+         raise
+      else:
+         self.onconflicts = saved
+         return self
+
+""" <md>
+
+### Unions and intersections with more than two dictionaries ###
+
+Dealing with conflicts make simply repeatedly applying the binary "`+`" and "`&`" operators an
+iffy business.  For example, if "`self`" is honoring "die" or "roll your own" semantics, using
+the obvious loop to form a union from a list of `dict`s,
+
+<pre class="exampleCode">
+
+         answer = self.copy()
+         for other in others: answer += other
+
+</pre>
+
+fails at the first "`other`" that has a conflict.  Surely it is desirable, far more often than
+not, to gather _all_ of the conflicts before letting the caller know that the union failed.
+That is the _raison d'etre_ for implementing `union()` and `update_union()`.  The story for
+intersections is even more compelling.  A key in "`self`" should be in the intersection if it
+also appears in each of the other `dict`s.  A conflict occurs when the key does appear in all of
+them, but does not have the same value in each.  The loop above, with "`&`" in place of "`+`"
+does not fail that way at all.  For example, if `others[0][k]` `!=` `self[k]` for some common
+key `k`, the very first "`&`" would die, and we would never get to any later operands, _whether
+`k` is common to all the others and hence should be in the intersection, <b>or not</b>_.
+
+#### <code>intersect(&ast;others)</code> ####
+
+#### <code>update_intersect(&ast;others)</code> ####
+
+The argument "`others`" is a list of instances of `dict`.  The result is a `DictAsSet` whose
+keys are the intersection of its own keys with the key sets for the `dict`s in `others`.  The
+"update" version updates "`self`", while the vanilla version creates a new `DictAsSet`. 
+
+The semantics of a call `a.intersect(b,c,...)` are the same as the semantics of
+`((a`&amp;`b)`&amp;`c)...` if there are no conflicts, or if the policy is "first wins": the
+result in either case is simply a subset of the key/value pairs in `self`.  When there are
+conflicts and last wins, the values appearing in the resulting intersection are dependent on the
+order of evaluation.  _This is a bug waiting to be born._  If the policy is to die or to call a
+handler, the result and conflict sets passed to the conflict handler are order-independent.
+
+#### <code>union(&ast;others)</code> ####
+
+#### <code>update_union(&ast;others)</code> ####
+
+The argument "`others`" is a list of instances of `dict`.  The result is a `DictAsSet` whose
+keys are those that appear in at least one of the operands. `update_union` updates "`self`",
+while `union` creates a new `DictAsSet`.  The key set of the result is order-independent, but
+if there are conflicts and the policy is either first or last wins, the corresponding values
+are order-dependent.  If the policy is to die or call your handler, the result and
+conflict set passed to the handler are order-independent.
+
+""" # </md>
+
+   def intersect(self, *others):
+      answer = self.copy()
+      answer.update_intersect(*others)
+      return answer
+
+   def update_intersect(self, *others):
+      if (self.onconflicts in ("first", "last")) or (len(others) <= 1):
+         self &= others[0]
+         return self
+      common_keys = set(self.keys())
+      #print("keys in self: {}".format(common_keys))
+      for other in others:
+         DictAsSet._validate_other(other, "intersect")
+         common_keys &= set(other.keys())
+         self -= (self - other)
+      if len(self) ==  len(common_keys):
+         return self
+      else:
+         conflicts = common_keys - set(self.keys())
+         msg = "intersection failed."
+         return self.handle_conflicts(msg, self, conflicts, others)
+
+   def union(self, *others):
+      answer = self.copy()
+      answer.update_union(*others)
+      return answer
+
+   def update_union(self, *others):
+      if self.onconflicts in ("first", "last") or len(others)<=1:
+         for other in others:
+            self.__iadd__(other)
+         return self
+      conflicts = set()
+      for other in others:
+         DictAsSet._validate_other(other, "union")
+         new_conflicts = set()
+         for key in other:
+            if key in self:
+               if self[key] != other[key]:
+                  conflicts.add(key)
+            else:
+               self[key] = other[key]
+         conflicts.update(new_conflicts)
+      if len(conflicts) == 0:
+         return self
+      else:
+         msg = "union failed"
+         return self.handle_conflicts(msg, self, conflicts, others)
+
+""" <md>
+
+## The <code>DictConflictError</code> class {#dictconflicterror}
+
+This class extends `Exception` and is what is raised by default when conflicts are discovered.
+
+### The constructor: <code><DictConflictError(msg, result, conflicts, sources)</code>
+
+The constructor's first argument is the usual message string.  Its second is the result of the
+operation, and the third is the set of those keys that have conflicts.  The final argument is
+the source dictionaries, in order, starting with the invoking `DictAsSet`.  
+
+Be aware that if it is an in place operation that failed, the first entry in the source array
+will be the same as the result.  I may clean that one up some time, but to keep the original
+invoker around means making a (possible large) copy of it for situations that very rarely should
+arise.
+
+The argument values are assigned to attributes of the instance with the same names.
+
+""" # </md>
+
+class DictConflictError(Exception):
+   def __init__(self, msg, result, conflicts, sources):
+      Exception.__init__(self, msg)
+      self.result = result
+      self.conflicts = conflicts
+      self.sources = sources
