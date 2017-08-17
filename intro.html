@@ -192,8 +192,8 @@ The Python modules have been written for Python 3.5, and the Ruby for Ruby 2.3.2
     <span class="descr">filtered logging of debugging output.</span>
   </li>
   <li class="dirent">
-    <a class="srcfile" href="librb/doc/file_utils.html">fileutils:</a>
-    <span class="descr">utilities for organizing and backing up the files in an app.</span>
+    <a class="srcfile" href="librb/doc/fileutils.html">fileutils:</a>
+    <span class="descr">a few simple additions to the File class.</span>
   </li>
   <li class="dirent">
     <a class="srcfile" href="librb/doc/getset.html">getset:</a>
@@ -225,6 +225,10 @@ The Python modules have been written for Python 3.5, and the Ruby for Ruby 2.3.2
   <li class="dirent">
     <a class="srcfile" href="librb/doc/tracemgr.html">tracemgr:</a>
     <span class="descr">general utilities for tracing variable accesses</span>
+  </li>
+  <li class="dirent">
+    <a class="srcfile" href="librb/doc/versioning.html">versioning:</a>
+    <span class="descr">organizing and backing up the files in an app.</span>
   </li>
   <li class="dirent">
     <a class="srcfile" href="librb/doc/wildcardlookup.html">wildcardlookup:</a>
@@ -387,16 +391,19 @@ directories, are "literate" Python and Ruby.
 
 <p>
 
-In order to use <code>panpype</code> and <code>rubymd/code>, you need to install
+In order to use <code>panpype</code> and <code>rubymd</code>, you need to install
 <code>pandoc</code>.  The instructions for doing so are to be found at <a
 href="https://pandoc.org/installing.html">pandoc.org/installing.html</a>.  If you are not already
 familiar with it, I can safely recommend <code>pandoc</code> to you as a useful tool in its own
 right.
+</p>
 
 <h2> The organization of the library</h2>
 
+<p>
 In the fine tradition of Rails, I favor convention over configuration.  The directory scheme for
 this project is one example.  The top-level directory, <code>libstart</code>, contains
+</p>
 
 <ul compact> 
 <li> 

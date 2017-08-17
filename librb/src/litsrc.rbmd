@@ -49,18 +49,23 @@ commands.
 Literate programming is hardly new, but somehow, even relatively accessible tools, like
 [Javadoc,](http://www.oracle.com/technetwork/java/javase/documentation/index-jsp-135444.html) never
 made me want to write enough.  Thinking about it now, I believe the new ingredient that tipped the
-balance was markdown, as implemented by [Pandoc](http://pandoc.org). I can't tell you why that is
-so, because it was not all that hard to produce attractive, readable documentation with Javadoc. One
-factor is that the discpline that Javadoc imposes on you with the various "`@`" tags is not always
-what I'd like, and it leads to source that is cluttered.  Its formalized output has the virtue of
-providing the reader with a clear mental picture, even before the details come into focus, but the
-same formalism makes the commentary feel utterly tied to the local object of which the  commentary
-is a part.  While this makes good sense for a finished product, I don't think it does for code that
-is in flux.   I could say the same thing about the formalized comments that are the rule for
-[`pydoc`](https://www.python.org/dev/peps/pep-0257/) and [`rdoc`](https://ruby.github.io/rdoc/).
-Their virtue is the discipline they impose.  There are times when that discipline is worthwhile,
-times when (at least in my opinion) it is not.  `litcoffee` encourages you to unfold your story more
-flexibly, and that is where I wanted to go.
+balance was markdown, as implemented by [Pandoc](http://pandoc.org). 
+
+> In order to use `panpype` and `rubymd`, you need to install `pandoc`.  The instructions for doing
+so are to be found at <a href="https://pandoc.org/installing.html">pandoc.org/installing.html</a>.
+`pandoc` is a very useful tool in its own right.
+
+I can't tell you why that is so, because it was not all that hard to produce attractive, readable
+documentation with Javadoc. One factor is that the discpline that Javadoc imposes on you with the
+various "`@`" tags is not always what I'd like, and it leads to source that is cluttered.  Its
+formalized output has the virtue of providing the reader with a clear mental picture, even before
+the details come into focus, but the same formalism makes the commentary feel utterly tied to the
+local object of which the  commentary is a part.  While this makes good sense for a finished
+product, I don't think it does for code that is in flux.   I could say the same thing about the
+formalized comments that are the rule for [`pydoc`](https://www.python.org/dev/peps/pep-0257/) and
+[`rdoc`](https://ruby.github.io/rdoc/). Their virtue is the discipline they impose.  There are times
+when that discipline is worthwhile, times when (at least in my opinion) it is not.  `litcoffee`
+encourages you to unfold your story more flexibly, and that is where I wanted to go.
 
 >  I am sure I am not alone in preferring a world in which the source code is not interrupted with
 commentary any more than is necessary.  That's why I've gotten in the habit of grouping sets of
