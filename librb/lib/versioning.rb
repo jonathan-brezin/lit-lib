@@ -1,6 +1,6 @@
 
 require "dbgclient"
-require "fileutils"
+require "fileaddons"
 
 class VersionedFile < File
    include DbgClient
