@@ -19,7 +19,7 @@ source code--_e.g._ using command-line arguments to turn output on (or off!).
 
 =end
 require "callerid"
-require "fileutils"
+require "fileaddons"
 require "htmlentities"
 require 'sysutils'
 require "wildcardlookup"

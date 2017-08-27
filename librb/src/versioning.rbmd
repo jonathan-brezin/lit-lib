@@ -7,7 +7,7 @@ Tab Size: 3
 =end 
 
 require "dbgclient"
-require "fileutils"
+require "fileaddons"
 
 =begin <md>
 ## The class <code>VersionedFile &lt; File</code> ##
